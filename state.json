@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "experiment_started_at": null,
+  "pinned_models": null,
+  "next_run_idx": 0,
+  "completed_runs": [],
+  "remaining_runs": [],
+  "current_session_tokens_est": 0,
+  "current_session_started_at": null,
+  "comment": "Initial state. Populated by pre-flight script in plan 3."
+}
