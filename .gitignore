@@ -1,0 +1,31 @@
+# PHP
+/runner/vendor/
+/mock-project/vendor/
+*.phar
+
+# NOTE: composer.lock is intentionally NOT ignored — experiment requires reproducible dependency versions.
+
+# PHPUnit
+.phpunit.result.cache
+/runner/coverage/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Experiment runtime
+/worktrees/*
+!/worktrees/.gitignore
+*.log
+
+# Env secrets (om de används i framtiden)
+.env
+.env.local
+
+# Docker volumes
+/docker-data/
