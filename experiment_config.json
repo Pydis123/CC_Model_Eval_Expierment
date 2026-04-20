@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "experiment_name": "llm-dispatch-v1",
+  "plan_seed": 42,
+  "n_replicates": 3,
+  "max_iterations_per_run": 3,
+  "max_wall_clock_seconds": 1800,
+  "tiers": ["haiku", "sonnet", "opus"],
+  "task_ids": [
+    "001-i18n-status-flik",
+    "002-crud-ticket-tag",
+    "003-n-plus-one-fix",
+    "004-sla-deadline-migration",
+    "005-state-service-refactor",
+    "006-intermittent-test-bugfix",
+    "007-batch-close-rbac",
+    "008-comment-composer-alpine"
+  ],
+  "pinned_models": {
+    "haiku": null,
+    "sonnet": null,
+    "opus": null
+  },
+  "policy": "retry-only",
+  "db": {
+    "host": "127.0.0.1",
+    "port": 3307,
+    "database": "ticket_system",
+    "user": "ticket_app",
+    "password": "ticket_app_pw"
+  },
+  "comment": "pinned_models is filled by pre-flight (plan 3). task_ids match filenames in tasks/ (plan 4)."
+}
