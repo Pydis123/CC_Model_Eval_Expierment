@@ -21,6 +21,7 @@ final class CompanyController
         return $this->twig->render($response, 'admin/companies.twig', [
             'companies' => $this->companies->findAll(),
             'csrf_token' => $_SESSION['csrf_token'] ?? '',
+            'user' => $request->getAttribute('user'),
         ]);
     }
 }

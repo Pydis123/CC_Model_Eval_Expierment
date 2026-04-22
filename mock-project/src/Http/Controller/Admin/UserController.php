@@ -21,6 +21,7 @@ final class UserController
         return $this->twig->render($response, 'admin/users.twig', [
             'users' => $this->users->findAll(),
             'csrf_token' => $_SESSION['csrf_token'] ?? '',
+            'user' => $request->getAttribute('user'),
         ]);
     }
 }

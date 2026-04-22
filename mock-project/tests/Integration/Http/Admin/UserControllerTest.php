@@ -10,7 +10,6 @@ use App\Tests\Support\FixtureLoader;
 use App\Tests\Support\IntegrationTestCase;
 use Slim\Psr7\Factory\ResponseFactory;
 use Slim\Psr7\Factory\ServerRequestFactory;
-use Slim\Views\Twig;
 
 final class UserControllerTest extends IntegrationTestCase
 {
@@ -20,7 +19,7 @@ final class UserControllerTest extends IntegrationTestCase
 
         $controller = new UserController(
             new UserRepository($this->pdo),
-            Twig::create(dirname(__DIR__, 4) . '/templates')
+            $this->createTwig()
         );
 
         $response = $controller->index(

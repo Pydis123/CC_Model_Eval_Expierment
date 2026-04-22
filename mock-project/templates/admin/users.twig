@@ -1,14 +1,27 @@
-<!doctype html>
-<html><head><title>Users</title></head>
-<body>
-<h1>Users</h1>
-<table>
-<thead><tr><th>ID</th><th>Email</th><th>Name</th><th>Role</th></tr></thead>
-<tbody>
-{% for u in users %}
-    <tr><td>{{ u.id }}</td><td>{{ u.email }}</td><td>{{ u.name }}</td><td>{{ u.role }}</td></tr>
-{% endfor %}
-</tbody>
+{% extends 'layout.twig' %}
+
+{% block title %}{{ t('admin.users.title') }} — {{ t('app.name') }}{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">{{ t('admin.users.title') }}</h1>
+<table class="w-full text-sm bg-white rounded-lg shadow overflow-hidden">
+    <thead class="bg-gray-50 text-left text-gray-600">
+        <tr>
+            <th class="px-4 py-2">#</th>
+            <th class="px-4 py-2">{{ t('admin.users.header_email') }}</th>
+            <th class="px-4 py-2">{{ t('admin.users.header_name') }}</th>
+            <th class="px-4 py-2">{{ t('admin.users.header_role') }}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for u in users %}
+            <tr class="border-t border-gray-100">
+                <td class="px-4 py-2">{{ u.id }}</td>
+                <td class="px-4 py-2">{{ u.email }}</td>
+                <td class="px-4 py-2">{{ u.name }}</td>
+                <td class="px-4 py-2">{{ u.role }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
 </table>
-</body>
-</html>
+{% endblock %}

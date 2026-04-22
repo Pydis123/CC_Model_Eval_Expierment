@@ -21,6 +21,7 @@ final class CategoryController
         return $this->twig->render($response, 'admin/categories.twig', [
             'categories' => $this->categories->findAll(),
             'csrf_token' => $_SESSION['csrf_token'] ?? '',
+            'user' => $request->getAttribute('user'),
         ]);
     }
 }

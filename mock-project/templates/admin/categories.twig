@@ -1,9 +1,25 @@
-<!doctype html>
-<html><head><title>Categories</title></head>
-<body>
-<h1>Categories</h1>
-<ul>
-{% for c in categories %}<li>{{ c.id }} — {{ c.name }} (SLA {{ c.defaultSlaHours }}h)</li>{% endfor %}
-</ul>
-</body>
-</html>
+{% extends 'layout.twig' %}
+
+{% block title %}{{ t('admin.categories.title') }} — {{ t('app.name') }}{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold mb-4">{{ t('admin.categories.title') }}</h1>
+<table class="w-full text-sm bg-white rounded-lg shadow overflow-hidden">
+    <thead class="bg-gray-50 text-left text-gray-600">
+        <tr>
+            <th class="px-4 py-2">#</th>
+            <th class="px-4 py-2">{{ t('admin.categories.header_name') }}</th>
+            <th class="px-4 py-2">{{ t('admin.categories.header_sla') }}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for c in categories %}
+            <tr class="border-t border-gray-100">
+                <td class="px-4 py-2">{{ c.id }}</td>
+                <td class="px-4 py-2">{{ c.name }}</td>
+                <td class="px-4 py-2">{{ c.defaultSlaHours }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
