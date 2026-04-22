@@ -1,0 +1,7 @@
+/vendor/
+/.env
+/.env.local
+/.phpunit.cache/
+/coverage/
+*.log
+.DS_Store
