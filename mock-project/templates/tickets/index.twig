@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+<head><title>Tickets</title></head>
+<body>
+<h1>Tickets</h1>
+<ul>
+{% for row in rows %}
+    <li>#{{ row.ticket.id }} — {{ row.ticket.subject }} ({{ row.ticket.status }})
+        — assignee: {{ row.assignee ? row.assignee.name : '-' }}
+        — requester: {{ row.requester.name }}
+        — category: {{ row.category.name }}</li>
+{% endfor %}
+</ul>
+</body>
+</html>
