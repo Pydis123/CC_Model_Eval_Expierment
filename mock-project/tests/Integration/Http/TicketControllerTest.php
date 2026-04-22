@@ -15,7 +15,6 @@ use App\Tests\Support\FixtureLoader;
 use App\Tests\Support\IntegrationTestCase;
 use Slim\Psr7\Factory\ResponseFactory;
 use Slim\Psr7\Factory\ServerRequestFactory;
-use Slim\Views\Twig;
 
 final class TicketControllerTest extends IntegrationTestCase
 {
@@ -127,7 +126,7 @@ final class TicketControllerTest extends IntegrationTestCase
             new TicketRepository($this->pdo),
             new UserRepository($this->pdo),
             new CategoryRepository($this->pdo),
-            Twig::create(dirname(__DIR__, 3) . '/templates')
+            $this->createTwig()
         );
     }
 

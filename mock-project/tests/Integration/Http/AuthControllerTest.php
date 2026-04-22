@@ -12,7 +12,6 @@ use App\Http\Controller\AuthController;
 use App\Tests\Support\IntegrationTestCase;
 use Slim\Psr7\Factory\ResponseFactory;
 use Slim\Psr7\Factory\ServerRequestFactory;
-use Slim\Views\Twig;
 
 final class AuthControllerTest extends IntegrationTestCase
 {
@@ -30,7 +29,7 @@ final class AuthControllerTest extends IntegrationTestCase
 
         $controller = new AuthController(
             new AuthService($users, $hasher),
-            Twig::create(dirname(__DIR__, 3) . '/templates')
+            $this->createTwig()
         );
 
         $request = (new ServerRequestFactory())
@@ -53,7 +52,7 @@ final class AuthControllerTest extends IntegrationTestCase
 
         $controller = new AuthController(
             new AuthService($users, $hasher),
-            Twig::create(dirname(__DIR__, 3) . '/templates')
+            $this->createTwig()
         );
 
         $request = (new ServerRequestFactory())
@@ -74,7 +73,7 @@ final class AuthControllerTest extends IntegrationTestCase
         $users = new UserRepository($this->pdo);
         $controller = new AuthController(
             new AuthService($users, new PasswordHasher()),
-            Twig::create(dirname(__DIR__, 3) . '/templates')
+            $this->createTwig()
         );
 
         $request = (new ServerRequestFactory())->createServerRequest('POST', '/logout');
