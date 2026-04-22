@@ -1,66 +1,73 @@
-# Session Handoff — 2026-04-22
+# Session Handoff — 2026-04-22 (efter Plan 2a)
 
-**Detta är en temporär handoff-fil.** Ny session: läs detta + `WORKLOG.md` + `DECISIONS.md`, fråga Anders vad som ska göras härnäst. När kontexten är inhämtad och nästa arbete pågår kan filen raderas eller arkiveras.
+**Temporär handoff. Ny session: läs detta + `WORKLOG.md` + `DECISIONS.md`, fråga Anders vad som ska göras härnäst.**
 
-## Vad detta repo är
+## Var vi står
 
-Kontrollerat experiment som mäter Claude modell-tiers (Haiku / Sonnet / Opus) som subagenter i en PM-dispatch-arkitektur. Mock-projektet är ett **support-ticket-system**. Mätning: cost-to-green och time-to-green per tier per task-typ.
+Plan 1 och Plan 2a **klart**. Backend-scaffolden för `mock-project/` är på plats.
 
-## Var kontext-dokumenten ligger
+- 74 tester gröna (Unit + Integration + Smoke, 142 assertions)
+- PHPStan level 6 rent
+- Docker MariaDB (port 3307) + init-script för `ticket_system_test`-DB
+- `tools/migrate.php` + `tools/seed_demo.php` funktionella; main-DB seedad (50 tickets, 99 comments)
+- Natural-mediokert scaffold:
+  - N+1 i `TicketController::index` (guard-test passes)
+  - Inline state-machine i `TicketController::changeStatus`
+  - Planterad intermittent test i `RecentActivityService`
+  - Ingen `sla_deadline`, ingen `tags`, ingen batch-close, ingen Alpine-composer
+- `mock-project/CLAUDE.md` och all scaffolded-kod är skrubbad från experiment-referenser
 
-**Allt ligger i detta repo:**
-- `CLAUDE.md` — intern guidance för PM-sessioner här
-- `WORKLOG.md` — löpande journal
-- `DECISIONS.md` — arkitektur-/designbeslut
-- `README.md` — publicerbar beskrivning
-- `docs/superpowers/specs/2026-04-20-llm-dispatch-experiment-design.md` — fullständig spec
-- `docs/superpowers/plans/2026-04-20-llm-dispatch-experiment-phase-1-infrastructure.md` — körd plan 1
+## Nästa steg — Plan 2b
 
-Plan 2–5 skrivs och körs i detta repo. `/superpowers`-skills (brainstorming, writing-plans, executing-plans) är globala plugins och respekterar working directory — starta Claude Code i detta repos rot så hamnar nya plan-filer automatiskt på rätt path.
+**Frontend + i18n för mock-projektet.** Innehåll:
 
-## Var vi står just nu
+- Fulla Twig-templates (layout, partials)
+- Tailwind via CDN
+- Alpine.js data-attribute-komponenter (minimalt — composer-komponent är task 8:s jobb)
+- i18n-infrastruktur: `t()`, `tp()` Twig-functions, DB-baserad `i18n_strings`-tabell
+- ~150 translation-rader (sv + en)
+- ~10-15 UI-fokuserade tester + ~6 smoke-tester för renderat innehåll
 
-Plan 1 (infrastruktur) **klart**. 10 commits + tag `phase-1-complete`.
+Brainstorming + spec + plan skrivs i detta repo (samma flöde som Plan 2a).
 
-- Repot initialiserat
-- MariaDB 10.11 via `docker-compose.yml` (named volume, port 3307)
-- `runner/` med PHPUnit 11.5 installerat; `Config`-klassen är TDD:ad med 5 gröna tester
-- `experiment_config.json` frusen (8 task-IDs, N=3, max_iter=3, timeout=1800s, policy=retry-only)
-- `state.json` template (fylls av pre-flight i plan 3)
-- Mappar klara för kommande faser: `mock-project/`, `tasks/`, `results/`, `docs/`, `worktrees/`
+Slutpunkt Plan 2b: git-tag `scaffold_complete`.
 
-Verifiering:
-
-```bash
-cd /opt/homebrew/var/www/cc/llm-dispatch-experiment/runner
-./vendor/bin/phpunit   # → OK (5 tests)
-cd ..
-docker compose up -d   # → healthy on 3307
-docker compose down
-```
-
-## Nästa steg
-
-**Plan 2 — Mock-projektets base-kodbas** (~50 tasks, kan behöva delas).
-
-Innehåll: Slim 4 MVC ticket-system i `mock-project/` med ~8 controllers, ~6 repositories, auth + RBAC (Admin / Agent / Requester), i18n (sv+en), migrations, Twig-templates, Alpine-komponenter. ~60 unit-tests + ~12 smoke-tests gröna. Slutpunkt: git-tag `scaffold_complete`.
-
-Plan 2 skrivs i detta repo via `/superpowers:writing-plans` och körs därefter här.
-
-**Efter plan 2:** plan 3 (runner + evaluator), plan 4 (task-bank), plan 5 (analys + rapport).
-
-## Kritiskt att komma ihåg
-
-- **Två separata CLAUDE.md:** experimentrepots (denna mapp) refererar till experimentet och PM-rollen. Kommande `mock-project/CLAUDE.md` är generisk "typisk OSS-PHP-projekt"-nivå — **får inte** nämna experimentet. Subagenter som läser den ska inte veta att de testas.
-- **`experiment_config.json` är frozen.** Ändra inte mid-experiment utan att dokumentera i `DECISIONS.md`.
-- **Scaffolding räknas inte som experimentdata.** Experimentdata = endast körningar i plan 3 mot det då färdig-scaffoldade mock-projektet.
-- **Vissa typer av filer är heliga:** `results/results.jsonl` är append-only. `worktrees/` committas aldrig (gitignored).
-
-## Hur man startar en session i detta repo
+## Verifiering av nuvarande state
 
 ```bash
 cd /opt/homebrew/var/www/cc/llm-dispatch-experiment
-# Starta Claude Code här (inte i bokningssidan-mappen)
+docker compose ps                      # → llm-dispatch-mariadb Up (healthy)
+cd mock-project
+./vendor/bin/phpunit                   # → OK (74 tests, 142 assertions)
+./vendor/bin/phpstan analyse           # → [OK] No errors
+php tools/seed_demo.php                # → "Users table already populated, skipping"
 ```
 
-Då blir detta repo "projektet" från Claude Codes perspektiv. Auto-memory, `/endsession`, CLAUDE.md-läsning — allt peker här.
+## Efter Plan 2b
+
+- Plan 3: runner + evaluator + state_manager + model_pin_check
+- Plan 4: task-bank (8 task-prompts + success criteria)
+- Plan 5: analys + rapport-template
+
+## Referenser
+
+- Plan 2a-spec: `docs/superpowers/specs/2026-04-22-mock-project-backend-scaffold-design.md`
+- Plan 2a: `docs/superpowers/plans/2026-04-22-mock-project-backend-scaffold.md`
+- Master-spec: `docs/superpowers/specs/2026-04-20-llm-dispatch-experiment-design.md`
+- WORKLOG: `WORKLOG.md` (detaljerad Plan 2a-sammanfattning + avvikelser)
+- DECISIONS: `DECISIONS.md`
+
+## Kör inte om
+
+- **Ändra inte `mock-project/CLAUDE.md`** — den är explicit generisk för att inte biasa subagenter i experimentet
+- **Ändra inte `docker-compose.yml` port 3307** — det är det frusna valet i `experiment_config.json`
+- **Ändra inte `.env.example`** — port ska vara 3307 (docker-forward), inte host-MariaDB:s 3306
+
+## Hur man återupptar
+
+```bash
+cd /opt/homebrew/var/www/cc/llm-dispatch-experiment
+# Starta Claude Code här
+```
+
+Anders triggar med fråga om vi kör Plan 2b eller något annat.
