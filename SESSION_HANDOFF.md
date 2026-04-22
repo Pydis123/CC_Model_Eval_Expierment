@@ -8,17 +8,15 @@ Kontrollerat experiment som mäter Claude modell-tiers (Haiku / Sonnet / Opus) s
 
 ## Var kontext-dokumenten ligger
 
-**I detta repo:**
+**Allt ligger i detta repo:**
 - `CLAUDE.md` — intern guidance för PM-sessioner här
 - `WORKLOG.md` — löpande journal
 - `DECISIONS.md` — arkitektur-/designbeslut
 - `README.md` — publicerbar beskrivning
+- `docs/superpowers/specs/2026-04-20-llm-dispatch-experiment-design.md` — fullständig spec
+- `docs/superpowers/plans/2026-04-20-llm-dispatch-experiment-phase-1-infrastructure.md` — körd plan 1
 
-**I bokningssidan-repot (där designarbete skedde):**
-- `/opt/homebrew/var/www/cc/new.bokningssidan.nu/docs/superpowers/specs/2026-04-20-llm-dispatch-experiment-design.md` — fullständig spec
-- `/opt/homebrew/var/www/cc/new.bokningssidan.nu/docs/superpowers/plans/2026-04-20-llm-dispatch-experiment-phase-1-infrastructure.md` — körd plan 1
-
-Dessa filer stannar i bokningssidan-repot. Plan 2–5 skrivs där och körs här. Skälet: `/superpowers`-slash-kommandona är kopplade till bokningssidan-sessionen.
+Plan 2–5 skrivs och körs i detta repo. `/superpowers`-skills (brainstorming, writing-plans, executing-plans) är globala plugins och respekterar working directory — starta Claude Code i detta repos rot så hamnar nya plan-filer automatiskt på rätt path.
 
 ## Var vi står just nu
 

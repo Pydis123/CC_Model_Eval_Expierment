@@ -7,6 +7,7 @@
 
 # PHPUnit
 .phpunit.result.cache
+/runner/.phpunit.cache/
 /runner/coverage/
 
 # IDE
