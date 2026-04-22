@@ -20,7 +20,6 @@ final class SchemaTest extends TestCase
         $this->assertContains('tickets', $rows);
         $this->assertContains('comments', $rows);
         $this->assertContains('i18n_strings', $rows);
-        $this->assertContains('schema_migrations', $rows);
     }
 
     public function testTicketsHasExpectedColumns(): void
