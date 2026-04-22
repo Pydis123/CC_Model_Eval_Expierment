@@ -7,14 +7,17 @@ namespace App\Tests\Integration\Http;
 use App\Domain\Entity\Category;
 use App\Domain\Entity\Ticket;
 use App\Domain\Entity\User;
+use App\Domain\I18n\I18nLoader;
 use App\Domain\Repository\CategoryRepository;
 use App\Domain\Repository\TicketRepository;
 use App\Domain\Repository\UserRepository;
 use App\Http\Controller\TicketController;
+use App\Http\I18nExtension;
 use App\Tests\Support\FixtureLoader;
 use App\Tests\Support\IntegrationTestCase;
 use Slim\Psr7\Factory\ResponseFactory;
 use Slim\Psr7\Factory\ServerRequestFactory;
+use Slim\Views\Twig;
 
 final class TicketControllerTest extends IntegrationTestCase
 {
@@ -118,6 +121,33 @@ final class TicketControllerTest extends IntegrationTestCase
 
         // 10 tickets × 3 lookups + 1 findAll ≈ 31 queries. Guard: must be > 20 to prove N+1.
         $this->assertGreaterThan(20, $queries, 'Expected natural N+1; got only ' . $queries . ' queries');
+    }
+
+    public function testIndexRendersSwedishLabels(): void
+    {
+        (new FixtureLoader($this->pdo))->seedMinimal();
+
+        $twig = Twig::create(dirname(__DIR__, 3) . '/templates');
+        $strings = (new I18nLoader($this->pdo))->forLocale('sv');
+        $twig->addExtension(new I18nExtension($strings));
+        $twig->getEnvironment()->addGlobal('locale', 'sv');
+
+        $controller = new TicketController(
+            new TicketRepository($this->pdo),
+            new UserRepository($this->pdo),
+            new CategoryRepository($this->pdo),
+            $twig
+        );
+
+        $response = $controller->index(
+            (new ServerRequestFactory())->createServerRequest('GET', '/tickets'),
+            (new ResponseFactory())->createResponse()
+        );
+
+        $body = (string) $response->getBody();
+        $this->assertStringContainsString('Ärenden', $body);
+        $this->assertStringContainsString('Ämne', $body);
+        $this->assertStringContainsString('Status', $body);
     }
 
     private function controller(): TicketController
