@@ -1,0 +1,14 @@
+<!doctype html>
+<html><head><title>Users</title></head>
+<body>
+<h1>Users</h1>
+<table>
+<thead><tr><th>ID</th><th>Email</th><th>Name</th><th>Role</th></tr></thead>
+<tbody>
+{% for u in users %}
+    <tr><td>{{ u.id }}</td><td>{{ u.email }}</td><td>{{ u.name }}</td><td>{{ u.role }}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</body>
+</html>
