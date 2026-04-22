@@ -47,6 +47,7 @@ final class TicketController
         return $this->twig->render($response, 'tickets/index.twig', [
             'rows' => $rows,
             'csrf_token' => $_SESSION['csrf_token'] ?? '',
+            'user' => $request->getAttribute('user'),
         ]);
     }
 
@@ -67,6 +68,7 @@ final class TicketController
             'requester' => $this->users->findById($ticket->requesterUserId),
             'category' => $this->categories->findById($ticket->categoryId),
             'csrf_token' => $_SESSION['csrf_token'] ?? '',
+            'user' => $request->getAttribute('user'),
         ]);
     }
 
@@ -75,6 +77,7 @@ final class TicketController
         return $this->twig->render($response, 'tickets/new.twig', [
             'categories' => $this->categories->findAll(),
             'csrf_token' => $_SESSION['csrf_token'] ?? '',
+            'user' => $request->getAttribute('user'),
         ]);
     }
 

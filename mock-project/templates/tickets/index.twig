@@ -1,15 +1,60 @@
-<!doctype html>
-<html>
-<head><title>Tickets</title></head>
-<body>
-<h1>Tickets</h1>
-<ul>
-{% for row in rows %}
-    <li>#{{ row.ticket.id }} — {{ row.ticket.subject }} ({{ row.ticket.status }})
-        — assignee: {{ row.assignee ? row.assignee.name : '-' }}
-        — requester: {{ row.requester.name }}
-        — category: {{ row.category.name }}</li>
-{% endfor %}
-</ul>
-</body>
-</html>
+{% extends 'layout.twig' %}
+
+{% block title %}{{ t('tickets.index.title') }} — {{ t('app.name') }}{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+    <h1 class="text-2xl font-semibold">{{ t('tickets.index.title') }}</h1>
+    <a href="/tickets/new" class="bg-blue-600 text-white text-sm rounded px-3 py-2 hover:bg-blue-700">
+        {{ t('tickets.index.new_button') }}
+    </a>
+</div>
+
+{% if rows is empty %}
+    <p class="text-gray-600">{{ t('tickets.index.empty') }}</p>
+{% else %}
+    <div x-data="{ selected: 'all' }" class="space-y-4">
+        <div class="flex gap-2 border-b border-gray-200">
+            {% set filters = ['all', 'new', 'open', 'pending', 'resolved', 'closed'] %}
+            {% for f in filters %}
+                <button type="button" @click="selected = '{{ f }}'"
+                        :class="selected === '{{ f }}' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-600 hover:text-gray-900'"
+                        class="px-3 py-2 text-sm border-b-2 -mb-px">
+                    {{ t('tickets.filter.' ~ f)|default(t('tickets.status.' ~ f)) }}
+                </button>
+            {% endfor %}
+        </div>
+
+        <table class="w-full text-sm">
+            <thead class="text-left text-gray-600 border-b border-gray-200">
+                <tr>
+                    <th class="py-2 pr-4">{{ t('tickets.index.header_subject') }}</th>
+                    <th class="py-2 pr-4">{{ t('tickets.index.header_status') }}</th>
+                    <th class="py-2 pr-4">{{ t('tickets.index.header_requester') }}</th>
+                    <th class="py-2 pr-4">{{ t('tickets.index.header_assignee') }}</th>
+                    <th class="py-2 pr-4">{{ t('tickets.index.header_category') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                    <tr data-status="{{ row.ticket.status }}"
+                        x-show="selected === 'all' || selected === '{{ row.ticket.status }}'"
+                        class="border-b border-gray-100">
+                        <td class="py-2 pr-4">
+                            <a href="/tickets/{{ row.ticket.id }}" class="text-blue-700 hover:underline">
+                                #{{ row.ticket.id }} — {{ row.ticket.subject }}
+                            </a>
+                        </td>
+                        <td class="py-2 pr-4">
+                            {% include 'partials/_status_badge.twig' with { status: row.ticket.status } %}
+                        </td>
+                        <td class="py-2 pr-4">{{ row.requester.name }}</td>
+                        <td class="py-2 pr-4">{{ row.assignee ? row.assignee.name : '—' }}</td>
+                        <td class="py-2 pr-4">{{ row.category.name }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+{% endblock %}
