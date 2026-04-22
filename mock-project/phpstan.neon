@@ -2,3 +2,8 @@ parameters:
     level: 6
     paths:
         - src
+    ignoreErrors:
+        # Slim's App<ContainerInterface> generic signature produces noise
+        # when we do not have a reason to narrow the container type.
+        - '#generic class Slim\\App does not specify its types: TContainerInterface#'
+        - '#generic class Slim\\App but does not specify its types: TContainerInterface#'

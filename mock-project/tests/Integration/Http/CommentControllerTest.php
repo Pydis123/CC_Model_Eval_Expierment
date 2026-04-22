@@ -70,7 +70,6 @@ final class CommentControllerTest extends IntegrationTestCase
         return new CommentController(
             new TicketRepository($this->pdo),
             new CommentRepository($this->pdo),
-            new UserRepository($this->pdo),
             Twig::create(dirname(__DIR__, 3) . '/templates')
         );
     }

@@ -8,7 +8,6 @@ use App\Domain\Entity\Comment;
 use App\Domain\Entity\User;
 use App\Domain\Repository\CommentRepository;
 use App\Domain\Repository\TicketRepository;
-use App\Domain\Repository\UserRepository;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Slim\Views\Twig;
@@ -18,7 +17,6 @@ final class CommentController
     public function __construct(
         private readonly TicketRepository $tickets,
         private readonly CommentRepository $comments,
-        private readonly UserRepository $users,
         private readonly Twig $twig,
     ) {}
 
