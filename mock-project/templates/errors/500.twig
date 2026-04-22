@@ -1,0 +1,10 @@
+{% extends 'layout.twig' %}
+
+{% block title %}{{ t('errors.500.title') }}{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto mt-10 text-center">
+    <h1 class="text-3xl font-semibold text-gray-900 mb-2">{{ t('errors.500.title') }}</h1>
+    <p class="text-gray-600">{{ t('errors.500.message') }}</p>
+</div>
+{% endblock %}
