@@ -1,0 +1,11 @@
+<!doctype html>
+<html><head><title>Comments</title></head>
+<body>
+<h1>Comments on ticket #{{ ticket.id }}</h1>
+<ul>
+{% for c in comments %}
+    <li>{{ c.body }} — by user #{{ c.authorUserId }}</li>
+{% endfor %}
+</ul>
+</body>
+</html>
