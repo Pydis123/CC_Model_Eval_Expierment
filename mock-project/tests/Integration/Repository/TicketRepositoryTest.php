@@ -87,13 +87,13 @@ final class TicketRepositoryTest extends TestCase
 
     public function testFindAllDoesNotJoinRelatedTables(): void
     {
-        // Natural-mediocrity guard: findAll must return ONLY ticket columns.
-        // Controller is expected to fetch assignee/requester/category per ticket in a loop.
+        // Guard: findAll returns ticket columns only; callers load related
+        // entities themselves. Adding JOINs here would be a design change.
         $this->repo->insert(new Ticket(null, 'x', 'd', 'new', null, $this->requesterId, $this->categoryId));
 
         $reflection = new \ReflectionClass(TicketRepository::class);
         $method = $reflection->getMethod('findAll');
         $source = file_get_contents($method->getFileName());
-        $this->assertStringNotContainsString('JOIN', strtoupper($source ?: ''), 'findAll must NOT use JOINs (natural mediocrity for task 3)');
+        $this->assertStringNotContainsString('JOIN', strtoupper($source ?: ''), 'findAll must NOT use JOINs');
     }
 }

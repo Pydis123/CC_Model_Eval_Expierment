@@ -62,9 +62,8 @@ final class Routes
             ->add(new RoleMiddleware(['admin']))
             ->add(new AuthMiddleware($c->get(UserRepository::class)));
 
-        // Admin API group (skelett — task 7 i experimentet lägger batch-close)
+        // Admin JSON API group — admin-only, routes added as features are built.
         $app->group('/api/admin', function (RouteCollectorProxy $g) {
-            // No admin API routes yet — added by experiment tasks.
         })
             ->add(new RoleMiddleware(['admin']))
             ->add(new AuthMiddleware($c->get(UserRepository::class)));

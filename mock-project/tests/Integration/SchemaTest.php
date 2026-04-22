@@ -32,7 +32,7 @@ final class SchemaTest extends TestCase
         $this->assertContains('assignee_user_id', $cols);
         $this->assertContains('requester_user_id', $cols);
         $this->assertContains('category_id', $cols);
-        $this->assertNotContains('sla_deadline', $cols, 'sla_deadline should NOT exist yet (added in experiment task 4)');
+        $this->assertNotContains('sla_deadline', $cols, 'sla_deadline is not part of the tickets schema');
     }
 
     public function testForeignKeysAreEnforced(): void

@@ -99,8 +99,8 @@ final class TicketControllerTest extends IntegrationTestCase
 
     public function testIndexIssuesExpectedQueryCount(): void
     {
-        // Natural-mediocrity documentation test:
-        // index() should issue ~1 + 3N queries (natural N+1). Task 3 fixes this.
+        // Baseline query count: index() issues ~1 + 3N queries today because
+        // each ticket's related user/category is fetched individually.
         $fixtures = new FixtureLoader($this->pdo);
         $ids = $fixtures->seedMinimal();
         $fixtures->seedManyTickets(5, $ids['requesters'][0], $ids['categories'][0], $ids['agents'][0]);
