@@ -45,7 +45,7 @@ docker compose down
 
 Innehåll: Slim 4 MVC ticket-system i `mock-project/` med ~8 controllers, ~6 repositories, auth + RBAC (Admin / Agent / Requester), i18n (sv+en), migrations, Twig-templates, Alpine-komponenter. ~60 unit-tests + ~12 smoke-tests gröna. Slutpunkt: git-tag `scaffold_complete`.
 
-Plan 2 skrivs först i bokningssidan-repot via `/superpowers:writing-plans`. Sen körs den här.
+Plan 2 skrivs i detta repo via `/superpowers:writing-plans` och körs därefter här.
 
 **Efter plan 2:** plan 3 (runner + evaluator), plan 4 (task-bank), plan 5 (analys + rapport).
 
