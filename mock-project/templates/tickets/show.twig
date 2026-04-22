@@ -1,0 +1,11 @@
+<!doctype html>
+<html><head><title>Ticket #{{ ticket.id }}</title></head>
+<body>
+<h1>{{ ticket.subject }}</h1>
+<p>Status: {{ ticket.status }}</p>
+<p>{{ ticket.description }}</p>
+<p>Assignee: {{ assignee ? assignee.name : '-' }}</p>
+<p>Requester: {{ requester.name }}</p>
+<p>Category: {{ category.name }}</p>
+</body>
+</html>
