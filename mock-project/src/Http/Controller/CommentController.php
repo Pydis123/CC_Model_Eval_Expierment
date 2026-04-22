@@ -35,6 +35,7 @@ final class CommentController
             'ticket' => $ticket,
             'comments' => $this->comments->findByTicket($ticketId),
             'csrf_token' => $_SESSION['csrf_token'] ?? '',
+            'user' => $request->getAttribute('user'),
         ]);
     }
 

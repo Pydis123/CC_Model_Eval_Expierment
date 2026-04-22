@@ -13,7 +13,6 @@ use App\Tests\Support\FixtureLoader;
 use App\Tests\Support\IntegrationTestCase;
 use Slim\Psr7\Factory\ResponseFactory;
 use Slim\Psr7\Factory\ServerRequestFactory;
-use Slim\Views\Twig;
 
 final class CommentControllerTest extends IntegrationTestCase
 {
@@ -70,7 +69,7 @@ final class CommentControllerTest extends IntegrationTestCase
         return new CommentController(
             new TicketRepository($this->pdo),
             new CommentRepository($this->pdo),
-            Twig::create(dirname(__DIR__, 3) . '/templates')
+            $this->createTwig()
         );
     }
 }

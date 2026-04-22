@@ -1,11 +1,64 @@
-<!doctype html>
-<html><head><title>Ticket #{{ ticket.id }}</title></head>
-<body>
-<h1>{{ ticket.subject }}</h1>
-<p>Status: {{ ticket.status }}</p>
-<p>{{ ticket.description }}</p>
-<p>Assignee: {{ assignee ? assignee.name : '-' }}</p>
-<p>Requester: {{ requester.name }}</p>
-<p>Category: {{ category.name }}</p>
-</body>
-</html>
+{% extends 'layout.twig' %}
+
+{% block title %}#{{ ticket.id }} — {{ ticket.subject }}{% endblock %}
+
+{% block content %}
+<article class="bg-white rounded-lg shadow p-6 space-y-4">
+    <header class="flex items-start justify-between">
+        <div>
+            <h1 class="text-2xl font-semibold">{{ ticket.subject }}</h1>
+            <p class="text-sm text-gray-500">#{{ ticket.id }}</p>
+        </div>
+        {% include 'partials/_status_badge.twig' with { status: ticket.status } %}
+    </header>
+
+    <dl class="grid grid-cols-2 gap-4 text-sm">
+        <div>
+            <dt class="text-gray-500">{{ t('tickets.show.requester') }}</dt>
+            <dd>{{ requester.name }}</dd>
+        </div>
+        <div>
+            <dt class="text-gray-500">{{ t('tickets.show.assignee') }}</dt>
+            <dd>{{ assignee ? assignee.name : '—' }}</dd>
+        </div>
+        <div>
+            <dt class="text-gray-500">{{ t('tickets.show.category') }}</dt>
+            <dd>{{ category.name }}</dd>
+        </div>
+        <div>
+            <dt class="text-gray-500">{{ t('tickets.show.created_at') }}</dt>
+            <dd>{{ ticket.createdAt ? ticket.createdAt|date('Y-m-d H:i') : '' }}</dd>
+        </div>
+    </dl>
+
+    <section>
+        <h2 class="text-sm font-semibold text-gray-700 mb-1">{{ t('tickets.show.description') }}</h2>
+        <p class="text-sm whitespace-pre-line">{{ ticket.description }}</p>
+    </section>
+
+    {% if user and user.role in ['admin', 'agent'] %}
+        <section class="pt-4 border-t border-gray-200" x-data="{ confirmOpen: false }">
+            <h2 class="text-sm font-semibold text-gray-700 mb-2">{{ t('tickets.show.change_status') }}</h2>
+            <form method="post" action="/tickets/{{ ticket.id }}/status" x-ref="confirmForm" class="flex gap-2">
+                <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+                <select name="status" class="border border-gray-300 rounded px-3 py-2 text-sm">
+                    {% for s in ['new', 'open', 'pending', 'resolved', 'closed'] %}
+                        <option value="{{ s }}" {% if s == ticket.status %}selected{% endif %}>{{ t('tickets.status.' ~ s) }}</option>
+                    {% endfor %}
+                </select>
+                <button type="button" @click="confirmOpen = true"
+                        class="bg-blue-600 text-white text-sm rounded px-3 py-2 hover:bg-blue-700">
+                    {{ t('tickets.show.change_status') }}
+                </button>
+            </form>
+            {% include 'partials/_confirm_modal.twig' %}
+        </section>
+    {% endif %}
+
+    <footer class="pt-4 border-t border-gray-200">
+        <a href="/tickets/{{ ticket.id }}/comments" class="text-sm text-blue-700 hover:underline">
+            {{ t('comments.list.title') }}
+        </a>
+    </footer>
+</article>
+{% endblock %}
