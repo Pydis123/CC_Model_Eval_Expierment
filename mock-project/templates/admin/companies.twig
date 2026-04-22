@@ -1,0 +1,9 @@
+<!doctype html>
+<html><head><title>Companies</title></head>
+<body>
+<h1>Companies</h1>
+<ul>
+{% for c in companies %}<li>{{ c.id }} — {{ c.name }}</li>{% endfor %}
+</ul>
+</body>
+</html>
