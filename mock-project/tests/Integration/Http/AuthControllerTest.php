@@ -91,10 +91,10 @@ final class AuthControllerTest extends IntegrationTestCase
 
     public function testLoginViewRendersSwedishLabels(): void
     {
+        $_SESSION['locale'] = 'sv';
+        $loader = new I18nLoader($this->pdo);
         $twig = Twig::create(dirname(__DIR__, 3) . '/templates');
-        $strings = (new I18nLoader($this->pdo))->forLocale('sv');
-        $twig->addExtension(new I18nExtension($strings));
-        $twig->getEnvironment()->addGlobal('locale', 'sv');
+        $twig->addExtension(new I18nExtension(fn(string $l) => $loader->forLocale($l)));
 
         $users = new UserRepository($this->pdo);
         $hasher = new PasswordHasher();

@@ -32,7 +32,7 @@ abstract class IntegrationTestCase extends TestCase
     protected function createTwig(): Twig
     {
         $twig = Twig::create(dirname(__DIR__, 2) . '/templates');
-        $twig->addExtension(new I18nExtension([]));
+        $twig->addExtension(new I18nExtension(fn(string $locale) => []));
         return $twig;
     }
 }

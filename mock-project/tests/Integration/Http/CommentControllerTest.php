@@ -71,10 +71,10 @@ final class CommentControllerTest extends IntegrationTestCase
     {
         $ids = (new FixtureLoader($this->pdo))->seedMinimal();
 
+        $_SESSION['locale'] = 'sv';
+        $loader = new I18nLoader($this->pdo);
         $twig = Twig::create(dirname(__DIR__, 3) . '/templates');
-        $strings = (new I18nLoader($this->pdo))->forLocale('sv');
-        $twig->addExtension(new I18nExtension($strings));
-        $twig->getEnvironment()->addGlobal('locale', 'sv');
+        $twig->addExtension(new I18nExtension(fn(string $l) => $loader->forLocale($l)));
 
         $controller = new CommentController(
             new TicketRepository($this->pdo),

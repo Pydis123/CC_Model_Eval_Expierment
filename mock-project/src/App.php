@@ -53,9 +53,8 @@ final class App
         $container->set(I18nLoader::class, fn(Container $c) => new I18nLoader($c->get(PDO::class)));
 
         $container->set(I18nExtension::class, function (Container $c) {
-            $locale = $_SESSION['locale'] ?? 'sv';
-            $strings = $c->get(I18nLoader::class)->forLocale($locale);
-            return new I18nExtension($strings);
+            $loader = $c->get(I18nLoader::class);
+            return new I18nExtension(fn(string $locale) => $loader->forLocale($locale));
         });
 
         $container->set(Twig::class, function (Container $c) {
@@ -64,7 +63,6 @@ final class App
                 ['cache' => false, 'debug' => true, 'auto_reload' => true]
             );
             $twig->addExtension($c->get(I18nExtension::class));
-            $twig->getEnvironment()->addGlobal('locale', $_SESSION['locale'] ?? 'sv');
             return $twig;
         });
 
