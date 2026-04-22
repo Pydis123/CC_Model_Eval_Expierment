@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App;
 
+use App\Domain\I18n\I18nLoader;
 use App\Domain\Repository\CategoryRepository;
 use App\Domain\Repository\CommentRepository;
 use App\Domain\Repository\CompanyRepository;
@@ -11,6 +12,8 @@ use App\Domain\Repository\TicketRepository;
 use App\Domain\Repository\UserRepository;
 use App\Domain\Service\AuthService;
 use App\Domain\Service\PasswordHasher;
+use App\Http\Controller\LocaleController;
+use App\Http\I18nExtension;
 use App\Support\Database;
 use DI\Container;
 use PDO;
@@ -47,11 +50,22 @@ final class App
             return Database::connect($c->get(Config::class));
         });
 
-        $container->set(Twig::class, function () {
-            return Twig::create(
+        $container->set(I18nLoader::class, fn(Container $c) => new I18nLoader($c->get(PDO::class)));
+
+        $container->set(I18nExtension::class, function (Container $c) {
+            $locale = $_SESSION['locale'] ?? 'sv';
+            $strings = $c->get(I18nLoader::class)->forLocale($locale);
+            return new I18nExtension($strings);
+        });
+
+        $container->set(Twig::class, function (Container $c) {
+            $twig = Twig::create(
                 dirname(__DIR__) . '/templates',
                 ['cache' => false, 'debug' => true, 'auto_reload' => true]
             );
+            $twig->addExtension($c->get(I18nExtension::class));
+            $twig->getEnvironment()->addGlobal('locale', $_SESSION['locale'] ?? 'sv');
+            return $twig;
         });
 
         $container->set(PasswordHasher::class, fn() => new PasswordHasher());
@@ -64,6 +78,7 @@ final class App
             $c->get(UserRepository::class),
             $c->get(PasswordHasher::class)
         ));
+        $container->set(LocaleController::class, fn() => new LocaleController());
 
         return $container;
     }

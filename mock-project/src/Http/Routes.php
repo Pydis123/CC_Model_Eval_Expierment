@@ -4,17 +4,16 @@ declare(strict_types=1);
 
 namespace App\Http;
 
-use App\Domain\Repository\CategoryRepository;
-use App\Domain\Repository\CommentRepository;
-use App\Domain\Repository\TicketRepository;
 use App\Domain\Repository\UserRepository;
 use App\Http\Controller\Admin;
 use App\Http\Controller\AuthController;
 use App\Http\Controller\CommentController;
 use App\Http\Controller\HealthController;
+use App\Http\Controller\LocaleController;
 use App\Http\Controller\TicketController;
 use App\Http\Middleware\AuthMiddleware;
 use App\Http\Middleware\CsrfMiddleware;
+use App\Http\Middleware\LocaleMiddleware;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Middleware\SessionMiddleware;
 use Slim\App as SlimApp;
@@ -24,7 +23,10 @@ final class Routes
 {
     public static function register(SlimApp $app): void
     {
+        // Middleware stack (LIFO: last added runs outermost).
+        // Desired outer→inner: Session → Locale → Csrf → (route-specific Auth/Role).
         $app->add(CsrfMiddleware::class);
+        $app->add(LocaleMiddleware::class);
         $app->add(SessionMiddleware::class);
 
         $c = $app->getContainer();
@@ -35,6 +37,9 @@ final class Routes
         // Auth (public)
         $app->get('/login', [AuthController::class, 'showLogin']);
         $app->post('/login', [AuthController::class, 'login']);
+
+        // Locale switch (public)
+        $app->get('/locale/{code}', [LocaleController::class, 'set']);
 
         // Authenticated HTML routes
         $app->group('', function (RouteCollectorProxy $g) {
