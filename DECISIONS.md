@@ -72,6 +72,12 @@ Alternativ övervägda: invoice-system (för regel-tungt), inventory (torrare af
 
 **Motivering:** Docker Desktop på macOS nekar bind-mounts från `/opt/homebrew/...` utan File Sharing-konfig. Named volume kräver ingen host-konfig, är lika reproducerbart för experimentets syfte, och tar bort peer-review-friktion.
 
+## 2026-04-22 — All experimentdokumentation i detta repo
+
+**Beslut:** Spec, plan-filer och all experimentrelaterad dokumentation ligger i detta repo. Ingenting i bokningssidan-repot.
+
+**Motivering:** `/superpowers`-skills (brainstorming, writing-plans, executing-plans) är globala Claude Code-plugins som respekterar working directory — ingen teknisk koppling till bokningssidan-sessionen. Att ha experimentet helt självständigt eliminerar risk för förvirring om vilka filer hör hemma var, förenklar peer-review-publicering, och gör sessionshanteringen renare. Plan 2–5 skrivs och körs i detta repo (med Claude Code startad i repots rot).
+
 ## 2026-04-22 — Separation mellan experiment-repots och mock-projektets CLAUDE.md
 
 **Beslut:** `/CLAUDE.md` (experiment-repots) refererar öppet till experimentet, PM-rollen, runner-protokoll. `mock-project/CLAUDE.md` (kommer i plan 2) är generisk "typisk OSS-PHP-projekt"-dokumentation — ingen referens till experimentet.
