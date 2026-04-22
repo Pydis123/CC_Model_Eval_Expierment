@@ -13,17 +13,17 @@ final class I18nLoaderTest extends IntegrationTestCase
     {
         $this->pdo->exec(
             "INSERT INTO i18n_strings (locale, key_name, value) VALUES
-             ('sv', 'nav.tickets', 'Ärenden'),
-             ('sv', 'nav.logout', 'Logga ut'),
-             ('en', 'nav.tickets', 'Tickets')"
+             ('sv', '__test__.nav.tickets', 'Ärenden'),
+             ('sv', '__test__.nav.logout', 'Logga ut'),
+             ('en', '__test__.nav.tickets', 'Tickets')"
         );
 
         $loader = new I18nLoader($this->pdo);
         $sv = $loader->forLocale('sv');
 
-        $this->assertSame('Ärenden', $sv['nav.tickets']);
-        $this->assertSame('Logga ut', $sv['nav.logout']);
-        $this->assertArrayNotHasKey('en.nav.tickets', $sv);
+        $this->assertSame('Ärenden', $sv['__test__.nav.tickets']);
+        $this->assertSame('Logga ut', $sv['__test__.nav.logout']);
+        $this->assertArrayNotHasKey('en.__test__.nav.tickets', $sv);
     }
 
     public function testReturnsEmptyArrayForUnknownLocale(): void
@@ -37,13 +37,13 @@ final class I18nLoaderTest extends IntegrationTestCase
     {
         $this->pdo->exec(
             "INSERT INTO i18n_strings (locale, key_name, value) VALUES
-             ('sv', 'shared.key', 'Svenska'),
-             ('en', 'shared.key', 'English')"
+             ('sv', '__test__.shared.key', 'Svenska'),
+             ('en', '__test__.shared.key', 'English')"
         );
 
         $loader = new I18nLoader($this->pdo);
 
-        $this->assertSame('Svenska', $loader->forLocale('sv')['shared.key']);
-        $this->assertSame('English', $loader->forLocale('en')['shared.key']);
+        $this->assertSame('Svenska', $loader->forLocale('sv')['__test__.shared.key']);
+        $this->assertSame('English', $loader->forLocale('en')['__test__.shared.key']);
     }
 }
