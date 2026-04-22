@@ -1,0 +1,18 @@
+{# Expects parent scope with: x-data="{ confirmOpen: false }" and a form#confirm-form to submit. #}
+<div x-show="confirmOpen" x-cloak
+     class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+     @click.self="confirmOpen = false">
+    <div class="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full">
+        <p class="text-gray-800 mb-4">{{ message|default(t('tickets.show.confirm_change')) }}</p>
+        <div class="flex justify-end gap-2">
+            <button type="button" @click="confirmOpen = false"
+                    class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded">
+                {{ t('common.cancel')|default('Avbryt') }}
+            </button>
+            <button type="button" @click="$refs.confirmForm.submit()"
+                    class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">
+                {{ t('common.confirm')|default('Bekräfta') }}
+            </button>
+        </div>
+    </div>
+</div>
