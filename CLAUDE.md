@@ -4,6 +4,13 @@ This file guides work **in the experiment repo itself** (runner, task bank, anal
 
 A completely separate `mock-project/CLAUDE.md` governs subagent behavior inside the mock project — never leak experiment context there.
 
+## At session start
+
+1. If `SESSION_HANDOFF.md` exists in repo root → read it. It contains a fresh handoff from the previous session.
+2. Read `WORKLOG.md` — most recent entries tell you what happened last.
+3. Read `DECISIONS.md` — locked-in architectural choices, do not revisit without reason.
+4. Then ask Anders what we are working on today.
+
 ## What this repo is
 
 A controlled experiment measuring Claude model tiers as subagents. See `README.md` for the public summary.
