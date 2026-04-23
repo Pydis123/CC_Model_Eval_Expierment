@@ -1,66 +1,70 @@
-# Session Handoff — 2026-04-22 (efter Plan 2a + 2b)
+# Session Handoff — 2026-04-23 (mitt i Plan 6)
 
-**Temporär handoff. Ny session: läs detta + `WORKLOG.md` + `DECISIONS.md`, fråga Anders vad som ska göras härnäst.**
+**Temporär handoff. Ny session: läs detta + `WORKLOG.md` + `DECISIONS.md`, fortsätt med Task 15 nedan.**
 
 ## Var vi står
 
-Plan 1, Plan 2a och **Plan 2b klart**. Mock-projektet är fullt scaffoldat — `scaffold_complete`-tag satt på `5f43ac0`.
+**Plan 5 klar.** **Plan 6 är påbörjad — Tasks 1-14 av 21 klara.** Pausat mellan Task 14 och Task 15.
 
-- **100 tester gröna** (Unit + Integration + Smoke, 203 assertions)
+- **282 tester gröna** (från 223 efter plan 5)
 - PHPStan level 6 rent
-- Fullt körbar end-to-end: `docker compose up -d` → `php tools/migrate.php` → `php tools/seed_demo.php` → `php -S localhost:8080 -t public`
-- Svenska default locale; byte via `GET /locale/{sv|en}`; lazy i18n-resolution
-- Alpine.js med 5 komponenter: flash, mobile-nav, user-menu, status-filter tabs, confirm-modal
-- Tailwind via CDN (Play script)
-- 130 translation-rader seedade (65 sv + 65 en)
+- Alla commits atomiska, inget halvfärdigt i arbetsträdet
+- Git är rent (inga staged/unstaged ändringar)
 
-### Naturlig mediokerhet bevarad
+## Nästa steg — Task 15 i Plan 6
 
-- N+1 i `TicketController::index` — kvar (guard-test bekräftar >20 queries)
-- Inline state-machine i `TicketController::changeStatus` — kvar
-- Planterad intermittent test i `RecentActivityService` — kvar
-- Ingen `sla_deadline`, ingen `tags`, ingen batch-close-route, ingen Alpine-composer
-- 5 specifika i18n-rader som ska saknas bestäms **i plan 4** när task 1-prompten skrivs
+Planfilen: `docs/superpowers/plans/2026-04-23-experiment-execution.md`
 
-### Integritet
+**Task 15: `RunNextCommand`** — CLI-kommando som kör EN run end-to-end. Claimar från state.json, preparerar worktree, kör 1-3 iterationer via `RunCoordinator`, appendar `results.jsonl`, uppdaterar state, städar worktree.
 
-- Ingen experiment-leakage i mock-projektet (`grep -iErn "experiment|dispatch|evaluator|mediocrity|subagent|PM role" mock-project/` → tomt)
-- `mock-project/CLAUDE.md` är generisk
-- Alla scaffold-commits har neutrala meddelanden
+Sonnet för task 15 (komplexitet: multi-class wiring + row-building). Haiku/Sonnet-mix för tasks 16-21 enligt plan.
 
-## Nästa steg — Plan 3
+### Återstående tasks efter 15
 
-**Runner + evaluator + state_manager + model_pin_check.** Dessa är PHP-utilities i repo-rooten under `runner/` (redan börjat i plan 1), inte under `mock-project/`. Innehåll:
+- **Task 16:** `RunAllCommand` — looping + 5-error-abort + crash-dump. Sonnet.
+- **Task 17:** `StateResetStaleCommand` — parse duration-flagga, clear stale claimedAt. Haiku.
+- **Task 18:** Wire 3 commands i `runner/bin/cli` + `.gitignore`-tillägg (`worktrees/failed/`, `results/runner.log`, `results/runner-crash-*.json`). Sonnet.
+- **Task 19:** Opt-in real-claude smoke test. Haiku.
+- **Task 20:** `docs/limitations.md`-tillägg om `~/.claude/CLAUDE.md`-leakage. Skriv direkt (inte subagent).
+- **Task 21:** PHPStan + full-suite verifiering (ingen ny kod).
 
-- `runner/src/Evaluator.php` — kör `phpunit`, smoke-tests, query-count mot ett run
-- `runner/src/StateManager.php` — läser/skriver `state.json`; fyller `pinned_models`
-- `runner/src/ModelPinCheck.php` — pre-flight detect + pre-dispatch guard mot model-drift
-- Integration med Claude Code `Agent`-tool för dispatch (dokumenterad men ej körbar från runner — subscriptionen sköter dispatch via Claude Code-sessionen)
-- Tester för allt
+## Viktiga kontext-beslut från brainstorming (låsta)
 
-Brainstorming + spec + plan skrivs i detta repo (samma flöde som 2a/2b).
+- **Fix 1:** Worktree vid `/tmp/llm-disp-run-<id>/` med experiment-root `CLAUDE.md` `rm`:ad. Accepterar `~/.claude/CLAUDE.md`-leakage → dokumenteras i limitations.md (Task 20).
+- **R1:** Iteration 2-3 får original-prompt + komprimerad `FailedChecksSummarizer`-output appended. Inte worktree-reset.
+- **Seriell dispatch.** Parallell skulle introducera CPU-kontention-brus i wall-clock.
+- **`stream-json --verbose` inte `json`.** Ger strukturerad `rate_limit_event` med `resetsAt` → exakt sleep-tid.
+- **`ClaudeCli` interface + PHPUnit mocks.** Återanvänder `ProcessExecutor`-mönster. En opt-in smoke-test mot riktig CLI finns planerad (Task 19).
+- **5 consecutive unexpected errors → abort + crash-dump.** Räknas inte: rate-limit (sleep och retry), normal passed/failed (registered). Räknas: is_error, malformed JSON, timeout, worktree-failure, evaluator-crash.
 
-## Efter Plan 3
+## Avvikelse från planen att komma ihåg
 
-- **Plan 4:** task-bank — 8 task-prompter + success-criteria JSON. Här bestäms vilka 5 i18n-rader som saknas för task 1.
-- **Plan 5:** analys + rapport-template (markdown-generatorer, bootstrap-simulering för Policy B).
+**Task 8 introducerade `EvaluatorInterface`** — `Evaluator` var `final` och plan-test-stubbens anonymous-class-extend hade failat. Subagenten extraherade interface, `Evaluator` implements det, `RunCoordinator` type-hintar interfacet. Legitim fix, ingen scope-violation. Betyder: om du behöver mocka Evaluator i framtida test, implementera `EvaluatorInterface`.
 
-## Verifiering av nuvarande state
+## Commits plan 6 så här långt
+
+Första: `1e8298e` (ClaudeCliResponse + RateLimitInfo)
+Senaste: `4f667e8` (ProgressLogger)
+
+14 tasks × i genomsnitt 1.3 commits/task (några batchade 3 tasks i en dispatch med separata commits).
+
+## Verifiering av state vid återupptagande
 
 ```bash
 cd /opt/homebrew/var/www/cc/llm-dispatch-experiment
-docker compose ps                      # → llm-dispatch-mariadb Up (healthy)
-cd mock-project
-./vendor/bin/phpunit                   # → OK (100 tests, 203 assertions)
-./vendor/bin/phpstan analyse           # → [OK] No errors
-git describe                           # → scaffold_complete eller scaffold_complete-N-gXXX
+git status                                   # → clean
+git log --oneline -3                         # → 4f667e8 ProgressLogger
+cd runner && vendor/bin/phpunit 2>&1 | tail -3
+# → Tests: 282, Assertions: 810, PHPUnit Deprecations: 1
 ```
+
+`PHPUnit Deprecations: 1` är pre-existing (XML-schema från en äldre PHPUnit-version). Ignoreras.
 
 ## Kör inte om
 
-- **Rör inte mock-project/ för scaffolding-ändamål.** Eventuella fixes görs som egna commits efter `scaffold_complete`-taggen, INTE i scaffolden själv. Experiment-tasks ska börja från taggen.
-- **Rör inte `docker-compose.yml`, `docker/init/*.sql`, eller `experiment_config.json`** — frusna.
-- **Rör inte `.env.example`** — port 3307 är medvetet val.
+- **Rör inte committed Plan 6-kod i `runner/src/Dispatch/` eller `runner/src/Execution/`** om du inte får explicit instruktion. Task 15+ bygger ovanpå dessa klasser.
+- **Rör inte `tasks/`-mappen** — frusen task-bank från Plan 4.
+- **Rör inte `experiment_config.json`, `state.json`**, `results/results.jsonl`.
 
 ## Hur man återupptar
 
@@ -69,4 +73,4 @@ cd /opt/homebrew/var/www/cc/llm-dispatch-experiment
 # Starta Claude Code här
 ```
 
-Anders triggar med fråga om vi kör Plan 3 eller något annat.
+Anders triggar med "fortsätt med Task 15" eller liknande.
