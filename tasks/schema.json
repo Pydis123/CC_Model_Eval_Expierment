@@ -1,0 +1,75 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://llm-dispatch-experiment/tasks/schema.json",
+    "title": "Experiment Task Definition",
+    "type": "object",
+    "required": [
+        "id",
+        "category",
+        "size_estimate",
+        "prompt_file",
+        "max_iterations",
+        "max_wall_clock_s",
+        "success_criteria"
+    ],
+    "properties": {
+        "id": {
+            "type": "string",
+            "pattern": "^[0-9]{3}-[a-z0-9-]+$"
+        },
+        "category": {
+            "type": "string",
+            "enum": [
+                "trivial_i18n",
+                "crud_addition",
+                "query_optimization",
+                "migration_backfill",
+                "refactor",
+                "bugfix_root_cause",
+                "route_rbac",
+                "frontend_alpine"
+            ]
+        },
+        "size_estimate": {
+            "type": "string",
+            "enum": ["xs", "s", "m", "l"]
+        },
+        "prompt_file": {
+            "type": "string",
+            "pattern": "\\.prompt\\.md$"
+        },
+        "max_iterations": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+        },
+        "max_wall_clock_s": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 7200
+        },
+        "success_criteria": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "type": "object",
+                "required": ["type"],
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "phpunit",
+                            "query_count",
+                            "smoke_no_regressions",
+                            "lint",
+                            "file_exists",
+                            "grep_not_present",
+                            "diff_size_limit"
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    "additionalProperties": false
+}
