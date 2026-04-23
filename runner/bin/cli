@@ -1,0 +1,13 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+require __DIR__ . '/../vendor/autoload.php';
+
+use LlmDispatch\Runner\Cli\Application;
+
+// Registry filled in as commands land in later tasks; for now just the skeleton.
+$registry = [];
+
+exit((new Application($registry))->run($argv));
