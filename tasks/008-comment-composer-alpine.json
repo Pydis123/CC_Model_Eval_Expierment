@@ -1,0 +1,12 @@
+{
+    "id": "008-comment-composer-alpine",
+    "category": "frontend_alpine",
+    "size_estimate": "m",
+    "prompt_file": "008-comment-composer-alpine.prompt.md",
+    "max_iterations": 3,
+    "max_wall_clock_s": 1800,
+    "success_criteria": [
+        {"type": "phpunit"},
+        {"type": "smoke_no_regressions"}
+    ]
+}
