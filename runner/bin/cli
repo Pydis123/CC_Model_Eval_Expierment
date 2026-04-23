@@ -5,16 +5,20 @@ declare(strict_types=1);
 
 require __DIR__ . '/../vendor/autoload.php';
 
+use LlmDispatch\Runner\Analysis\Aggregator;
+use LlmDispatch\Runner\Analysis\BootstrapSimulator;
 use LlmDispatch\Runner\Cli\Application;
 use LlmDispatch\Runner\Cli\Command\EvaluateCommand;
 use LlmDispatch\Runner\Cli\Command\PinCheckPingCommand;
 use LlmDispatch\Runner\Cli\Command\PinCheckVerifyCommand;
 use LlmDispatch\Runner\Cli\Command\ProbeQueryCountCommand;
+use LlmDispatch\Runner\Cli\Command\ReportCommand;
 use LlmDispatch\Runner\Cli\Command\StateInitCommand;
 use LlmDispatch\Runner\Cli\Command\StateNextRunCommand;
 use LlmDispatch\Runner\Cli\Command\StatePinModelsCommand;
 use LlmDispatch\Runner\Cli\Command\StateRecordRunCommand;
 use LlmDispatch\Runner\Config;
+use LlmDispatch\Runner\Report\FindingsWriter;
 use LlmDispatch\Runner\Evaluator\Check\DiffSizeLimitCheck;
 use LlmDispatch\Runner\Evaluator\Check\FileExistsCheck;
 use LlmDispatch\Runner\Evaluator\Check\GrepNotPresentCheck;
@@ -76,6 +80,16 @@ $registry = [
     'probe' => [
         'query-count' => new ProbeQueryCountCommand(new QueryCountProbe()),
     ],
+    'report' => new ReportCommand(
+        config: $config,
+        aggregator: new Aggregator(),
+        simulator: new BootstrapSimulator(),
+        writer: new FindingsWriter(),
+        defaultInputPath: $repoRoot . '/results/results.jsonl',
+        defaultOutputPath: $repoRoot . '/docs/findings.md',
+        defaultBootstrapSamples: 1000,
+        defaultBootstrapSeed: $config->planSeed,
+    ),
 ];
 
 exit((new Application($registry))->run($argv));
