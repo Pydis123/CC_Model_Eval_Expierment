@@ -1,0 +1,13 @@
+{
+    "id": "003-n-plus-one-fix",
+    "category": "query_optimization",
+    "size_estimate": "s",
+    "prompt_file": "003-n-plus-one-fix.prompt.md",
+    "max_iterations": 3,
+    "max_wall_clock_s": 1800,
+    "success_criteria": [
+        {"type": "phpunit"},
+        {"type": "query_count", "route": "/tickets", "max": 5, "auth_as_admin": true},
+        {"type": "smoke_no_regressions"}
+    ]
+}
