@@ -76,3 +76,19 @@ shift on different hardware or network paths.
 The task definitions are fixed. We do not test robustness against small
 prompt perturbations, distracting instructions, or prompt injection. A
 behavior-change from a one-word prompt edit would not be caught.
+
+## User-global CLAUDE.md leakage
+
+Each subagent is dispatched from `/tmp/llm-disp-run-<id>/mock-project/` after
+the experiment-root `CLAUDE.md` has been removed from the worktree. However,
+Claude Code's default system-prompt auto-discovery still walks up from the
+CWD to the filesystem root, and the user-global `~/.claude/CLAUDE.md` — if
+present — is read by the subagent on every dispatch.
+
+This file is not experiment-specific in the normal case (it typically
+describes general PM/subagent working methods), but it can bias the
+subagent's self-understanding. Reviewers running the experiment on a
+different machine will see different subagent behavior to the extent that
+their user-global CLAUDE.md differs. We considered using `--bare` to
+suppress this, but it requires `ANTHROPIC_API_KEY` and is incompatible with
+the Claude Code OAuth session that the experiment relies on.
