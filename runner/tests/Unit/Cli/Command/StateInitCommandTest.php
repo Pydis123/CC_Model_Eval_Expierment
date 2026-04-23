@@ -29,7 +29,6 @@ final class StateInitCommandTest extends TestCase
     public function testInitializesWith72RunsAndReturnsZero(): void
     {
         $command = new StateInitCommand(
-            $this->config,
             new StateManager($this->tmpStatePath),
             new RunQueue($this->config),
             42,
@@ -50,7 +49,6 @@ final class StateInitCommandTest extends TestCase
     public function testRefusesWhenAlreadyInitializedWithoutForce(): void
     {
         $command = new StateInitCommand(
-            $this->config,
             new StateManager($this->tmpStatePath),
             new RunQueue($this->config),
             42,
@@ -68,7 +66,6 @@ final class StateInitCommandTest extends TestCase
     public function testForceAllowsReinitialization(): void
     {
         $command = new StateInitCommand(
-            $this->config,
             new StateManager($this->tmpStatePath),
             new RunQueue($this->config),
             42,

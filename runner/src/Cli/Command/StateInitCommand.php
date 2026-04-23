@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace LlmDispatch\Runner\Cli\Command;
 
 use LlmDispatch\Runner\Cli\CommandInterface;
-use LlmDispatch\Runner\Config;
 use LlmDispatch\Runner\State\RunQueue;
 use LlmDispatch\Runner\State\State;
 use LlmDispatch\Runner\State\StateManager;
@@ -13,7 +12,6 @@ use LlmDispatch\Runner\State\StateManager;
 final class StateInitCommand implements CommandInterface
 {
     public function __construct(
-        private readonly Config $config,
         private readonly StateManager $stateManager,
         private readonly RunQueue $runQueue,
         private readonly int $seed,

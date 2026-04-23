@@ -1,0 +1,9 @@
+parameters:
+    level: 6
+    paths:
+        - src
+    excludePaths:
+        # QueryCountProbe dynamically loads mock-project's autoloader at runtime;
+        # PHPStan can't see the lazily-loaded classes. Excluding the file is
+        # cleaner than trying to pattern-match the 12 resulting errors.
+        - src/Probe/QueryCountProbe.php

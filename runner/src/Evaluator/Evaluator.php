@@ -9,7 +9,7 @@ use RuntimeException;
 final class Evaluator
 {
     /**
-     * @param array<string, callable(array): CheckInterface> $checkFactories
+     * @param array<string, callable(array<string, mixed>): CheckInterface> $checkFactories
      */
     public function __construct(private readonly array $checkFactories) {}
 
