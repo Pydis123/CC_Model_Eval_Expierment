@@ -13,12 +13,21 @@ use LlmDispatch\Runner\Cli\Command\PinCheckPingCommand;
 use LlmDispatch\Runner\Cli\Command\PinCheckVerifyCommand;
 use LlmDispatch\Runner\Cli\Command\ProbeQueryCountCommand;
 use LlmDispatch\Runner\Cli\Command\ReportCommand;
+use LlmDispatch\Runner\Cli\Command\RunAllCommand;
+use LlmDispatch\Runner\Cli\Command\RunNextCommand;
 use LlmDispatch\Runner\Cli\Command\StateInitCommand;
 use LlmDispatch\Runner\Cli\Command\StateNextRunCommand;
 use LlmDispatch\Runner\Cli\Command\StatePinModelsCommand;
 use LlmDispatch\Runner\Cli\Command\StateRecordRunCommand;
+use LlmDispatch\Runner\Cli\Command\StateResetStaleCommand;
 use LlmDispatch\Runner\Config;
 use LlmDispatch\Runner\Report\FindingsWriter;
+use LlmDispatch\Runner\Dispatch\ClaudeCliResponseParser;
+use LlmDispatch\Runner\Dispatch\DispatchEnvelopeBuilder;
+use LlmDispatch\Runner\Dispatch\FailedChecksSummarizer;
+use LlmDispatch\Runner\Dispatch\ProcessClaudeCli;
+use LlmDispatch\Runner\Dispatch\RateLimitWaiter;
+use LlmDispatch\Runner\Dispatch\RunCoordinator;
 use LlmDispatch\Runner\Evaluator\Check\DiffSizeLimitCheck;
 use LlmDispatch\Runner\Evaluator\Check\FileExistsCheck;
 use LlmDispatch\Runner\Evaluator\Check\GrepNotPresentCheck;
@@ -27,11 +36,17 @@ use LlmDispatch\Runner\Evaluator\Check\PhpunitCheck;
 use LlmDispatch\Runner\Evaluator\Check\QueryCountCheck;
 use LlmDispatch\Runner\Evaluator\Check\SmokeNoRegressionsCheck;
 use LlmDispatch\Runner\Evaluator\Evaluator;
+use LlmDispatch\Runner\Execution\ConsecutiveErrorCounter;
+use LlmDispatch\Runner\Execution\CrashDumper;
+use LlmDispatch\Runner\Execution\ProgressLogger;
+use LlmDispatch\Runner\Execution\TaskPromptLoader;
 use LlmDispatch\Runner\Logging\ResultsLogger;
 use LlmDispatch\Runner\PinCheck\PinCheckService;
 use LlmDispatch\Runner\Probe\QueryCountProbe;
 use LlmDispatch\Runner\State\RunQueue;
 use LlmDispatch\Runner\State\StateManager;
+use LlmDispatch\Runner\Support\ProcessExecutor;
+use LlmDispatch\Runner\Worktree\WorktreeManager;
 
 $repoRoot = dirname(__DIR__, 2);
 
@@ -65,12 +80,63 @@ $checkFactories = [
 
 $evaluator = new Evaluator($checkFactories);
 
+$processExecutor = new ProcessExecutor();
+$claudeCli = new ProcessClaudeCli(
+    $processExecutor,
+    new ClaudeCliResponseParser(),
+    'claude',
+);
+
+$runCoordinator = new RunCoordinator(
+    cli: $claudeCli,
+    evaluator: $evaluator,
+    envelopeBuilder: new DispatchEnvelopeBuilder(),
+    failedChecksSummarizer: new FailedChecksSummarizer(),
+    rateLimitWaiter: new RateLimitWaiter(30),
+    sleeper: 'sleep',
+    now: 'time',
+);
+
+$worktreeManager = new WorktreeManager(
+    executor: $processExecutor,
+    repoRoot: $repoRoot,
+    worktreeBaseDir: '/tmp',
+    failedDir: $repoRoot . '/worktrees/failed',
+    baseRef: 'scaffold_complete',
+);
+
+$progressLogger = new ProgressLogger($repoRoot . '/results/runner.log');
+$errorCounter = new ConsecutiveErrorCounter(5);
+$crashDumper = new CrashDumper($repoRoot . '/results');
+
+$runNextCommand = new RunNextCommand(
+    stateManager: $stateManager,
+    resultsLogger: $resultsLogger,
+    taskPromptLoader: new TaskPromptLoader($repoRoot . '/tasks'),
+    worktreeManager: $worktreeManager,
+    coordinator: $runCoordinator,
+    allowedTools: ['Bash', 'Edit', 'Read', 'Write', 'Glob', 'Grep'],
+    now: static fn() => (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s\Z'),
+);
+
+$environment = [
+    'php_version' => PHP_VERSION,
+    'claude_version' => trim((string) shell_exec('claude --version 2>&1')),
+    'experiment_commit_sha' => trim((string) shell_exec('git -C ' . escapeshellarg($repoRoot) . ' rev-parse HEAD 2>&1')),
+    'hostname' => (string) gethostname(),
+    'timezone' => date_default_timezone_get(),
+];
+
 $registry = [
     'state' => [
         'init' => new StateInitCommand($stateManager, $runQueue, $config->planSeed),
         'next-run' => new StateNextRunCommand($stateManager, (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s\Z')),
         'record-run' => new StateRecordRunCommand($stateManager, $resultsLogger),
         'pin-models' => new StatePinModelsCommand($stateManager),
+        'reset-stale' => new StateResetStaleCommand(
+            $stateManager,
+            static fn() => new DateTimeImmutable('now', new DateTimeZone('UTC')),
+        ),
     ],
     'evaluate' => new EvaluateCommand($repoRoot . '/tasks', $evaluator),
     'pin-check' => [
@@ -80,6 +146,15 @@ $registry = [
     'probe' => [
         'query-count' => new ProbeQueryCountCommand(new QueryCountProbe()),
     ],
+    'run-next' => $runNextCommand,
+    'run-all' => new RunAllCommand(
+        runNext: $runNextCommand,
+        progressLogger: $progressLogger,
+        errorCounter: $errorCounter,
+        crashDumper: $crashDumper,
+        stateManager: $stateManager,
+        environment: $environment,
+    ),
     'report' => new ReportCommand(
         config: $config,
         aggregator: new Aggregator(),

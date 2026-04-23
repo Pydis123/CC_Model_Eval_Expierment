@@ -30,3 +30,7 @@ Thumbs.db
 
 # Docker volumes
 /docker-data/
+
+worktrees/failed/
+results/runner.log
+results/runner-crash-*.json
