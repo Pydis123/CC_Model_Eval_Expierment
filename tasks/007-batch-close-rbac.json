@@ -1,0 +1,12 @@
+{
+    "id": "007-batch-close-rbac",
+    "category": "route_rbac",
+    "size_estimate": "m",
+    "prompt_file": "007-batch-close-rbac.prompt.md",
+    "max_iterations": 3,
+    "max_wall_clock_s": 1800,
+    "success_criteria": [
+        {"type": "phpunit"},
+        {"type": "smoke_no_regressions"}
+    ]
+}
