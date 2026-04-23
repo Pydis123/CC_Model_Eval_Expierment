@@ -35,4 +35,19 @@ final class StateManager
             throw new RuntimeException("Cannot write state file: {$this->path}");
         }
     }
+
+    public function claimNext(string $nowIso): ?Run
+    {
+        $state = $this->load();
+
+        foreach ($state->remainingRuns as $run) {
+            if ($run->claimedAt === null) {
+                $updated = $run->withClaimedAt($nowIso);
+                $this->save($state->replaceRun($updated));
+                return $updated;
+            }
+        }
+
+        return null;
+    }
 }
