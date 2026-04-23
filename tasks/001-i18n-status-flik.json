@@ -1,0 +1,13 @@
+{
+    "id": "001-i18n-status-flik",
+    "category": "trivial_i18n",
+    "size_estimate": "xs",
+    "prompt_file": "001-i18n-status-flik.prompt.md",
+    "max_iterations": 3,
+    "max_wall_clock_s": 900,
+    "success_criteria": [
+        {"type": "phpunit"},
+        {"type": "smoke_no_regressions"},
+        {"type": "diff_size_limit", "max_lines": 80}
+    ]
+}
