@@ -1,0 +1,14 @@
+{
+    "id": "005-state-service-refactor",
+    "category": "refactor",
+    "size_estimate": "l",
+    "prompt_file": "005-state-service-refactor.prompt.md",
+    "max_iterations": 3,
+    "max_wall_clock_s": 2400,
+    "success_criteria": [
+        {"type": "phpunit"},
+        {"type": "smoke_no_regressions"},
+        {"type": "file_exists", "paths": ["mock-project/src/Domain/Service/TicketStateService.php"]},
+        {"type": "grep_not_present", "pattern": "ALLOWED_TRANSITIONS", "paths": ["mock-project/src/Http/Controller/TicketController.php"]}
+    ]
+}
