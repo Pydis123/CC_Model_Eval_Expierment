@@ -6,7 +6,7 @@ namespace LlmDispatch\Runner\Evaluator;
 
 use RuntimeException;
 
-final class Evaluator
+final class Evaluator implements EvaluatorInterface
 {
     /**
      * @param array<string, callable(array<string, mixed>): CheckInterface> $checkFactories
