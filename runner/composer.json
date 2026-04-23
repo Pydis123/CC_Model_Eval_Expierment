@@ -18,6 +18,7 @@
       "LlmDispatch\\Runner\\Tests\\": "tests/"
     }
   },
+  "bin": ["bin/cli"],
   "config": {
     "sort-packages": true,
     "optimize-autoloader": true
