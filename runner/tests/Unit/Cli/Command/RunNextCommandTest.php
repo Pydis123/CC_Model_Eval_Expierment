@@ -146,6 +146,92 @@ final class RunNextCommandTest extends TestCase
         );
     }
 
+    /**
+     * Build a RunNextCommand wired with a capturing EvaluatorInterface that records
+     * the worktreePath the coordinator passes to evaluate().
+     *
+     * The coordinator passes its own $worktreePath parameter straight to the evaluator,
+     * so whatever RunNextCommand hands to execute() is what the evaluator sees.
+     * This lets us assert that RunNextCommand forwards the OUTER path, not the inner one.
+     */
+    private function makeCommandWithCapturingEvaluator(StateManager $state, ?string &$capturedEvalPath): RunNextCommand
+    {
+        $executor = $this->stubExecutor();
+
+        $stubPath = $this->worktreeBase . '/llm-disp-run-1';
+        if (!is_dir($stubPath . '/mock-project')) {
+            mkdir($stubPath . '/mock-project', 0777, true);
+        }
+
+        $capturedEvalPath = null;
+
+        $capturingEvaluator = new class($capturedEvalPath) implements EvaluatorInterface {
+            public function __construct(private ?string &$capturedEvalPath) {}
+            public function evaluate(array $taskDef, string $worktreePath): EvaluationResult
+            {
+                $this->capturedEvalPath ??= $worktreePath;
+                return new EvaluationResult([new CheckResult('stub', true, [])], 1.0);
+            }
+        };
+
+        $coordinator = new RunCoordinator(
+            cli: $this->stubCli($this->passingResponse()),
+            evaluator: $capturingEvaluator,
+            envelopeBuilder: new DispatchEnvelopeBuilder(),
+            failedChecksSummarizer: new FailedChecksSummarizer(),
+            rateLimitWaiter: new RateLimitWaiter(0),
+            sleeper: fn(int $s) => null,
+            now: fn() => 3_000_000_000,
+        );
+
+        return new RunNextCommand(
+            stateManager: $state,
+            resultsLogger: new ResultsLogger($this->resultsPath),
+            taskPromptLoader: new TaskPromptLoader($this->tasksDir),
+            worktreeManager: new WorktreeManager(
+                $executor,
+                '/fake/repo',
+                $this->worktreeBase,
+                $this->worktreeBase . '/failed',
+                'scaffold_complete',
+            ),
+            coordinator: $coordinator,
+            allowedTools: ['Bash'],
+            now: fn() => '2026-04-23T14:00:00Z',
+        );
+    }
+
+    /**
+     * Regression: RunNextCommand must pass the outer worktree path (not the
+     * inner mock-project subdirectory) to RunCoordinator::execute().
+     * Previously $subagentCwd = $worktreePath . '/mock-project' was passed,
+     * causing Evaluator checks to double-append /mock-project and crash.
+     *
+     * We assert by capturing the path the Evaluator receives — the coordinator
+     * forwards its $worktreePath argument directly to evaluate(), so this
+     * verifies what RunNextCommand handed to execute().
+     */
+    public function testCoordinatorReceivesOuterWorktreePathNotInnerSubdirectory(): void
+    {
+        $state = $this->seedState();
+        $capturedEvalPath = null;
+
+        ob_start();
+        $exit = $this->makeCommandWithCapturingEvaluator($state, $capturedEvalPath)->run([]);
+        ob_end_clean();
+
+        $this->assertSame(0, $exit);
+        $this->assertNotNull($capturedEvalPath, 'Evaluator::evaluate() must have been called');
+
+        $expectedOuterPath = $this->worktreeBase . '/llm-disp-run-1';
+
+        // Evaluator must receive the outer path (it appends /mock-project internally).
+        $this->assertSame($expectedOuterPath, $capturedEvalPath, 'Evaluator must receive the outer worktree path from RunNextCommand');
+
+        // Regression guard: double-append must not occur.
+        $this->assertStringEndsNotWith('/mock-project', $capturedEvalPath, 'Outer path must not include /mock-project suffix — that would cause double-append in Checks');
+    }
+
     public function testHappyPathWritesResultRowAndMovesStateToCompleted(): void
     {
         $state = $this->seedState();

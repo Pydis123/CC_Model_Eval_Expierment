@@ -98,6 +98,48 @@ final class RunCoordinatorTest extends TestCase
         };
     }
 
+    /**
+     * A ClaudeCli stub that records every cwd it receives.
+     *
+     * @param list<ClaudeCliResponse> $responses
+     */
+    private function makeCapturingClaudeCli(array $responses, ?string &$capturedCwd): ClaudeCli
+    {
+        return new class($responses, $capturedCwd) implements ClaudeCli {
+            private int $index = 0;
+            /** @param list<ClaudeCliResponse> $responses */
+            public function __construct(private readonly array $responses, private ?string &$capturedCwd) {}
+            public function dispatch(string $prompt, string $modelId, string $cwd, array $allowedTools): ClaudeCliResponse
+            {
+                $this->capturedCwd ??= $cwd;
+                $r = $this->responses[$this->index] ?? end($this->responses);
+                $this->index++;
+                return $r;
+            }
+        };
+    }
+
+    /**
+     * An EvaluatorInterface stub that records every worktreePath it receives.
+     *
+     * @param list<EvaluationResult> $results
+     */
+    private function makeCapturingEvaluator(array $results, ?string &$capturedWorktreePath): EvaluatorInterface
+    {
+        return new class($results, $capturedWorktreePath) implements EvaluatorInterface {
+            private int $calls = 0;
+            /** @param list<EvaluationResult> $results */
+            public function __construct(private readonly array $results, private ?string &$capturedWorktreePath) {}
+            public function evaluate(array $taskDef, string $worktreePath): EvaluationResult
+            {
+                $this->capturedWorktreePath ??= $worktreePath;
+                $r = $this->results[$this->calls] ?? end($this->results);
+                $this->calls++;
+                return $r;
+            }
+        };
+    }
+
     private function makeCoordinator(ClaudeCli $cli, EvaluatorInterface $evaluator): RunCoordinator
     {
         return new RunCoordinator(
@@ -268,5 +310,41 @@ final class RunCoordinatorTest extends TestCase
 
         $this->assertSame('error', $outcome->finalOutcome);
         $this->assertSame('claude_cli_is_error', $outcome->errorCategory);
+    }
+
+    /**
+     * Regression: ClaudeCli must receive the INNER path (outer + /mock-project),
+     * while Evaluator must receive the OUTER worktree path.
+     * Previously RunNextCommand passed the inner path to execute(), causing Evaluator
+     * checks to double-append /mock-project and crash.
+     */
+    public function testCliReceivesInnerPathAndEvaluatorReceivesOuterPath(): void
+    {
+        $capturedCliCwd = null;
+        $capturedEvalPath = null;
+
+        $cli = $this->makeCapturingClaudeCli([$this->stubResponse()], $capturedCliCwd);
+        $eval = $this->makeCapturingEvaluator([$this->passingEval()], $capturedEvalPath);
+
+        $outerPath = '/tmp/wt-123';
+
+        $this->makeCoordinator($cli, $eval)->execute(
+            rawPrompt: 'do it',
+            taskDef: ['success_criteria' => []],
+            worktreePath: $outerPath,
+            modelId: 'm',
+            allowedTools: ['Bash'],
+            maxIterations: 1,
+            maxWallClockS: 1800,
+        );
+
+        // ClaudeCli gets the subagent's working directory (inner path).
+        $this->assertSame($outerPath . '/mock-project', $capturedCliCwd, 'ClaudeCli must receive outer/mock-project as cwd');
+
+        // Evaluator gets the outer worktree root (Checks append /mock-project themselves).
+        $this->assertSame($outerPath, $capturedEvalPath, 'Evaluator must receive the outer worktree path, not inner');
+
+        // Regression: double-append must not occur.
+        $this->assertNotSame($outerPath . '/mock-project/mock-project', $capturedEvalPath, 'Double /mock-project append must not reach Evaluator');
     }
 }

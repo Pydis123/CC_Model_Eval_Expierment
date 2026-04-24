@@ -51,12 +51,11 @@ final class RunNextCommand implements CommandInterface
         $task = $this->taskPromptLoader->load($claimed->taskId);
 
         $worktreePath = $this->worktreeManager->prepare($claimed->runId);
-        $subagentCwd = $worktreePath . '/mock-project';
 
         $outcome = $this->coordinator->execute(
             rawPrompt: $task->prompt,
             taskDef: $task->taskDef,
-            worktreePath: $subagentCwd,
+            worktreePath: $worktreePath,
             modelId: $modelId,
             allowedTools: $this->allowedTools,
             maxIterations: $task->maxIterations,

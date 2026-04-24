@@ -41,10 +41,12 @@ final class RunCoordinator
         $priorFailed = null;
         $elapsedS = 0;
 
+        $subagentCwd = $worktreePath . '/mock-project';
+
         for ($i = 1; $i <= $maxIterations; $i++) {
             $prompt = $this->envelopeBuilder->build($rawPrompt, $priorFailed);
 
-            [$response, $rateLimitIterations] = $this->dispatchWithRateLimitRetries($prompt, $modelId, $worktreePath, $allowedTools);
+            [$response, $rateLimitIterations] = $this->dispatchWithRateLimitRetries($prompt, $modelId, $subagentCwd, $allowedTools);
 
             if ($response === null) {
                 $iterations[] = new IterationOutcome(
