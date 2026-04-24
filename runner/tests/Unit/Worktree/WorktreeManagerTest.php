@@ -46,7 +46,48 @@ final class WorktreeManagerTest extends TestCase
 
         $this->assertFileDoesNotExist($tmpFs['worktreePath'] . '/CLAUDE.md');
 
+        // Assert composer install was called with correct arguments and cwd
+        $composerCall = $executor->commands[1];
+        $this->assertSame($tmpFs['worktreePath'] . '/mock-project', $composerCall['cwd']);
+        $this->assertSame(['composer', 'install', '--no-interaction', '--no-progress', '--prefer-dist'], $composerCall['cmd']);
+
         $this->tearDownTempFs($tmpFs);
+    }
+
+    public function testPrepareFailsIfComposerInstallExitsNonzero(): void
+    {
+        $worktreePath = null;
+
+        $executor = new class($worktreePath) extends ProcessExecutor {
+            public function __construct(public ?string &$worktreePath) {}
+            public function exec(string $cwd, array $command): ProcessResult
+            {
+                if ($command[0] === 'git') {
+                    return new ProcessResult(0, '', '');
+                }
+                // composer call fails
+                return new ProcessResult(1, '', 'Package not found: some/dep');
+            }
+        };
+
+        $tmpFs = $this->createTempWorktreeWithClaudeMd();
+
+        $manager = new WorktreeManager(
+            executor: $executor,
+            repoRoot: '/fake/repo',
+            worktreeBaseDir: dirname($tmpFs['worktreePath']),
+            failedDir: $tmpFs['failedDir'],
+            baseRef: 'scaffold_complete',
+        );
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessageMatches('/Package not found: some\/dep/');
+
+        try {
+            $manager->prepare('run-7', stubWorktreePath: $tmpFs['worktreePath']);
+        } finally {
+            $this->tearDownTempFs($tmpFs);
+        }
     }
 
     public function testCleanupPassedRemovesWorktree(): void

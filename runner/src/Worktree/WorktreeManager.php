@@ -41,6 +41,16 @@ final class WorktreeManager
             @unlink($experimentClaudeMd);
         }
 
+        $composerResult = $this->executor->exec($path . '/mock-project', [
+            'composer', 'install', '--no-interaction', '--no-progress', '--prefer-dist',
+        ]);
+
+        if ($composerResult->exitCode !== 0) {
+            throw new RuntimeException(
+                sprintf('composer install failed: %s', $composerResult->stderr),
+            );
+        }
+
         return $path;
     }
 

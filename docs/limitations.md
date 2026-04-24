@@ -77,6 +77,22 @@ The task definitions are fixed. We do not test robustness against small
 prompt perturbations, distracting instructions, or prompt injection. A
 behavior-change from a one-word prompt edit would not be caught.
 
+## Lost run: fdb22bf4ba37 (Haiku, run 1)
+
+On 2026-04-24, the first `run-all` invocation dispatched one Haiku run and
+then crashed in `PhpunitCheck` because `WorktreeManager::prepare()` did not
+run `composer install` in the worktree's `mock-project/` (its `vendor/` is
+gitignored and therefore absent in the git-worktree checkout). The subagent
+also had no `phpunit` available during its own iteration, so results for
+that single run would have been unreliable even if the evaluator had not
+crashed.
+
+The run is not recorded in `results/results.jsonl` and is not counted
+toward the 72 planned executions. A few cents of subscription tokens were
+spent but produce no data. Bug fixed in `WorktreeManager::prepare()`; the
+queue was reset via `state reset-stale` and `run-all` resumed from the
+same position.
+
 ## User-global CLAUDE.md leakage
 
 Each subagent is dispatched from `/tmp/llm-disp-run-<id>/mock-project/` after
