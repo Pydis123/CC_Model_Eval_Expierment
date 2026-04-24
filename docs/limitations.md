@@ -77,21 +77,30 @@ The task definitions are fixed. We do not test robustness against small
 prompt perturbations, distracting instructions, or prompt injection. A
 behavior-change from a one-word prompt edit would not be caught.
 
-## Lost run: fdb22bf4ba37 (Haiku, run 1)
+## Runner bugs during the 2026-04-24 run
 
-On 2026-04-24, the first `run-all` invocation dispatched one Haiku run and
-then crashed in `PhpunitCheck` because `WorktreeManager::prepare()` did not
-run `composer install` in the worktree's `mock-project/` (its `vendor/` is
-gitignored and therefore absent in the git-worktree checkout). The subagent
-also had no `phpunit` available during its own iteration, so results for
-that single run would have been unreliable even if the evaluator had not
-crashed.
+Three runner bugs surfaced during the first production `run-all` invocation
+and consumed Claude tokens for dispatches that never reached
+`results/results.jsonl`:
 
-The run is not recorded in `results/results.jsonl` and is not counted
-toward the 72 planned executions. A few cents of subscription tokens were
-spent but produce no data. Bug fixed in `WorktreeManager::prepare()`; the
-queue was reset via `state reset-stale` and `run-all` resumed from the
-same position.
+1. `WorktreeManager::prepare()` did not `composer install` the worktree's
+   `mock-project/` (vendor/ gitignored) → `PhpunitCheck` spawned
+   `./vendor/bin/phpunit` with ENOENT. Two Haiku dispatches on
+   `001-i18n-status-flik` wasted before the fix landed.
+2. `RunNextCommand` passed `$worktreePath . '/mock-project'` as the
+   coordinator's outer worktree path; evaluator Checks then appended
+   `/mock-project` a second time. Same ENOENT symptom, different root
+   cause.
+3. `QueryCountProbe::count()` used `require_once` on
+   `mock-project/vendor/autoload.php` in-process inside the long-running
+   `run-all` PHP, colliding `ComposerAutoloaderInit<hash>` on the second
+   task-003 worktree. One dispatch wasted on the crashing triplet before
+   `QueryCountCheck` was switched to a subprocess call.
+
+Total wasted: ~3 dispatches (mix of Haiku and possibly higher tiers),
+none recorded. The 72-run denominator is preserved; only the wasted
+dispatches' tokens are un-attributed. Not expected to bias findings —
+the wasted runs repeat on the same triplets as the recorded ones.
 
 ## User-global CLAUDE.md leakage
 
