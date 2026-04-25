@@ -1,7 +1,7 @@
 # LLM Dispatch Experiment — Findings
 
 **Generated:** 2026-04-23T19:36:28Z  
-**Source:** /opt/homebrew/var/www/cc/llm-dispatch-experiment/runner/tests/fixtures/analysis/complete_small.jsonl (12 rows)  
+**Source:** complete_small.jsonl (12 rows)  
 **Bootstrap:** 1000 samples, seed=42
 
 ## Summary

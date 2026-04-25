@@ -70,7 +70,7 @@ Alternativ övervägda: invoice-system (för regel-tungt), inventory (torrare af
 
 **Beslut:** Docker Compose använder named volume `llm_dispatch_mariadb_data` (ej bind-mount `./docker-data/mariadb`).
 
-**Motivering:** Docker Desktop på macOS nekar bind-mounts från `/opt/homebrew/...` utan File Sharing-konfig. Named volume kräver ingen host-konfig, är lika reproducerbart för experimentets syfte, och tar bort peer-review-friktion.
+**Motivering:** Docker Desktop på macOS nekar bind-mounts från host-paths utanför default File Sharing-allowlist. Named volume kräver ingen host-konfig, är lika reproducerbart för experimentets syfte, och tar bort peer-review-friktion.
 
 ## 2026-04-22 — All experimentdokumentation i detta repo
 

@@ -1,7 +1,7 @@
 # LLM Dispatch Experiment — Findings
 
-**Generated:** 2026-04-25T13:12:30Z  
-**Source:** /opt/homebrew/var/www/cc/llm-dispatch-experiment/results/results.jsonl (72 rows)  
+**Generated:** 2026-04-25T14:31:44Z  
+**Source:** results.jsonl (72 rows)  
 **Bootstrap:** 1000 samples, seed=42
 
 ## Summary

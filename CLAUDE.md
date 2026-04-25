@@ -6,10 +6,13 @@ A completely separate `mock-project/CLAUDE.md` governs subagent behavior inside 
 
 ## At session start
 
-1. If `SESSION_HANDOFF.md` exists in repo root → read it. It contains a fresh handoff from the previous session.
-2. Read `WORKLOG.md` — most recent entries tell you what happened last.
-3. Read `DECISIONS.md` — locked-in architectural choices, do not revisit without reason.
-4. Then ask Anders what we are working on today.
+1. Read `DECISIONS.md` — locked-in architectural choices, do not revisit without reason.
+2. Read `docs/methodology.md` if you need to understand experiment design.
+3. Then ask the user what we are working on today.
+
+If a personal `WORKLOG.md` exists at repo root (gitignored — kept locally
+by the maintainer), read its most recent entries for additional context
+on what happened last. The file is optional and may be absent.
 
 ## What this repo is
 
@@ -20,8 +23,9 @@ A controlled experiment measuring Claude model tiers as subagents. See `README.m
 You orchestrate dispatches. You do NOT write task code yourself. You:
 
 1. Read `state.json` to know the next `(task_id, model, n)` triplet
-2. Dispatch the subagent via Claude Code's `Agent` tool with `model:` param
-3. Run `php runner/evaluator.php --run=<id>` to determine pass/fail
+2. Dispatch the subagent via Claude Code's `Agent` tool with `model:` param,
+   OR delegate to the automated runner via `php runner/bin/cli run-all`
+3. Use the runner's evaluator to determine pass/fail
 4. Log to `results/results.jsonl`
 5. Update `state.json`
 6. Report to user and (when appropriate) request `/clear`

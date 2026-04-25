@@ -41,7 +41,7 @@ Some vocabulary you will see in this guide:
 | Command | A line of text you type into Terminal and press Enter to run. |
 | Shell prompt | The text that appears in Terminal before the cursor, often ending with `$` or `%`. In this guide, command lines start with `$`; you do **not** type the `$`. |
 | Directory / folder | Same thing. Directories hold files. |
-| Path | The location of a file, e.g. `/Users/anders/Documents/report.pdf`. |
+| Path | The location of a file, e.g. `/Users/yourname/Documents/report.pdf`. |
 | Repository (repo) | A folder tracked by the `git` tool. This experiment lives in one repo. |
 | Clone | Download a repo to your computer. |
 | macOS package manager | A program that installs other programs. We will use one called **Homebrew**. |

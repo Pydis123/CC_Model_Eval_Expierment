@@ -8,7 +8,7 @@ Småsaker som inte hör till pågående plan men ska åtgärdas senare.
 
 **Problem:** `claude`-binären ligger typiskt i `~/.local/bin/claude` eller `~/.claude/local/node_modules/.bin/claude`, vilket inte är i default-PATH för non-interactive shells (t.ex. `cron`, `launchd`, `systemd`, PHP:s `proc_open` utan explicit env).
 
-**Bekräftat 2026-04-23:** Verklig smoke-test (Task 19 follow-up) failade tills vi exporterade `PATH="$HOME/.local/bin:$PATH"` explicit.
+**Bekräftat 2026-04-23:** Verklig smoke-test failade tills `PATH="$HOME/.local/bin:$PATH"` exporterades explicit innan runner-anropet.
 
 **Förslag på fix (ett av):**
 1. `bin/cli` wraps `exec` med explicit PATH från `$_SERVER['HOME'] . '/.local/bin'` + default-PATH.
@@ -17,4 +17,4 @@ Småsaker som inte hör till pågående plan men ska åtgärdas senare.
 
 Alternativ 2 är mest robust (felar snabbt vid startup, deterministiskt i loggar).
 
-**Impact:** Ingen för Anders manuella `run-all` från terminal. Blocker för framtida cron-schedulering.
+**Impact:** Ingen för manuell `run-all`-körning från interaktiv terminal. Blocker för framtida cron- eller launchd-schedulering.

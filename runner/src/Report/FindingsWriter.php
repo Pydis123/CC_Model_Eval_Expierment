@@ -28,7 +28,7 @@ final class FindingsWriter
         $md->paragraph(sprintf(
             "**Generated:** %s  \n**Source:** %s (%d rows)  \n**Bootstrap:** %d samples, seed=%d",
             $generatedAt,
-            $sourcePath,
+            basename($sourcePath),
             $rowCount,
             $simulation->bootstrapSamples,
             $simulation->bootstrapSeed,
