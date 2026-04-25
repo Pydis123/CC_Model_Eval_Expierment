@@ -15,9 +15,23 @@
 .vscode/
 *.iml
 
+# Editor backups / swap files
+*.swp
+*.swo
+*~
+*.bak
+*.tmp
+
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude Code local session state (never commit)
+.claude/
+/mock-project/.claude/
+
+# Aider history (om någon kör aider lokalt)
+.aider*
 
 # Experiment runtime
 /worktrees/*
