@@ -1,14 +1,14 @@
 # Arkitektur- och designbeslut
 
-## 2026-04-20 — Experiment som eget repo (ej del av bokningssidan)
+## 2026-04-20 — Experiment som eget repo
 
-**Beslut:** LLM dispatch-experimentet bor i `/opt/homebrew/var/www/cc/llm-dispatch-experiment/`, separat från bokningssidan.
+**Beslut:** LLM dispatch-experimentet bor i `/llm-dispatch-experiment/`, separat från andra projekt på maskinen.
 
 **Motivering:**
-- Mock-projektet ska vara ny kodbas — inte bokningssidan-kontamination
+- Mock-projektet ska vara ny kodbas — inte kontaminerad av annat projekt
 - Olika livscykel för produkt vs experiment (CLAUDE.md, WORKLOG, tests)
 - Runner är återanvändbar infrastruktur för framtida experiment
-- Egen `.claude/`-konfig möjlig utan arv från bokningssidan
+- Egen `.claude/`-konfig möjlig utan arv från andra projekt
 - Publicerbart som självständig GitHub-repo
 
 ## 2026-04-20 — MariaDB (ej SQLite)
@@ -28,7 +28,7 @@ Docker Compose är industristandard i PHP-ekosystemet. Peer-review-barriären ä
 
 **Beslut:** Mock-projektet är ett ticket-system (tickets, customers, companies, kategorier, state-machine, SLA, kommentarer, tags).
 
-**Motivering:** Rik på naturliga task-typer för alla 8 kategorier (CRUD, state machine, migration, refactor, bugfix, RBAC, frontend, i18n). Mindre tränings-exponerat än blogg/CMS. Annorlunda vokabulär från bokningssidan så Claude inte auto-completar från träning.
+**Motivering:** Rik på naturliga task-typer för alla 8 kategorier (CRUD, state machine, migration, refactor, bugfix, RBAC, frontend, i18n). Mindre tränings-exponerat än blogg/CMS. Annorlunda domänvokabulär från författarens andra projekt så Claude inte auto-completar från träning.
 
 Alternativ övervägda: invoice-system (för regel-tungt), inventory (torrare affärslogik), CMS (för tränings-exponerat).
 
@@ -74,9 +74,9 @@ Alternativ övervägda: invoice-system (för regel-tungt), inventory (torrare af
 
 ## 2026-04-22 — All experimentdokumentation i detta repo
 
-**Beslut:** Spec, plan-filer och all experimentrelaterad dokumentation ligger i detta repo. Ingenting i bokningssidan-repot.
+**Beslut:** Spec, plan-filer och all experimentrelaterad dokumentation ligger i detta repo. Ingenting läcker till andra projekts repos.
 
-**Motivering:** `/superpowers`-skills (brainstorming, writing-plans, executing-plans) är globala Claude Code-plugins som respekterar working directory — ingen teknisk koppling till bokningssidan-sessionen. Att ha experimentet helt självständigt eliminerar risk för förvirring om vilka filer hör hemma var, förenklar peer-review-publicering, och gör sessionshanteringen renare. Plan 2–5 skrivs och körs i detta repo (med Claude Code startad i repots rot).
+**Motivering:** `/superpowers`-skills (brainstorming, writing-plans, executing-plans) är globala Claude Code-plugins som respekterar working directory — ingen teknisk koppling till andra Claude Code-sessioner på samma maskin. Att ha experimentet helt självständigt eliminerar risk för förvirring om vilka filer hör hemma var, förenklar peer-review-publicering, och gör sessionshanteringen renare. Plan 2–5 skrivs och körs i detta repo (med Claude Code startad i repots rot).
 
 ## 2026-04-22 — Separation mellan experiment-repots och mock-projektets CLAUDE.md
 

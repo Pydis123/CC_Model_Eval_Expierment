@@ -312,6 +312,36 @@ controlled experiment, but the structural argument is strong: a
 specified plan reduces the discovery burden on the agent, and
 discovery burden is what differentiates the tiers in this dataset.
 
+### 4.6 Practical configuration
+
+The findings can be operationalized through tier-routing rules
+encoded in a project's or user's `CLAUDE.md` instructions, which
+Claude Code reads as part of the system prompt. A minimal
+operationalization is:
+
+```markdown
+## Model selection for coding tasks
+
+Pick the cheapest tier with a reasonable chance of solving the task.
+Escalate on failure; do not retry the same tier more than twice.
+
+- Haiku: well-specified local tasks (i18n, migrations with explicit
+  plans, route+RBAC, frontend wiring, documented refactors,
+  bugfixes with reproductions).
+- Sonnet: multi-file work crossing more of the codebase than the
+  task description names.
+- Opus: cross-call-site reasoning (N+1, transactions across
+  services), architecture, security review, cross-system debugging.
+```
+
+This rule set encodes the tier-fit findings of §4.1–4.2 plus the
+iteration-budget signal of §3.4. A more elaborate version covering
+PM-orchestrated dispatch, cost-bounded projects, and prompt
+engineering investments is provided in the repository's
+`docs/applying-findings.md`. The included `cost-calculator.php`
+permits forecasting monthly spend under five strategies for a
+user-supplied workload mix.
+
 ## 5. Limitations
 
 These limitations are detailed in `docs/limitations.md`. Summary:

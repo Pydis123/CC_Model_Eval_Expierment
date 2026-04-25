@@ -56,6 +56,31 @@ Den största vinsten ligger inte i modellval — den ligger i
 kan flytta uppgiften från "behöver Opus" till "Haiku räcker", med
 multipla dollar i besparing per dispatch.
 
+## Hur du konfigurerar CLAUDE.md för att använda det här
+
+För att praktiskt utnyttja resultaten i egna projekt — klistra in
+följande block i `CLAUDE.md` (projektets, eller din användar-globala
+`~/.claude/CLAUDE.md`):
+
+```markdown
+## Modellval för kodningsuppgifter
+
+Välj billigaste tier som rimligen klarar uppgiften. Eskalera vid fail
+i stället för att retrya samma tier mer än två gånger.
+
+- **Haiku** — boilerplate, i18n, migreringar med explicit plan,
+  route + RBAC, bugfixar med reproduktion, frontend-wiring,
+  dokumenterade refaktoreringar.
+- **Sonnet** — multifil-CRUD, arbete som kräver att läsa mer av
+  kodbasen än uppgiftsbeskrivningen nämner. Mellanvägen.
+- **Opus** — query-budget-resonemang (N+1, transaktioner),
+  arkitektur, cross-system-debugging, säkerhetsgranskning.
+  Reservera för uppgifter där den verkligen behövs.
+```
+
+För fullständiga snuttar (kostnadsbegränsade projekt, PM-dispatch-policy,
+prompt-engineering-tips) — se `docs/applying-findings.md` i repot.
+
 ## Begränsningar
 
 N=3 per cell är för få repliker för att räkna confidence-intervall

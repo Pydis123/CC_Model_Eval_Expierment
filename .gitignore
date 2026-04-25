@@ -33,6 +33,9 @@ Thumbs.db
 # Aider history (om någon kör aider lokalt)
 .aider*
 
+# Personal worklog — kept locally, not pushed
+/WORKLOG.md
+
 # Experiment runtime
 /worktrees/*
 !/worktrees/.gitignore

@@ -56,6 +56,33 @@ The biggest cost lever isn't tier choice — it's **prompt engineering**.
 A 50-word tightening of a task brief can move work from "needs Opus" to
 "Haiku is fine," saving multiple dollars per dispatch.
 
+## How to configure CLAUDE.md to leverage this
+
+To put the findings into practice in your own projects — paste the
+following block into `CLAUDE.md` (the project's, or your user-global
+`~/.claude/CLAUDE.md`):
+
+```markdown
+## Model selection for coding tasks
+
+Pick the cheapest tier that has a reasonable chance of solving the
+task. Escalate on failure rather than retrying the same tier more
+than twice.
+
+- **Haiku** — boilerplate, i18n, migrations with explicit plans,
+  route + RBAC, bugfixes with reproductions, frontend wiring,
+  documented refactors.
+- **Sonnet** — multi-file CRUD, work that requires reading more of
+  the codebase than the task description names. The middle ground.
+- **Opus** — query-budget reasoning (N+1, transactions),
+  architecture, cross-system debugging, security review. Reserve
+  for tasks where it is genuinely needed.
+```
+
+For fuller snippets (cost-bounded projects, PM dispatch policy,
+prompt engineering tips) — see `docs/applying-findings.md` in the
+repo.
+
 ## Limitations
 
 N=3 per cell is too few replicates for proper confidence intervals.
