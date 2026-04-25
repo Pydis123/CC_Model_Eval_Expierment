@@ -36,6 +36,11 @@ Thumbs.db
 # Personal worklog — kept locally, not pushed
 /WORKLOG.md
 
+# Internal design artifacts (plans/specs from brainstorming flow) — kept
+# locally for the maintainer, not pushed. The published architecture is in
+# docs/methodology.md, DECISIONS.md, and docs/conclusions.md.
+/docs/superpowers/
+
 # Experiment runtime
 /worktrees/*
 !/worktrees/.gitignore
