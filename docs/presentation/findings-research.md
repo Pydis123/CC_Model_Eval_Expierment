@@ -6,6 +6,19 @@
 
 ---
 
+## TL;DR
+
+- N=72 dispatches over 8 coding tasks × 3 tiers × 3 replicates.
+- Pass rates: Haiku 88%, Sonnet 96%, Opus 100%; cost ratios approximately
+  1× / 1.2–1.6× / 2–4× in tokens and 1× / 1.5–2× / 2–7× in wall-clock.
+- Haiku is the cost-optimal default on 5/8 task categories; Opus is
+  required on 1/8 (cross-call-site reasoning); 2/8 are in a gray zone.
+- A simulated 3-tier escalation chain (Haiku → Sonnet → Opus) is the
+  cheapest reliability-100% strategy in expectation, ~35% under all-Opus.
+- Prompt specificity dominates tier choice as a cost lever.
+
+---
+
 ## Abstract
 
 We measure cost-to-green and time-to-green for three Claude model tiers

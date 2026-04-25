@@ -1,5 +1,19 @@
 # Vilken Claude-modell ska du använda för vad? — Ett experiment
 
+## TL;DR
+
+- **72 dispatcher** — 8 kodningsuppgifter × 3 modell-tiers × 3 repliker.
+- **Pass rate:** Haiku 88%, Sonnet 96%, Opus 100%. Opus kostar 2–4× tokens
+  och är 2–7× långsammare än Haiku.
+- **Haiku räcker** på 5 av 8 uppgiftstyper. Opus krävs på 1 av 8
+  (cross-call-site-resonemang, t.ex. N+1). 2 av 8 är gråzon.
+- **Optimal strategi:** 3-tier-eskalering Haiku → Sonnet → Opus är ~35%
+  billigare än enbart Opus med 100% slutlig pass rate.
+- **Största insikten:** prompt-specificitet är en större kostnadsknapp
+  än modellval.
+
+---
+
 Jag körde 72 kontrollerade kodningsuppgifter mot Claudes tre modellnivåer
 (Haiku, Sonnet, Opus) för att svara på en konkret fråga: **när är det värt
 att betala för den dyrare modellen?**

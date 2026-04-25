@@ -391,19 +391,24 @@ You should see confirmation that 72 runs were generated. The file
 ### 5.2 Record which model versions are pinned
 
 The experiment needs to know exactly which model ID each tier resolves to
-(e.g. `claude-sonnet-4-6-20250929`) so you can detect if Anthropic silently
-swaps the underlying model mid-experiment.
+so you can detect if Anthropic silently swaps the underlying model
+mid-experiment. You provide the IDs explicitly; the runner stores them in
+`state.json`.
 
 ```
-$ php runner/bin/cli state pin-models
+$ php runner/bin/cli state pin-models --haiku=<haiku-id> --sonnet=<sonnet-id> --opus=<opus-id>
 ```
 
-This performs one short dispatch per tier (Haiku, Sonnet, Opus), records the
-resolved model ID in `state.json`, and prints the three IDs. Expected cost:
-< $0.02.
+Replace `<haiku-id>` / `<sonnet-id>` / `<opus-id>` with the model IDs you
+want to use. Anthropic's currently-published model IDs at the time of writing
+are roughly of the form `claude-haiku-4-5-20251001`, `claude-sonnet-4-6`,
+and `claude-opus-4-7` — but check Anthropic's docs for the latest. Dated
+IDs (with the `-YYYYMMDD` suffix) detect silent swaps better than aliases.
 
-If any tier fails here, **stop** — the experiment cannot proceed. See
-[Part 6 — Troubleshooting](#part-6--troubleshooting).
+If you need to overwrite an already-pinned set, append `--force`.
+
+Verify the output prints the three IDs you supplied. If anything goes wrong,
+see [Part 6 — Troubleshooting](#part-6--troubleshooting).
 
 ---
 
@@ -426,19 +431,34 @@ That is the whole command. The runner now:
 6. Appends one line to `results/results.jsonl` describing the run.
 7. Moves on to the next run.
 
-Progress is printed to the screen and also written to `results/runner.log`.
+Progress for queue-empty, abort, and rate-limit events is written to
+`results/runner.log`. **Per-run progress is NOT printed during the dispatch
+itself** — the runner reads Claude's output as a single buffer and only
+emits log lines at lifecycle events. The terminal will appear silent for
+minutes at a time during normal operation. This is expected.
 
-### 6.2 What you will see
+### 6.2 What you will see (and not see)
 
-Each run prints:
+Lifecycle events that DO print:
+- Queue empty (when all 72 runs are done)
+- Unexpected-error counter increments
+- Abort after 5 consecutive unexpected errors
+- Rate-limit sleeps and wake-ups
 
-- The run ID, task ID, and model tier
-- Whether it passed, failed, or encountered an unexpected error
-- How many iterations it used
-- Rate-limit sleeps, if any
+What does NOT print during normal operation:
+- Per-run "starting" / "finished" lines
+- Token counts per dispatch
+- Iteration progress within a run
+
+To check progress while `run-all` is running, open a second terminal and:
+
+```
+$ wc -l results/results.jsonl     # how many runs are done
+$ tail -F results/results.jsonl   # watch new rows append
+```
 
 A typical single run takes 30–120 seconds of Claude time, plus any rate-limit
-wait. Expect total wall-clock time of 10–30 hours.
+wait. Expect total wall-clock time of 10–30 hours for the full 72.
 
 ### 6.3 If you need to stop
 
@@ -581,10 +601,10 @@ should be something like `sleeping until 2026-04-24T17:00:00Z`.
 
 ### `No pinned model for tier: X` during `run-all`
 
-You skipped or partially completed Part 5.2. Run it:
+You skipped or partially completed Part 5.2. Run it with the three model IDs:
 
 ```
-$ php runner/bin/cli state pin-models
+$ php runner/bin/cli state pin-models --haiku=<id> --sonnet=<id> --opus=<id>
 ```
 
 ### The experiment aborted with 5 consecutive errors
@@ -603,7 +623,7 @@ $ docker compose down -v
 $ docker compose up -d
 $ cd mock-project && php tools/migrate.php && php tools/seed_demo.php && cd ..
 $ php runner/bin/cli state init
-$ php runner/bin/cli state pin-models
+$ php runner/bin/cli state pin-models --haiku=<id> --sonnet=<id> --opus=<id>
 ```
 
 **Warning:** `docker compose down -v` wipes the database volume. Only do this
