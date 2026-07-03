@@ -9,14 +9,18 @@ use LlmDispatch\Runner\State\StateManager;
 
 final class StatePinModelsCommand implements CommandInterface
 {
-    public function __construct(private readonly StateManager $manager) {}
+    /** @param list<string> $tiers */
+    public function __construct(
+        private readonly StateManager $manager,
+        private readonly array $tiers,
+    ) {}
 
     public function run(array $args): int
     {
         $force = in_array('--force', $args, true);
 
         $models = [];
-        foreach (['haiku', 'sonnet', 'opus'] as $tier) {
+        foreach ($this->tiers as $tier) {
             foreach ($args as $arg) {
                 $prefix = "--{$tier}=";
                 if (str_starts_with($arg, $prefix)) {
@@ -26,8 +30,9 @@ final class StatePinModelsCommand implements CommandInterface
             }
         }
 
-        if (count($models) !== 3) {
-            fwrite(STDERR, "Missing tier flag(s). Required: --haiku=, --sonnet=, --opus=\n");
+        if (count($models) !== count($this->tiers)) {
+            $flags = implode(', ', array_map(static fn(string $t) => "--{$t}=", $this->tiers));
+            fwrite(STDERR, "Missing tier flag(s). Required: {$flags}\n");
             return 2;
         }
 

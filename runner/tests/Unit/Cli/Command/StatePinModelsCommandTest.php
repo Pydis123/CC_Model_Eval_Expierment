@@ -28,7 +28,7 @@ final class StatePinModelsCommandTest extends TestCase
         $manager = new StateManager($this->tmpPath);
         $manager->save(State::empty());
 
-        $command = new StatePinModelsCommand($manager);
+        $command = new StatePinModelsCommand($manager, ['haiku', 'sonnet', 'opus']);
 
         ob_start();
         $exit = $command->run([
@@ -51,7 +51,7 @@ final class StatePinModelsCommandTest extends TestCase
             'haiku' => 'claude-haiku-4-5', 'sonnet' => 'claude-sonnet-4-6', 'opus' => 'claude-opus-4-7',
         ]));
 
-        $command = new StatePinModelsCommand($manager);
+        $command = new StatePinModelsCommand($manager, ['haiku', 'sonnet', 'opus']);
 
         ob_start();
         $exit = $command->run([
@@ -69,12 +69,32 @@ final class StatePinModelsCommandTest extends TestCase
         $manager = new StateManager($this->tmpPath);
         $manager->save(State::empty());
 
-        $command = new StatePinModelsCommand($manager);
+        $command = new StatePinModelsCommand($manager, ['haiku', 'sonnet', 'opus']);
 
         ob_start();
         $exit = $command->run(['--haiku=x', '--sonnet=y']);
         ob_end_clean();
 
         $this->assertSame(2, $exit);
+    }
+
+    public function testPinsAllFourConfiguredTiers(): void
+    {
+        $manager = new StateManager($this->tmpPath);
+        $manager->save(State::empty());
+
+        $command = new StatePinModelsCommand($manager, ['haiku', 'sonnet', 'opus', 'fable']);
+
+        ob_start();
+        $exit = $command->run([
+            '--haiku=claude-haiku-4-5-20251001',
+            '--sonnet=claude-sonnet-5',
+            '--opus=claude-opus-4-8',
+            '--fable=claude-fable-5',
+        ]);
+        ob_end_clean();
+
+        $this->assertSame(0, $exit);
+        $this->assertSame('claude-fable-5', $manager->load()->pinnedModels['fable']);
     }
 }

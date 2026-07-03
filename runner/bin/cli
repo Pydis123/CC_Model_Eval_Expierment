@@ -132,7 +132,7 @@ $registry = [
         'init' => new StateInitCommand($stateManager, $runQueue, $config->planSeed),
         'next-run' => new StateNextRunCommand($stateManager, (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s\Z')),
         'record-run' => new StateRecordRunCommand($stateManager, $resultsLogger),
-        'pin-models' => new StatePinModelsCommand($stateManager),
+        'pin-models' => new StatePinModelsCommand($stateManager, $config->tiers),
         'reset-stale' => new StateResetStaleCommand(
             $stateManager,
             static fn() => new DateTimeImmutable('now', new DateTimeZone('UTC')),
