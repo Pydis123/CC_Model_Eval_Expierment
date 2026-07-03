@@ -41,6 +41,21 @@ final class DispatchDispositionTest extends TestCase
         $this->assertSame('completed', DispatchDisposition::classify('claude-fable-5', $outcome));
     }
 
+    public function testRerouteTakesPrecedenceOverRefusalText(): void
+    {
+        $outcome = new RunOutcome([
+            $this->iter('claude-opus-4-8', 'ok'),
+            $this->iter('claude-opus-4-8', "I can't help with that."),
+        ], 'failed', null);
+        $this->assertSame('model_rerouted', DispatchDisposition::classify('claude-fable-5', $outcome));
+    }
+
+    public function testIdiomaticHelpIsNotRefusal(): void
+    {
+        $outcome = new RunOutcome([$this->iter('claude-fable-5', "I can't help but notice the retry logic swallows errors.")], 'passed', null);
+        $this->assertSame('completed', DispatchDisposition::classify('claude-fable-5', $outcome));
+    }
+
     private function iter(string $reportedId, string $text): IterationOutcome
     {
         return new IterationOutcome(1, 'p', 1, 1, 1, $reportedId, 0.0, null, null, $text);

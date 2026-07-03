@@ -12,11 +12,11 @@ final class DispatchDisposition
     public const ERROR = 'error';
 
     private const REFUSAL_PATTERNS = [
-        "/\bi can(?:'|no|')?t help\b/i",
-        '/\bi (?:cannot|can not) (?:help|assist|comply)\b/i',
-        "/\bi(?:'m| am) (?:unable|not able) to\b/i",
-        '/\bi (?:must|have to) decline\b/i',
-        '/\bcannot assist with (?:this|that)\b/i',
+        "/\bi\s+(?:can['']?t|cannot|can not)\s+(?:help|assist)(?:\s+you)?\s+with\b/i",
+        "/\bi(?:'m| am)?\s+(?:unable|not able)\s+to\s+(?:help|assist|comply)\b/i",
+        "/\bi\s+(?:must|have to)\s+decline\b/i",
+        "/\bi\s+(?:can['']?t|cannot|can not)\s+comply\b/i",
+        "/\bcannot\s+assist\s+with\s+(?:this|that)\b/i",
     ];
 
     public static function classify(string $expectedModelId, RunOutcome $outcome): string
