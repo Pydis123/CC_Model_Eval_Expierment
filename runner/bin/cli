@@ -53,9 +53,12 @@ use LlmDispatch\Runner\Worktree\WorktreeManager;
 
 $repoRoot = dirname(__DIR__, 2);
 
+$statePath = getenv('LLM_DISPATCH_STATE_PATH') ?: $repoRoot . '/state.json';
+$resultsPath = getenv('LLM_DISPATCH_RESULTS_PATH') ?: $repoRoot . '/results/results.jsonl';
+
 $config = Config::fromFile($repoRoot . '/experiment_config.json');
-$stateManager = new StateManager($repoRoot . '/state.json');
-$resultsLogger = new ResultsLogger($repoRoot . '/results/results.jsonl');
+$stateManager = new StateManager($statePath);
+$resultsLogger = new ResultsLogger($resultsPath);
 $runQueue = new RunQueue($config);
 
 $checkFactories = [
@@ -161,7 +164,7 @@ $registry = [
         stateManager: $stateManager,
         environment: $environment,
         swapDetector: new SwapDetector(3),
-        resultsTail: new ResultsTailReader($repoRoot . '/results/results.jsonl'),
+        resultsTail: new ResultsTailReader($resultsPath),
         pinnedModels: $config->pinnedModels,
         pauseSentinelPath: $repoRoot . '/PAUSE',
     ),
@@ -170,14 +173,14 @@ $registry = [
         aggregator: new Aggregator(),
         simulator: new BootstrapSimulator(),
         writer: new FindingsWriter(),
-        defaultInputPath: $repoRoot . '/results/results.jsonl',
+        defaultInputPath: $resultsPath,
         defaultOutputPath: $repoRoot . '/docs/findings.md',
         defaultBootstrapSamples: 1000,
         defaultBootstrapSeed: $config->planSeed,
     ),
     'report-delta' => new ReportDeltaCommand(
         oldPath: $repoRoot . '/results/results-v1-2026-04.jsonl',
-        newPath: $repoRoot . '/results/results.jsonl',
+        newPath: $resultsPath,
         outputPath: $repoRoot . '/docs/findings-delta.md',
     ),
 ];
