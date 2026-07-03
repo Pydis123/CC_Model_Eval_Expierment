@@ -57,7 +57,7 @@ final class CliApplicationTest extends TestCase
         $initResult = $this->cli('state', 'init', '--force');
         $this->assertSame(0, $initResult['exit'], 'stderr: ' . $initResult['stderr']);
         $json = json_decode($initResult['stdout'], true);
-        $this->assertSame(72, $json['runs_queued']);
+        $this->assertSame(160, $json['runs_queued']);
 
         $peekResult = $this->cli('state', 'next-run', '--peek');
         $this->assertSame(0, $peekResult['exit']);
