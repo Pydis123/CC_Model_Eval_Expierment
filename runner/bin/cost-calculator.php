@@ -32,7 +32,7 @@ const CATEGORY_TO_TASK_ID = [
     'frontend'  => '008-comment-composer-alpine',
 ];
 
-const TIERS = ['haiku', 'sonnet', 'opus'];
+const TIERS = ['haiku', 'sonnet', 'opus', 'fable'];
 
 /**
  * @return array<string, float|string|int>
@@ -172,7 +172,7 @@ function loadCellStats(): array
  */
 function singleTierCost(array $stats, string $taskId, string $tier): array
 {
-    return $stats[$taskId][$tier];
+    return $stats[$taskId][$tier] ?? ['tokens' => 0.0, 'wall' => 0.0, 'pass_rate' => 0.0];
 }
 
 /**
@@ -190,7 +190,7 @@ function escalationCost(array $stats, string $taskId, array $chain): array
     $finalPass = 0.0;
 
     foreach ($chain as $tier) {
-        $cell = $stats[$taskId][$tier];
+        $cell = $stats[$taskId][$tier] ?? ['tokens' => 0.0, 'wall' => 0.0, 'pass_rate' => 0.0];
         $expectedTokens += $reachedSurvival * $cell['tokens'];
         $expectedWall += $reachedSurvival * $cell['wall'];
         $finalPass += $reachedSurvival * $cell['pass_rate'];
@@ -249,8 +249,10 @@ function main(array $argv): int
         'All-Haiku'     => fn($t) => singleTierCost($stats, $t, 'haiku'),
         'All-Sonnet'    => fn($t) => singleTierCost($stats, $t, 'sonnet'),
         'All-Opus'      => fn($t) => singleTierCost($stats, $t, 'opus'),
+        'All-Fable'     => fn($t) => singleTierCost($stats, $t, 'fable'),
         'Haiku → Opus'  => fn($t) => escalationCost($stats, $t, ['haiku', 'opus']),
         'Haiku → Sonnet → Opus' => fn($t) => escalationCost($stats, $t, ['haiku', 'sonnet', 'opus']),
+        'Haiku → Sonnet → Opus → Fable' => fn($t) => escalationCost($stats, $t, ['haiku', 'sonnet', 'opus', 'fable']),
     ];
 
     echo "\n";
