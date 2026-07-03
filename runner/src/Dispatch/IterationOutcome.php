@@ -18,6 +18,7 @@ final class IterationOutcome
         public readonly float $costUsd,
         public readonly ?EvaluationResult $evaluation,
         public readonly ?string $errorCategory,
+        public readonly string $resultText = '',
     ) {}
 
     public function totalTokens(): int
