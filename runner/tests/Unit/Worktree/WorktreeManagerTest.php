@@ -81,6 +81,41 @@ final class WorktreeManagerTest extends TestCase
         $this->tearDownTempFs($tmpFs);
     }
 
+    public function testPrepareThrowsWhenPruneLeavesDisallowedEntry(): void
+    {
+        $executor = new class extends ProcessExecutor {
+            public function exec(string $cwd, array $command): ProcessResult
+            {
+                return new ProcessResult(0, '', '');
+            }
+        };
+
+        $tmpFs = $this->createTempWorktreeWithExtraEntries();
+
+        $manager = new class(
+            executor: $executor,
+            repoRoot: '/fake/repo',
+            worktreeBaseDir: dirname($tmpFs['worktreePath']),
+            failedDir: $tmpFs['failedDir'],
+            baseRef: 'scaffold_complete',
+        ) extends WorktreeManager {
+            protected function removeRecursive(string $target): void
+            {
+                // No-op: simulates a silently failed deletion so the
+                // disallowed entries survive the prune loop.
+            }
+        };
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('prune incomplete');
+
+        try {
+            $manager->prepare('run-guard', stubWorktreePath: $tmpFs['worktreePath']);
+        } finally {
+            $this->tearDownTempFs($tmpFs);
+        }
+    }
+
     public function testPrepareFailsIfComposerInstallExitsNonzero(): void
     {
         $worktreePath = null;

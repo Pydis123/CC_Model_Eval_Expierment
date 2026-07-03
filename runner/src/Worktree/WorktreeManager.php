@@ -7,7 +7,7 @@ namespace LlmDispatch\Runner\Worktree;
 use LlmDispatch\Runner\Support\ProcessExecutor;
 use RuntimeException;
 
-final class WorktreeManager
+class WorktreeManager
 {
     public function __construct(
         private readonly ProcessExecutor $executor,
@@ -43,6 +43,20 @@ final class WorktreeManager
             $this->removeRecursive($path . '/' . $entry);
         }
 
+        $leftover = [];
+        foreach (scandir($path) ?: [] as $entry) {
+            if ($entry === '.' || $entry === '..' || $entry === '.git' || $entry === 'mock-project') {
+                continue;
+            }
+            $leftover[] = $entry;
+        }
+
+        if ($leftover !== []) {
+            throw new RuntimeException(
+                sprintf('Worktree prune incomplete; unexpected entries remain: %s', implode(', ', $leftover)),
+            );
+        }
+
         $composerResult = $this->executor->exec($path . '/mock-project', [
             'composer', 'install', '--no-interaction', '--no-progress', '--prefer-dist',
         ]);
@@ -56,7 +70,7 @@ final class WorktreeManager
         return $path;
     }
 
-    private function removeRecursive(string $target): void
+    protected function removeRecursive(string $target): void
     {
         if (is_link($target) || is_file($target)) {
             @unlink($target);
