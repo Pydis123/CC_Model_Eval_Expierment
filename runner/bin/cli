@@ -13,6 +13,7 @@ use LlmDispatch\Runner\Cli\Command\PinCheckPingCommand;
 use LlmDispatch\Runner\Cli\Command\PinCheckVerifyCommand;
 use LlmDispatch\Runner\Cli\Command\ProbeQueryCountCommand;
 use LlmDispatch\Runner\Cli\Command\ReportCommand;
+use LlmDispatch\Runner\Cli\Command\ReportDeltaCommand;
 use LlmDispatch\Runner\Cli\Command\RunAllCommand;
 use LlmDispatch\Runner\Cli\Command\RunNextCommand;
 use LlmDispatch\Runner\Cli\Command\StateInitCommand;
@@ -172,6 +173,11 @@ $registry = [
         defaultOutputPath: $repoRoot . '/docs/findings.md',
         defaultBootstrapSamples: 1000,
         defaultBootstrapSeed: $config->planSeed,
+    ),
+    'report-delta' => new ReportDeltaCommand(
+        oldPath: $repoRoot . '/results/results-v1-2026-04.jsonl',
+        newPath: $repoRoot . '/results/results.jsonl',
+        outputPath: $repoRoot . '/docs/findings-delta.md',
     ),
 ];
 
