@@ -10,13 +10,14 @@ If you already know the tools, skip to [Part 5 — Initialize the experiment](#p
 ## What you are about to do
 
 You are going to run a scientific experiment. The experiment measures how well
-three Claude model tiers (Haiku, Sonnet, Opus) perform at small, realistic coding
-tasks when each model is given the same task under the same conditions.
+four Claude model tiers (Haiku, Sonnet, Opus, Fable) perform at small,
+realistic coding tasks when each model is given the same task under the same
+conditions.
 
-The experiment runs **72 task executions** in total: 8 tasks × 3 model tiers ×
-3 replicates. Each execution gets up to 3 retry iterations. The runner program
-performs the executions one after another, completely automatically. You start
-it, walk away, and come back when it is done.
+The experiment runs **160 task executions** in total: 8 tasks × 4 model tiers
+× 5 replicates. Each execution gets up to 3 retry iterations. The runner
+program performs the executions one after another, completely automatically.
+You start it, walk away, and come back when it is done.
 
 **Approximate time:** 10–30 hours of wall-clock time, mostly waiting on the
 Claude rate-limit to reset between dispatches. Your computer can be doing other
@@ -27,7 +28,7 @@ experiment does not use the paid API — it uses your subscription via the
 Claude Code command-line tool.
 
 **What it produces:** a file named `docs/findings.md` with tables and numbers
-comparing the three tiers on cost, speed, and success rate.
+comparing the four tiers on cost, speed, and success rate.
 
 ---
 
@@ -377,7 +378,7 @@ told to skip.
 
 ## Part 5 — Initialize the experiment
 
-This fills `state.json` with the 72 runs the experiment will execute.
+This fills `state.json` with the 160 runs the experiment will execute.
 
 ### 5.1 Seed the run queue
 
@@ -385,7 +386,7 @@ This fills `state.json` with the 72 runs the experiment will execute.
 $ php runner/bin/cli state init
 ```
 
-You should see confirmation that 72 runs were generated. The file
+You should see confirmation that 160 runs were generated. The file
 `state.json` at the repo root is now populated.
 
 ### 5.2 Record which model versions are pinned
@@ -396,18 +397,21 @@ mid-experiment. You provide the IDs explicitly; the runner stores them in
 `state.json`.
 
 ```
-$ php runner/bin/cli state pin-models --haiku=<haiku-id> --sonnet=<sonnet-id> --opus=<opus-id>
+$ php runner/bin/cli state pin-models \
+    --haiku=claude-haiku-4-5-20251001 \
+    --sonnet=claude-sonnet-5 \
+    --opus=claude-opus-4-8 \
+    --fable=claude-fable-5
 ```
 
-Replace `<haiku-id>` / `<sonnet-id>` / `<opus-id>` with the model IDs you
-want to use. Anthropic's currently-published model IDs at the time of writing
-are roughly of the form `claude-haiku-4-5-20251001`, `claude-sonnet-4-6`,
-and `claude-opus-4-7` — but check Anthropic's docs for the latest. Dated
-IDs (with the `-YYYYMMDD` suffix) detect silent swaps better than aliases.
+Replace each value with the model IDs you want to use. Anthropic's
+currently-published model IDs at the time of writing are roughly of the form
+shown above — but check Anthropic's docs for the latest. Dated IDs (with the
+`-YYYYMMDD` suffix) detect silent swaps better than aliases.
 
 If you need to overwrite an already-pinned set, append `--force`.
 
-Verify the output prints the three IDs you supplied. If anything goes wrong,
+Verify the output prints the four IDs you supplied. If anything goes wrong,
 see [Part 6 — Troubleshooting](#part-6--troubleshooting).
 
 ---
@@ -440,7 +444,7 @@ minutes at a time during normal operation. This is expected.
 ### 6.2 What you will see (and not see)
 
 Lifecycle events that DO print:
-- Queue empty (when all 72 runs are done)
+- Queue empty (when all 160 runs are done)
 - Unexpected-error counter increments
 - Abort after 5 consecutive unexpected errors
 - Rate-limit sleeps and wake-ups
@@ -458,7 +462,7 @@ $ tail -F results/results.jsonl   # watch new rows append
 ```
 
 A typical single run takes 30–120 seconds of Claude time, plus any rate-limit
-wait. Expect total wall-clock time of 10–30 hours for the full 72.
+wait. Expect total wall-clock time of 10–30 hours for the full 160.
 
 ### 6.3 If you need to stop
 
@@ -501,7 +505,7 @@ from where it stopped.
 $ php runner/bin/cli report
 ```
 
-This reads `results/results.jsonl`, aggregates the 72 runs, runs a Monte Carlo
+This reads `results/results.jsonl`, aggregates the 160 runs, runs a Monte Carlo
 simulation for the alternative escalation policy, and writes
 `docs/findings.md`.
 
@@ -601,10 +605,10 @@ should be something like `sleeping until 2026-04-24T17:00:00Z`.
 
 ### `No pinned model for tier: X` during `run-all`
 
-You skipped or partially completed Part 5.2. Run it with the three model IDs:
+You skipped or partially completed Part 5.2. Run it with the four model IDs:
 
 ```
-$ php runner/bin/cli state pin-models --haiku=<id> --sonnet=<id> --opus=<id>
+$ php runner/bin/cli state pin-models --haiku=<id> --sonnet=<id> --opus=<id> --fable=<id>
 ```
 
 ### The experiment aborted with 5 consecutive errors
@@ -623,7 +627,7 @@ $ docker compose down -v
 $ docker compose up -d
 $ cd mock-project && php tools/migrate.php && php tools/seed_demo.php && cd ..
 $ php runner/bin/cli state init
-$ php runner/bin/cli state pin-models --haiku=<id> --sonnet=<id> --opus=<id>
+$ php runner/bin/cli state pin-models --haiku=<id> --sonnet=<id> --opus=<id> --fable=<id>
 ```
 
 **Warning:** `docker compose down -v` wipes the database volume. Only do this

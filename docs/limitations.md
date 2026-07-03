@@ -117,3 +117,28 @@ different machine will see different subagent behavior to the extent that
 their user-global CLAUDE.md differs. We considered using `--bare` to
 suppress this, but it requires `ANTHROPIC_API_KEY` and is incompatible with
 the Claude Code OAuth session that the experiment relies on.
+
+## Ground-truth leakage in v1 (fixed in v2)
+
+In v1, each worktree checked out the whole experiment repo and deleted only
+the root `CLAUDE.md`. The subagent's cwd was `mock-project/`, but the frozen
+task specs under `../tasks/*.json` (including success criteria) were readable.
+For v1's implementation tasks the criteria ≈ the prompt, so the effect is
+minor. v2 prunes the worktree to `mock-project/` only, which is required
+because Phase 2 ships ground-truth defect sets that must not be readable.
+
+## v2 config change (documented per repo rule)
+
+`experiment_config.json` was changed for v2 (`n_replicates` 3→5, `tiers` gains
+`fable`, `experiment_name` → `llm-dispatch-v2-phase1`). This is a new
+experiment version, not a mid-experiment mutation: v1 is complete and its data
+is archived at `results/results-v1-2026-04.jsonl`.
+
+## Safeguard routing (new non-reproducibility source)
+
+Fable 5 carries dual-use safety measures that can, on some prompts, reroute a
+dispatch to a different model or refuse in-band. The runner records
+`dispatch_disposition` per run and halts on a suspected silent swap. Interference
+is content-, account-, and time-dependent: two reviewers on different accounts
+may observe different rates. This is analogous to server-side model retuning —
+it cannot be fully reproduced.
