@@ -36,9 +36,11 @@ final class WorktreeManager
             );
         }
 
-        $experimentClaudeMd = $path . '/CLAUDE.md';
-        if (is_file($experimentClaudeMd)) {
-            @unlink($experimentClaudeMd);
+        foreach (scandir($path) ?: [] as $entry) {
+            if ($entry === '.' || $entry === '..' || $entry === '.git' || $entry === 'mock-project') {
+                continue;
+            }
+            $this->removeRecursive($path . '/' . $entry);
         }
 
         $composerResult = $this->executor->exec($path . '/mock-project', [
@@ -52,6 +54,23 @@ final class WorktreeManager
         }
 
         return $path;
+    }
+
+    private function removeRecursive(string $target): void
+    {
+        if (is_link($target) || is_file($target)) {
+            @unlink($target);
+            return;
+        }
+        if (is_dir($target)) {
+            foreach (scandir($target) ?: [] as $child) {
+                if ($child === '.' || $child === '..') {
+                    continue;
+                }
+                $this->removeRecursive($target . '/' . $child);
+            }
+            @rmdir($target);
+        }
     }
 
     public function cleanup(string $runId, string $worktreePath, bool $passed): void

@@ -54,6 +54,33 @@ final class WorktreeManagerTest extends TestCase
         $this->tearDownTempFs($tmpFs);
     }
 
+    public function testPruneLeavesOnlyMockProject(): void
+    {
+        $executor = new class extends ProcessExecutor {
+            public function exec(string $cwd, array $command): ProcessResult
+            {
+                return new ProcessResult(0, '', '');
+            }
+        };
+
+        $tmpFs = $this->createTempWorktreeWithExtraEntries();
+
+        $manager = new WorktreeManager(
+            executor: $executor,
+            repoRoot: '/fake/repo',
+            worktreeBaseDir: dirname($tmpFs['worktreePath']),
+            failedDir: $tmpFs['failedDir'],
+            baseRef: 'scaffold_complete',
+        );
+
+        $manager->prepare('run-prune', stubWorktreePath: $tmpFs['worktreePath']);
+
+        $entries = array_values(array_diff(scandir($tmpFs['worktreePath']), ['.', '..', '.git']));
+        $this->assertSame(['mock-project'], $entries);
+
+        $this->tearDownTempFs($tmpFs);
+    }
+
     public function testPrepareFailsIfComposerInstallExitsNonzero(): void
     {
         $worktreePath = null;
@@ -183,6 +210,24 @@ final class WorktreeManagerTest extends TestCase
         mkdir($failedDir, 0777, true);
         file_put_contents($worktreePath . '/CLAUDE.md', 'experiment root - should be removed');
         file_put_contents($worktreePath . '/mock-project/CLAUDE.md', 'mock-project - should stay');
+        return ['worktreePath' => $worktreePath, 'failedDir' => $failedDir, 'base' => $base];
+    }
+
+    /**
+     * @return array{worktreePath: string, failedDir: string, base: string}
+     */
+    private function createTempWorktreeWithExtraEntries(): array
+    {
+        $base = sys_get_temp_dir() . '/wm_test_' . uniqid();
+        $worktreePath = $base . '/llm-disp-run-prune';
+        $failedDir = $base . '/failed';
+        mkdir($worktreePath . '/mock-project', 0777, true);
+        mkdir($worktreePath . '/tasks', 0777, true);
+        mkdir($worktreePath . '/docs', 0777, true);
+        mkdir($failedDir, 0777, true);
+        file_put_contents($worktreePath . '/CLAUDE.md', 'experiment root - should be removed');
+        file_put_contents($worktreePath . '/mock-project/composer.json', '{}');
+        file_put_contents($worktreePath . '/tasks/ground-truth.json', '{}');
         return ['worktreePath' => $worktreePath, 'failedDir' => $failedDir, 'base' => $base];
     }
 
