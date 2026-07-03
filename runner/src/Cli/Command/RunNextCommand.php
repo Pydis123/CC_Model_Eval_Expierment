@@ -94,6 +94,7 @@ final class RunNextCommand implements CommandInterface
                 'cost_usd' => $it->costUsd,
                 'evaluator_outcome' => $it->evaluatorOutcome(),
                 'error_category' => $it->errorCategory,
+                'result_text' => mb_substr($it->resultText, 0, 500),
             ];
         }
 

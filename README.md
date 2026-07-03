@@ -43,6 +43,7 @@ regenerated once v2 completes.
 | Path | Contents |
 |---|---|
 | `docs/findings.md` | Generated report for the current run — not present until v2 executes and `report` regenerates it |
+| `docs/findings-delta.md` | Generational delta (v1→v2), produced by `report-delta` |
 | [`docs/archive/findings-v1-2026-04.md`](docs/archive/findings-v1-2026-04.md) | Archived v1 report — per-cell numbers, bootstrap CIs, Policy B simulation |
 | [`docs/conclusions.md`](docs/conclusions.md) | Analytical layer — model→task fit, what's decisive vs. not (based on v1) |
 | [`docs/applying-findings.md`](docs/applying-findings.md) | How to apply in real projects, with copy-pasteable CLAUDE.md snippets |
@@ -73,7 +74,7 @@ Pick the entry that matches your goal:
 ```
 .
 ├── docs/                              Methodology, findings, analysis, presentations
-│   ├── findings.md                    Generated report
+│   ├── findings.md                    Generated report (v2-pending: regenerated for v2, not yet run)
 │   ├── conclusions.md                 Analytical layer
 │   ├── applying-findings.md           Practical-use guide
 │   ├── tier-picker.md                 Cheat sheet

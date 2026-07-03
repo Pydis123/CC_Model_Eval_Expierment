@@ -133,10 +133,14 @@ final class RunAllCommand implements CommandInterface
         if ($tier === '' || $expected === '') {
             return;
         }
+        $reported = '';
         foreach ((array) ($row['iterations'] ?? []) as $it) {
-            $reported = (string) ($it['model_id_reported'] ?? '');
-            $this->swapDetector->record($tier, $reported, $expected);
+            $candidate = (string) ($it['model_id_reported'] ?? '');
+            if ($candidate !== '') {
+                $reported = $candidate;
+            }
         }
+        $this->swapDetector->record($tier, $reported, $expected);
     }
 
     private function abortSwap(): void

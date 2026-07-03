@@ -198,4 +198,57 @@ final class RunAllCommandTest extends TestCase
 
         $this->assertSame(11, $exit);
     }
+
+    public function testSingleMultiIterationRerouteDoesNotHalt(): void
+    {
+        $base = dirname($this->statePath);
+        $resultsPath = $base . '/results.jsonl';
+
+        $runNext = new class($resultsPath) implements CommandInterface {
+            private int $calls = 0;
+            public function __construct(private readonly string $resultsPath) {}
+            public function run(array $args): int
+            {
+                $this->calls++;
+                if ($this->calls === 1) {
+                    file_put_contents(
+                        $this->resultsPath,
+                        json_encode([
+                            'model_tier' => 'fable',
+                            'model_id' => 'claude-fable-5',
+                            'iterations' => [
+                                ['model_id_reported' => 'claude-opus-4-8'],
+                                ['model_id_reported' => 'claude-opus-4-8'],
+                                ['model_id_reported' => 'claude-opus-4-8'],
+                            ],
+                        ]) . "\n",
+                        FILE_APPEND,
+                    );
+                    return 0;
+                }
+                return 1;
+            }
+        };
+
+        $manager = new StateManager($this->statePath);
+        $manager->save(State::empty());
+
+        $cmd = new RunAllCommand(
+            runNext: $runNext,
+            progressLogger: new ProgressLogger($this->logPath),
+            errorCounter: new ConsecutiveErrorCounter(5),
+            crashDumper: new CrashDumper($this->crashDir),
+            stateManager: $manager,
+            environment: [],
+            swapDetector: new SwapDetector(3),
+            resultsTail: new ResultsTailReader($resultsPath),
+            pinnedModels: ['fable' => 'claude-fable-5'],
+        );
+
+        ob_start();
+        $exit = $cmd->run([]);
+        ob_end_clean();
+
+        $this->assertSame(0, $exit);
+    }
 }

@@ -118,14 +118,24 @@ their user-global CLAUDE.md differs. We considered using `--bare` to
 suppress this, but it requires `ANTHROPIC_API_KEY` and is incompatible with
 the Claude Code OAuth session that the experiment relies on.
 
-## Ground-truth leakage in v1 (fixed in v2)
+## Ground-truth leakage in v1 (working-tree prune added in v2)
 
 In v1, each worktree checked out the whole experiment repo and deleted only
 the root `CLAUDE.md`. The subagent's cwd was `mock-project/`, but the frozen
-task specs under `../tasks/*.json` (including success criteria) were readable.
-For v1's implementation tasks the criteria ≈ the prompt, so the effect is
-minor. v2 prunes the worktree to `mock-project/` only, which is required
-because Phase 2 ships ground-truth defect sets that must not be readable.
+task specs under `../tasks/*.json` (including success criteria) were readable
+in the working tree. For v1's implementation tasks the criteria ≈ the prompt,
+so the effect is minor. v2 prunes the worktree to `mock-project/` only,
+removing those files from the **working tree**.
+
+Note this prune is necessary but **not sufficient** for Phase 2. Because the
+runner uses `git worktree add`, the worktree's `.git` is a linked worktree
+sharing the main repo's object database, so committed content stays
+recoverable via plumbing (`git show <ref>:<path>`, `git cat-file`) even after
+the working-tree prune. Phase 2, which ships ground-truth defect sets that
+must not be readable by the audited subagent, additionally requires that
+ground truth be unreachable from the worktree's object database (kept outside
+the repo, exported via a non-linked checkout, or with `.git` access stripped).
+The Phase 2 design spec records this as a hard prerequisite.
 
 ## v2 config change (documented per repo rule)
 

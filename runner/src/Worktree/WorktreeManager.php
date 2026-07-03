@@ -9,6 +9,8 @@ use RuntimeException;
 
 class WorktreeManager
 {
+    private const ALLOWED_ENTRIES = ['.', '..', '.git', 'mock-project'];
+
     public function __construct(
         private readonly ProcessExecutor $executor,
         private readonly string $repoRoot,
@@ -37,7 +39,7 @@ class WorktreeManager
         }
 
         foreach (scandir($path) ?: [] as $entry) {
-            if ($entry === '.' || $entry === '..' || $entry === '.git' || $entry === 'mock-project') {
+            if (in_array($entry, self::ALLOWED_ENTRIES, true)) {
                 continue;
             }
             $this->removeRecursive($path . '/' . $entry);
@@ -45,7 +47,7 @@ class WorktreeManager
 
         $leftover = [];
         foreach (scandir($path) ?: [] as $entry) {
-            if ($entry === '.' || $entry === '..' || $entry === '.git' || $entry === 'mock-project') {
+            if (in_array($entry, self::ALLOWED_ENTRIES, true)) {
                 continue;
             }
             $leftover[] = $entry;

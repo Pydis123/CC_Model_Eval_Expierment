@@ -38,4 +38,14 @@ final class SwapDetectorTest extends TestCase
         $d->record('fable', 'claude-opus-4-8', 'claude-fable-5');
         $this->assertFalse($d->shouldHalt());
     }
+
+    public function testInterveningCleanRunOnOtherTierDoesNotResetStreak(): void
+    {
+        $d = new SwapDetector(3);
+        $d->record('fable', 'claude-opus-4-8', 'claude-fable-5');
+        $d->record('haiku', 'claude-haiku-4-5-20251001', 'claude-haiku-4-5-20251001');
+        $d->record('fable', 'claude-opus-4-8', 'claude-fable-5');
+        $d->record('fable', 'claude-opus-4-8', 'claude-fable-5');
+        $this->assertTrue($d->shouldHalt());
+    }
 }

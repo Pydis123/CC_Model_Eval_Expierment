@@ -251,6 +251,7 @@ final class RunNextCommandTest extends TestCase
         $this->assertSame(100, $row['tokens_subagent_in']);
         $this->assertSame(50, $row['tokens_subagent_out']);
         $this->assertSame('completed', $row['dispatch_disposition']);
+        $this->assertSame('ok', $row['iterations'][0]['result_text']);
 
         $reloaded = $state->load();
         $this->assertCount(0, $reloaded->remainingRuns);
