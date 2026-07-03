@@ -7,6 +7,7 @@ namespace LlmDispatch\Runner\Cli\Command;
 use DateTimeImmutable;
 use DateTimeZone;
 use LlmDispatch\Runner\Cli\CommandInterface;
+use LlmDispatch\Runner\Dispatch\DispatchDisposition;
 use LlmDispatch\Runner\Dispatch\RunCoordinator;
 use LlmDispatch\Runner\Dispatch\RunOutcome;
 use LlmDispatch\Runner\Execution\TaskPromptLoader;
@@ -29,6 +30,7 @@ final class RunNextCommand implements CommandInterface
         private readonly RunCoordinator $coordinator,
         private readonly array $allowedTools,
         private $now,
+        private readonly string $claudeVersion = '',
     ) {}
 
     public function run(array $args): int
@@ -114,6 +116,8 @@ final class RunNextCommand implements CommandInterface
             'timestamp_start' => $startIso,
             'timestamp_end' => $endIso,
             'evaluator_details' => $outcome->lastEvaluation()?->toArray() ?? ['outcome' => 'error', 'checks' => []],
+            'dispatch_disposition' => DispatchDisposition::classify($modelId, $outcome),
+            'claude_cli_version' => $this->claudeVersion,
             'error_category' => $outcome->errorCategory,
         ];
     }

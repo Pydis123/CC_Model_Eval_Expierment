@@ -74,6 +74,7 @@ final class RunCoordinator
                     costUsd: $response->costUsd,
                     evaluation: null,
                     errorCategory: 'claude_cli_is_error',
+                    resultText: $response->resultText,
                 );
                 return new RunOutcome($iterations, 'error', 'claude_cli_is_error');
             }
@@ -91,6 +92,7 @@ final class RunCoordinator
                     costUsd: $response->costUsd,
                     evaluation: null,
                     errorCategory: 'wall_clock_exceeded',
+                    resultText: $response->resultText,
                 );
                 return new RunOutcome($iterations, 'error', 'wall_clock_exceeded');
             }
@@ -107,6 +109,7 @@ final class RunCoordinator
                 costUsd: $response->costUsd,
                 evaluation: $evaluation,
                 errorCategory: null,
+                resultText: $response->resultText,
             );
 
             if ($evaluation->outcome === 'passed') {

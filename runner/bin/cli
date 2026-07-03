@@ -109,6 +109,8 @@ $progressLogger = new ProgressLogger($repoRoot . '/results/runner.log');
 $errorCounter = new ConsecutiveErrorCounter(5);
 $crashDumper = new CrashDumper($repoRoot . '/results');
 
+$claudeVersion = trim((string) shell_exec('claude --version 2>&1'));
+
 $runNextCommand = new RunNextCommand(
     stateManager: $stateManager,
     resultsLogger: $resultsLogger,
@@ -117,11 +119,12 @@ $runNextCommand = new RunNextCommand(
     coordinator: $runCoordinator,
     allowedTools: ['Bash', 'Edit', 'Read', 'Write', 'Glob', 'Grep'],
     now: static fn() => (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s\Z'),
+    claudeVersion: $claudeVersion,
 );
 
 $environment = [
     'php_version' => PHP_VERSION,
-    'claude_version' => trim((string) shell_exec('claude --version 2>&1')),
+    'claude_version' => $claudeVersion,
     'experiment_commit_sha' => trim((string) shell_exec('git -C ' . escapeshellarg($repoRoot) . ' rev-parse HEAD 2>&1')),
     'hostname' => (string) gethostname(),
     'timezone' => date_default_timezone_get(),

@@ -109,7 +109,7 @@ final class RunNextCommandTest extends TestCase
         };
     }
 
-    private function makeCommand(StateManager $state): RunNextCommand
+    private function makeCommand(StateManager $state, string $claudeVersion = ''): RunNextCommand
     {
         $executor = $this->stubExecutor();
 
@@ -143,6 +143,7 @@ final class RunNextCommandTest extends TestCase
             coordinator: $coordinator,
             allowedTools: ['Bash', 'Edit', 'Read', 'Write', 'Glob', 'Grep'],
             now: fn() => '2026-04-23T14:00:00Z',
+            claudeVersion: $claudeVersion,
         );
     }
 
@@ -249,10 +250,22 @@ final class RunNextCommandTest extends TestCase
         $this->assertSame('claude-haiku-4-5-20251001', $row['model_id']);
         $this->assertSame(100, $row['tokens_subagent_in']);
         $this->assertSame(50, $row['tokens_subagent_out']);
+        $this->assertSame('completed', $row['dispatch_disposition']);
 
         $reloaded = $state->load();
         $this->assertCount(0, $reloaded->remainingRuns);
         $this->assertCount(1, $reloaded->completedRuns);
+    }
+
+    public function testRowRecordsCliVersionAndDisposition(): void
+    {
+        $state = $this->seedState();
+        ob_start();
+        $this->makeCommand($state, '1.2.3 (Claude Code)')->run([]);
+        ob_end_clean();
+        $row = json_decode(trim((string) file_get_contents($this->resultsPath)), true);
+        $this->assertSame('1.2.3 (Claude Code)', $row['claude_cli_version']);
+        $this->assertSame('completed', $row['dispatch_disposition']);
     }
 
     public function testExitOneWhenQueueEmpty(): void
