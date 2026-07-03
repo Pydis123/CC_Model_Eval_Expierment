@@ -11,12 +11,15 @@ use LlmDispatch\Runner\Execution\ConsecutiveErrorCounter;
 use LlmDispatch\Runner\Execution\CrashContext;
 use LlmDispatch\Runner\Execution\CrashDumper;
 use LlmDispatch\Runner\Execution\ProgressLogger;
+use LlmDispatch\Runner\Execution\ResultsTailReader;
+use LlmDispatch\Runner\Execution\SwapDetector;
 use LlmDispatch\Runner\State\StateManager;
 
 final class RunAllCommand implements CommandInterface
 {
     /**
      * @param array<string, string> $environment
+     * @param array<string, string> $pinnedModels
      */
     public function __construct(
         private readonly CommandInterface $runNext,
@@ -25,6 +28,9 @@ final class RunAllCommand implements CommandInterface
         private readonly CrashDumper $crashDumper,
         private readonly StateManager $stateManager,
         private readonly array $environment,
+        private readonly SwapDetector $swapDetector,
+        private readonly ResultsTailReader $resultsTail,
+        private readonly array $pinnedModels,
     ) {}
 
     public function run(array $args): int
@@ -44,6 +50,11 @@ final class RunAllCommand implements CommandInterface
             if ($exit === 0) {
                 // Registered run (passed or failed as normal outcome).
                 $this->errorCounter->recordRegisteredRun();
+                $this->checkForSwap();
+                if ($this->swapDetector->shouldHalt()) {
+                    $this->abortSwap();
+                    return 11;
+                }
                 $runsExecuted++;
                 continue;
             }
@@ -109,5 +120,40 @@ final class RunAllCommand implements CommandInterface
             }
         }
         return $default;
+    }
+
+    private function checkForSwap(): void
+    {
+        $row = $this->resultsTail->last();
+        if ($row === null) {
+            return;
+        }
+        $tier = (string) ($row['model_tier'] ?? '');
+        $expected = (string) ($this->pinnedModels[$tier] ?? '');
+        if ($tier === '' || $expected === '') {
+            return;
+        }
+        foreach ((array) ($row['iterations'] ?? []) as $it) {
+            $reported = (string) ($it['model_id_reported'] ?? '');
+            $this->swapDetector->record($tier, $reported, $expected);
+        }
+    }
+
+    private function abortSwap(): void
+    {
+        $reason = (string) $this->swapDetector->haltReason();
+        $this->progressLogger->log('ABORT: ' . $reason);
+        $state = $this->stateManager->load();
+        $abortedAt = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s\Z');
+        $context = new CrashContext(
+            abortedAt: $abortedAt,
+            reason: $reason,
+            runsCompletedBeforeAbort: count($state->completedRuns),
+            runsRemaining: count($state->remainingRuns),
+            errors: [],
+            stateSnapshot: $state,
+            environment: $this->environment,
+        );
+        $this->crashDumper->dump($context);
     }
 }

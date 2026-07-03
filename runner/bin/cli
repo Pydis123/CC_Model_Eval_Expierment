@@ -39,6 +39,8 @@ use LlmDispatch\Runner\Evaluator\Evaluator;
 use LlmDispatch\Runner\Execution\ConsecutiveErrorCounter;
 use LlmDispatch\Runner\Execution\CrashDumper;
 use LlmDispatch\Runner\Execution\ProgressLogger;
+use LlmDispatch\Runner\Execution\ResultsTailReader;
+use LlmDispatch\Runner\Execution\SwapDetector;
 use LlmDispatch\Runner\Execution\TaskPromptLoader;
 use LlmDispatch\Runner\Logging\ResultsLogger;
 use LlmDispatch\Runner\PinCheck\PinCheckService;
@@ -157,6 +159,9 @@ $registry = [
         crashDumper: $crashDumper,
         stateManager: $stateManager,
         environment: $environment,
+        swapDetector: new SwapDetector(3),
+        resultsTail: new ResultsTailReader($repoRoot . '/results/results.jsonl'),
+        pinnedModels: $config->pinnedModels,
     ),
     'report' => new ReportCommand(
         config: $config,

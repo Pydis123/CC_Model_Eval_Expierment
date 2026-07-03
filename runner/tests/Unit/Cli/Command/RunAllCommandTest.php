@@ -9,6 +9,8 @@ use LlmDispatch\Runner\Cli\CommandInterface;
 use LlmDispatch\Runner\Execution\ConsecutiveErrorCounter;
 use LlmDispatch\Runner\Execution\CrashDumper;
 use LlmDispatch\Runner\Execution\ProgressLogger;
+use LlmDispatch\Runner\Execution\ResultsTailReader;
+use LlmDispatch\Runner\Execution\SwapDetector;
 use LlmDispatch\Runner\State\State;
 use LlmDispatch\Runner\State\StateManager;
 use PHPUnit\Framework\TestCase;
@@ -58,6 +60,9 @@ final class RunAllCommandTest extends TestCase
             crashDumper: new CrashDumper($this->crashDir),
             stateManager: $manager,
             environment: [],
+            swapDetector: new SwapDetector(3),
+            resultsTail: new ResultsTailReader($this->statePath . '.nonexistent'),
+            pinnedModels: [],
         );
 
         ob_start();
@@ -82,6 +87,9 @@ final class RunAllCommandTest extends TestCase
             crashDumper: new CrashDumper($this->crashDir),
             stateManager: $manager,
             environment: [],
+            swapDetector: new SwapDetector(3),
+            resultsTail: new ResultsTailReader($this->statePath . '.nonexistent'),
+            pinnedModels: [],
         );
 
         ob_start();
@@ -109,6 +117,9 @@ final class RunAllCommandTest extends TestCase
             crashDumper: new CrashDumper($this->crashDir),
             stateManager: $manager,
             environment: [],
+            swapDetector: new SwapDetector(3),
+            resultsTail: new ResultsTailReader($this->statePath . '.nonexistent'),
+            pinnedModels: [],
         );
 
         ob_start();
@@ -132,6 +143,9 @@ final class RunAllCommandTest extends TestCase
             crashDumper: new CrashDumper($this->crashDir),
             stateManager: $manager,
             environment: [],
+            swapDetector: new SwapDetector(3),
+            resultsTail: new ResultsTailReader($this->statePath . '.nonexistent'),
+            pinnedModels: [],
         );
 
         ob_start();
@@ -139,5 +153,49 @@ final class RunAllCommandTest extends TestCase
         ob_end_clean();
 
         $this->assertSame(0, $exit);
+    }
+
+    public function testHaltsOnSuspectedSilentSwap(): void
+    {
+        $base = dirname($this->statePath);
+        $resultsPath = $base . '/results.jsonl';
+
+        $runNext = new class($resultsPath) implements CommandInterface {
+            public function __construct(private readonly string $resultsPath) {}
+            public function run(array $args): int
+            {
+                file_put_contents(
+                    $this->resultsPath,
+                    json_encode([
+                        'model_tier' => 'fable',
+                        'model_id' => 'claude-fable-5',
+                        'iterations' => [['model_id_reported' => 'claude-opus-4-8']],
+                    ]) . "\n",
+                    FILE_APPEND,
+                );
+                return 0;
+            }
+        };
+
+        $manager = new StateManager($this->statePath);
+        $manager->save(State::empty());
+
+        $cmd = new RunAllCommand(
+            runNext: $runNext,
+            progressLogger: new ProgressLogger($this->logPath),
+            errorCounter: new ConsecutiveErrorCounter(5),
+            crashDumper: new CrashDumper($this->crashDir),
+            stateManager: $manager,
+            environment: [],
+            swapDetector: new SwapDetector(3),
+            resultsTail: new ResultsTailReader($resultsPath),
+            pinnedModels: ['fable' => 'claude-fable-5'],
+        );
+
+        ob_start();
+        $exit = $cmd->run([]);
+        ob_end_clean();
+
+        $this->assertSame(11, $exit);
     }
 }
