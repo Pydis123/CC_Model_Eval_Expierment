@@ -34,7 +34,7 @@ final class FindingsWriter
             $simulation->bootstrapSeed,
         ));
 
-        $this->appendSummary($md, $simulation);
+        $this->appendSummary($md, $simulation, $config);
         $this->appendPerTaskResults($md, $matrix, $config);
         $this->appendPolicyB($md, $simulation, $config);
         $this->appendReproducibility($md);
@@ -42,12 +42,15 @@ final class FindingsWriter
         return $md->build();
     }
 
-    private function appendSummary(MarkdownBuilder $md, PolicyBSimulation $sim): void
+    private function appendSummary(MarkdownBuilder $md, PolicyBSimulation $sim, Config $config): void
     {
+        $tierList = implode(', ', $config->tiers);
         $md->h2('Summary');
         $md->paragraph(sprintf(
-            'Across %d tasks and 3 model tiers (haiku, sonnet, opus), Policy B (cheapest-first escalation) is estimated to cost %s tokens (95%% CI: %s–%s) and %s seconds (95%% CI: %s–%s) per experiment run. Probability that all three tiers fail on a given task: %.2f%%.',
+            'Across %d tasks and %d model tiers (%s), Policy B (cheapest-first escalation) is estimated to cost %s tokens (95%% CI: %s–%s) and %s seconds (95%% CI: %s–%s) per experiment run. Probability that all tiers fail on a given task: %.2f%%.',
             count($sim->perTask),
+            count($config->tiers),
+            $tierList,
             $this->fmt($sim->overall->expectedTokens),
             $this->fmt($sim->overall->ciLowTokens),
             $this->fmt($sim->overall->ciHighTokens),

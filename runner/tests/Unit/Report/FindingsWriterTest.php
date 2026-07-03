@@ -73,6 +73,51 @@ final class FindingsWriterTest extends TestCase
         );
     }
 
+    private function fourTierConfig(): Config
+    {
+        return new Config(
+            schemaVersion: 1,
+            experimentName: 'test',
+            planSeed: 42,
+            nReplicates: 3,
+            maxIterationsPerRun: 3,
+            maxWallClockSeconds: 1800,
+            tiers: ['haiku', 'sonnet', 'opus', 'fable'],
+            taskIds: ['task-a'],
+            pinnedModels: ['haiku' => null, 'sonnet' => null, 'opus' => null, 'fable' => null],
+            policy: 'retry-only',
+            db: [],
+        );
+    }
+
+    private function renderWithFourTiers(): string
+    {
+        $config = $this->fourTierConfig();
+
+        $haikuRuns = [$this->row(['tier' => 'haiku']), $this->row(['tier' => 'haiku']), $this->row(['tier' => 'haiku'])];
+        $sonnetRuns = [$this->row(['tier' => 'sonnet']), $this->row(['tier' => 'sonnet']), $this->row(['tier' => 'sonnet'])];
+        $opusRuns = [$this->row(['tier' => 'opus']), $this->row(['tier' => 'opus']), $this->row(['tier' => 'opus'])];
+        $fableRuns = [$this->row(['tier' => 'fable']), $this->row(['tier' => 'fable']), $this->row(['tier' => 'fable'])];
+
+        $matrix = [
+            'task-a' => [
+                'haiku' => new CellStats($haikuRuns),
+                'sonnet' => new CellStats($sonnetRuns),
+                'opus' => new CellStats($opusRuns),
+                'fable' => new CellStats($fableRuns),
+            ],
+        ];
+
+        return (new FindingsWriter())->render(
+            matrix: $matrix,
+            simulation: $this->simulation(),
+            config: $config,
+            sourcePath: 'results/results.jsonl',
+            rowCount: 12,
+            generatedAt: '2026-07-03T00:00:00Z',
+        );
+    }
+
     /**
      * @return array<string, array<string, CellStats>>
      */
@@ -174,5 +219,11 @@ final class FindingsWriterTest extends TestCase
 
         $this->assertStringContainsString('runner/bin/cli report', $md);
         $this->assertStringContainsString('diff', $md);
+    }
+
+    public function testSummaryNamesAllConfiguredTiers(): void
+    {
+        $md = $this->renderWithFourTiers();
+        $this->assertStringContainsString('4 model tiers (haiku, sonnet, opus, fable)', $md);
     }
 }

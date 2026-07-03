@@ -6,7 +6,7 @@
 
 ## Summary
 
-Across 2 tasks and 3 model tiers (haiku, sonnet, opus), Policy B (cheapest-first escalation) is estimated to cost 33,104 tokens (95% CI: 21,000–45,500) and 358 seconds (95% CI: 210–510) per experiment run. Probability that all three tiers fail on a given task: 0.00%.
+Across 2 tasks and 3 model tiers (haiku, sonnet, opus), Policy B (cheapest-first escalation) is estimated to cost 33,104 tokens (95% CI: 21,000–45,500) and 358 seconds (95% CI: 210–510) per experiment run. Probability that all tiers fail on a given task: 0.00%.
 
 ## Per-task results (Policy A — retry-only)
 
