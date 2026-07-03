@@ -102,10 +102,20 @@ final class RunNextCommandTest extends TestCase
 
     private function stubExecutor(): ProcessExecutor
     {
-        // Make worktree "git worktree add" a no-op that doesn't actually invoke git.
-        // We pass stubWorktreePath in prepare() to bypass actual git calls.
+        // Make worktree "git worktree add" a no-op that doesn't actually invoke git,
+        // but recreate the directory structure to avoid scandir warnings.
         return new class extends ProcessExecutor {
-            public function exec(string $cwd, array $command): ProcessResult { return new ProcessResult(0, '', ''); }
+            public function exec(string $cwd, array $command): ProcessResult
+            {
+                // When git worktree add is called (stubbed), recreate the directory
+                if (count($command) >= 3 && $command[0] === 'git' && $command[1] === 'worktree' && $command[2] === 'add') {
+                    $path = $command[3] ?? null;
+                    if ($path && is_string($path)) {
+                        @mkdir($path . '/mock-project', 0777, true);
+                    }
+                }
+                return new ProcessResult(0, '', '');
+            }
         };
     }
 

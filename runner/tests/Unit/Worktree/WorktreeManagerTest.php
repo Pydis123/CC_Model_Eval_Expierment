@@ -14,17 +14,20 @@ final class WorktreeManagerTest extends TestCase
     public function testPrepareRunsGitWorktreeAddAndRemovesExperimentClaudeMd(): void
     {
         $capturedCommands = [];
+        $tmpFs = $this->createTempWorktreeWithClaudeMd();
 
-        $executor = new class($capturedCommands) extends ProcessExecutor {
-            public function __construct(public array &$commands) {}
+        $executor = new class($capturedCommands, $tmpFs['worktreePath']) extends ProcessExecutor {
+            public function __construct(public array &$commands, private string $worktreePath) {}
             public function exec(string $cwd, array $command): ProcessResult
             {
                 $this->commands[] = ['cwd' => $cwd, 'cmd' => $command];
+                // When git worktree add is called (stubbed), recreate the directory
+                if (count($command) >= 3 && $command[0] === 'git' && $command[1] === 'worktree' && $command[2] === 'add') {
+                    @mkdir($this->worktreePath . '/mock-project', 0777, true);
+                }
                 return new ProcessResult(0, '', '');
             }
         };
-
-        $tmpFs = $this->createTempWorktreeWithClaudeMd();
 
         $manager = new WorktreeManager(
             executor: $executor,
@@ -37,17 +40,33 @@ final class WorktreeManagerTest extends TestCase
         $path = $manager->prepare('run-7', stubWorktreePath: $tmpFs['worktreePath']);
 
         $this->assertSame($tmpFs['worktreePath'], $path);
-        $this->assertSame('/fake/repo', $executor->commands[0]['cwd']);
-        $this->assertContains('git', $executor->commands[0]['cmd']);
-        $this->assertContains('worktree', $executor->commands[0]['cmd']);
-        $this->assertContains('add', $executor->commands[0]['cmd']);
-        $this->assertContains($tmpFs['worktreePath'], $executor->commands[0]['cmd']);
-        $this->assertContains('scaffold_complete', $executor->commands[0]['cmd']);
+        // Find the git worktree add command (it might not be at index 0 if cleanup commands are present)
+        $addCommand = null;
+        foreach ($executor->commands as $cmd) {
+            if (in_array('add', $cmd['cmd'], true)) {
+                $addCommand = $cmd;
+                break;
+            }
+        }
+        $this->assertNotNull($addCommand, 'git worktree add command not found');
+        $this->assertSame('/fake/repo', $addCommand['cwd']);
+        $this->assertContains('git', $addCommand['cmd']);
+        $this->assertContains('worktree', $addCommand['cmd']);
+        $this->assertContains('add', $addCommand['cmd']);
+        $this->assertContains($tmpFs['worktreePath'], $addCommand['cmd']);
+        $this->assertContains('scaffold_complete', $addCommand['cmd']);
 
         $this->assertFileDoesNotExist($tmpFs['worktreePath'] . '/CLAUDE.md');
 
         // Assert composer install was called with correct arguments and cwd
-        $composerCall = $executor->commands[1];
+        $composerCall = null;
+        foreach ($executor->commands as $cmd) {
+            if (in_array('composer', $cmd['cmd'], true)) {
+                $composerCall = $cmd;
+                break;
+            }
+        }
+        $this->assertNotNull($composerCall, 'composer install command not found');
         $this->assertSame($tmpFs['worktreePath'] . '/mock-project', $composerCall['cwd']);
         $this->assertSame(['composer', 'install', '--no-interaction', '--no-progress', '--prefer-dist'], $composerCall['cmd']);
 
@@ -56,14 +75,19 @@ final class WorktreeManagerTest extends TestCase
 
     public function testPruneLeavesOnlyMockProject(): void
     {
-        $executor = new class extends ProcessExecutor {
+        $tmpFs = $this->createTempWorktreeWithExtraEntries();
+
+        $executor = new class($tmpFs['worktreePath']) extends ProcessExecutor {
+            public function __construct(private string $worktreePath) {}
             public function exec(string $cwd, array $command): ProcessResult
             {
+                // When git worktree add is called (stubbed), recreate the directory
+                if (count($command) >= 3 && $command[0] === 'git' && $command[1] === 'worktree' && $command[2] === 'add') {
+                    @mkdir($this->worktreePath . '/mock-project', 0777, true);
+                }
                 return new ProcessResult(0, '', '');
             }
         };
-
-        $tmpFs = $this->createTempWorktreeWithExtraEntries();
 
         $manager = new WorktreeManager(
             executor: $executor,
@@ -75,7 +99,7 @@ final class WorktreeManagerTest extends TestCase
 
         $manager->prepare('run-prune', stubWorktreePath: $tmpFs['worktreePath']);
 
-        $entries = array_values(array_diff(scandir($tmpFs['worktreePath']), ['.', '..', '.git']));
+        $entries = array_values(array_diff(scandir($tmpFs['worktreePath']) ?: [], ['.', '..', '.git']));
         $this->assertSame(['mock-project'], $entries);
 
         $this->tearDownTempFs($tmpFs);
@@ -83,14 +107,21 @@ final class WorktreeManagerTest extends TestCase
 
     public function testPrepareThrowsWhenPruneLeavesDisallowedEntry(): void
     {
-        $executor = new class extends ProcessExecutor {
+        $tmpFs = $this->createTempWorktreeWithExtraEntries();
+
+        $executor = new class($tmpFs['worktreePath']) extends ProcessExecutor {
+            public function __construct(private string $worktreePath) {}
             public function exec(string $cwd, array $command): ProcessResult
             {
+                // When git worktree add is called (stubbed), recreate the directory
+                if (count($command) >= 3 && $command[0] === 'git' && $command[1] === 'worktree' && $command[2] === 'add') {
+                    @mkdir($this->worktreePath . '/mock-project', 0777, true);
+                    @mkdir($this->worktreePath . '/tasks', 0777, true);
+                    @mkdir($this->worktreePath . '/docs', 0777, true);
+                }
                 return new ProcessResult(0, '', '');
             }
         };
-
-        $tmpFs = $this->createTempWorktreeWithExtraEntries();
 
         $manager = new class(
             executor: $executor,
@@ -118,21 +149,23 @@ final class WorktreeManagerTest extends TestCase
 
     public function testPrepareFailsIfComposerInstallExitsNonzero(): void
     {
-        $worktreePath = null;
+        $tmpFs = $this->createTempWorktreeWithClaudeMd();
 
-        $executor = new class($worktreePath) extends ProcessExecutor {
-            public function __construct(public ?string &$worktreePath) {}
+        $executor = new class($tmpFs['worktreePath']) extends ProcessExecutor {
+            public function __construct(private string $worktreePath) {}
             public function exec(string $cwd, array $command): ProcessResult
             {
                 if ($command[0] === 'git') {
+                    // When git worktree add is called (stubbed), recreate the directory
+                    if (count($command) >= 3 && $command[1] === 'worktree' && $command[2] === 'add') {
+                        @mkdir($this->worktreePath . '/mock-project', 0777, true);
+                    }
                     return new ProcessResult(0, '', '');
                 }
                 // composer call fails
                 return new ProcessResult(1, '', 'Package not found: some/dep');
             }
         };
-
-        $tmpFs = $this->createTempWorktreeWithClaudeMd();
 
         $manager = new WorktreeManager(
             executor: $executor,
@@ -231,6 +264,70 @@ final class WorktreeManagerTest extends TestCase
         $path = $manager->resolveWorktreePath('run-42');
 
         $this->assertSame('/tmp/llm-disp-run-42', $path);
+    }
+
+    public function testPrepareRemovesLeftoverWorktreeBeforeAdd(): void
+    {
+        $capturedCommands = [];
+        $tmpFs = $this->createTempWorktreeWithClaudeMd();
+
+        $executor = new class($capturedCommands, $tmpFs['worktreePath']) extends ProcessExecutor {
+            public function __construct(public array &$commands, private string $worktreePath) {}
+            public function exec(string $cwd, array $command): ProcessResult
+            {
+                $this->commands[] = ['cwd' => $cwd, 'cmd' => $command];
+                // When git worktree add is called (stubbed), recreate the directory
+                // to mimic real git behavior, since the stub doesn't actually run git
+                if (count($command) >= 3 && $command[0] === 'git' && $command[1] === 'worktree' && $command[2] === 'add') {
+                    @mkdir($this->worktreePath . '/mock-project', 0777, true);
+                }
+                return new ProcessResult(0, '', '');
+            }
+        };
+
+        $manager = new WorktreeManager(
+            executor: $executor,
+            repoRoot: '/fake/repo',
+            worktreeBaseDir: dirname($tmpFs['worktreePath']),
+            failedDir: $tmpFs['failedDir'],
+            baseRef: 'scaffold_complete',
+        );
+
+        $path = $manager->prepare('run-7', stubWorktreePath: $tmpFs['worktreePath']);
+
+        $this->assertSame($tmpFs['worktreePath'], $path);
+
+        // Verify the cleanup commands are issued before add
+        $this->assertGreaterThanOrEqual(4, count($executor->commands), 'Expected at least 4 commands (remove, prune, add, composer)');
+
+        // First command: git worktree remove --force
+        $this->assertSame('/fake/repo', $executor->commands[0]['cwd']);
+        $this->assertContains('git', $executor->commands[0]['cmd']);
+        $this->assertContains('worktree', $executor->commands[0]['cmd']);
+        $this->assertContains('remove', $executor->commands[0]['cmd']);
+        $this->assertContains('--force', $executor->commands[0]['cmd']);
+        $this->assertContains($tmpFs['worktreePath'], $executor->commands[0]['cmd']);
+
+        // Second command: git worktree prune
+        $this->assertSame('/fake/repo', $executor->commands[1]['cwd']);
+        $this->assertContains('git', $executor->commands[1]['cmd']);
+        $this->assertContains('worktree', $executor->commands[1]['cmd']);
+        $this->assertContains('prune', $executor->commands[1]['cmd']);
+
+        // Third command: git worktree add
+        $this->assertSame('/fake/repo', $executor->commands[2]['cwd']);
+        $this->assertContains('git', $executor->commands[2]['cmd']);
+        $this->assertContains('worktree', $executor->commands[2]['cmd']);
+        $this->assertContains('add', $executor->commands[2]['cmd']);
+        $this->assertContains($tmpFs['worktreePath'], $executor->commands[2]['cmd']);
+        $this->assertContains('scaffold_complete', $executor->commands[2]['cmd']);
+
+        // Fourth command: composer install (unchanged from existing behavior)
+        $composerCall = $executor->commands[3];
+        $this->assertSame($tmpFs['worktreePath'] . '/mock-project', $composerCall['cwd']);
+        $this->assertSame(['composer', 'install', '--no-interaction', '--no-progress', '--prefer-dist'], $composerCall['cmd']);
+
+        $this->tearDownTempFs($tmpFs);
     }
 
     /**

@@ -28,6 +28,20 @@ class WorktreeManager
     {
         $path = $stubWorktreePath ?? $this->resolveWorktreePath($runId);
 
+        // A leftover worktree from an interrupted run makes `git worktree add` fail.
+        if (is_dir($path)) {
+            $this->executor->exec($this->repoRoot, [
+                'git', 'worktree', 'remove', '--force', $path,
+            ]);
+            $this->executor->exec($this->repoRoot, [
+                'git', 'worktree', 'prune',
+            ]);
+            // @phpstan-ignore if.alwaysTrue (the exec above removes the dir as a side effect)
+            if (is_dir($path)) {
+                $this->removeRecursive($path);
+            }
+        }
+
         $result = $this->executor->exec($this->repoRoot, [
             'git', 'worktree', 'add', $path, $this->baseRef,
         ]);
