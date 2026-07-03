@@ -163,6 +163,7 @@ $registry = [
         swapDetector: new SwapDetector(3),
         resultsTail: new ResultsTailReader($repoRoot . '/results/results.jsonl'),
         pinnedModels: $config->pinnedModels,
+        pauseSentinelPath: $repoRoot . '/PAUSE',
     ),
     'report' => new ReportCommand(
         config: $config,

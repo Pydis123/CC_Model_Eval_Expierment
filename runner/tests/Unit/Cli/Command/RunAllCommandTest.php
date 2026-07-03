@@ -20,6 +20,7 @@ final class RunAllCommandTest extends TestCase
     private string $statePath;
     private string $logPath;
     private string $crashDir;
+    private string $pauseSentinelPath;
 
     protected function setUp(): void
     {
@@ -28,6 +29,7 @@ final class RunAllCommandTest extends TestCase
         $this->statePath = $base . '/state.json';
         $this->logPath = $base . '/runner.log';
         $this->crashDir = $base;
+        $this->pauseSentinelPath = $base . '/PAUSE';
     }
 
     private function makeRunNext(array $exitSequence): CommandInterface
@@ -63,6 +65,7 @@ final class RunAllCommandTest extends TestCase
             swapDetector: new SwapDetector(3),
             resultsTail: new ResultsTailReader($this->statePath . '.nonexistent'),
             pinnedModels: [],
+            pauseSentinelPath: $this->pauseSentinelPath,
         );
 
         ob_start();
@@ -90,6 +93,7 @@ final class RunAllCommandTest extends TestCase
             swapDetector: new SwapDetector(3),
             resultsTail: new ResultsTailReader($this->statePath . '.nonexistent'),
             pinnedModels: [],
+            pauseSentinelPath: $this->pauseSentinelPath,
         );
 
         ob_start();
@@ -120,6 +124,7 @@ final class RunAllCommandTest extends TestCase
             swapDetector: new SwapDetector(3),
             resultsTail: new ResultsTailReader($this->statePath . '.nonexistent'),
             pinnedModels: [],
+            pauseSentinelPath: $this->pauseSentinelPath,
         );
 
         ob_start();
@@ -146,6 +151,7 @@ final class RunAllCommandTest extends TestCase
             swapDetector: new SwapDetector(3),
             resultsTail: new ResultsTailReader($this->statePath . '.nonexistent'),
             pinnedModels: [],
+            pauseSentinelPath: $this->pauseSentinelPath,
         );
 
         ob_start();
@@ -190,6 +196,7 @@ final class RunAllCommandTest extends TestCase
             swapDetector: new SwapDetector(3),
             resultsTail: new ResultsTailReader($resultsPath),
             pinnedModels: ['fable' => 'claude-fable-5'],
+            pauseSentinelPath: $this->pauseSentinelPath,
         );
 
         ob_start();
@@ -243,6 +250,7 @@ final class RunAllCommandTest extends TestCase
             swapDetector: new SwapDetector(3),
             resultsTail: new ResultsTailReader($resultsPath),
             pinnedModels: ['fable' => 'claude-fable-5'],
+            pauseSentinelPath: $this->pauseSentinelPath,
         );
 
         ob_start();
@@ -250,5 +258,48 @@ final class RunAllCommandTest extends TestCase
         ob_end_clean();
 
         $this->assertSame(0, $exit);
+    }
+
+    public function testStopsBeforeNextRunWhenPauseSentinelExists(): void
+    {
+        $manager = new StateManager($this->statePath);
+        $manager->save(State::empty());
+
+        // Stub that tracks calls and returns 0 (not 1, which would mean queue empty).
+        $runNext = new class() implements CommandInterface {
+            public int $calls = 0;
+
+            public function run(array $args): int
+            {
+                $this->calls++;
+                return 0;
+            }
+        };
+
+        // Touch the sentinel file before running.
+        touch($this->pauseSentinelPath);
+
+        $cmd = new RunAllCommand(
+            runNext: $runNext,
+            progressLogger: new ProgressLogger($this->logPath),
+            errorCounter: new ConsecutiveErrorCounter(5),
+            crashDumper: new CrashDumper($this->crashDir),
+            stateManager: $manager,
+            environment: [],
+            swapDetector: new SwapDetector(3),
+            resultsTail: new ResultsTailReader($this->statePath . '.nonexistent'),
+            pinnedModels: [],
+            pauseSentinelPath: $this->pauseSentinelPath,
+        );
+
+        ob_start();
+        $exit = $cmd->run([]);
+        ob_end_clean();
+
+        $this->assertSame(0, $exit);
+        $this->assertSame(0, $runNext->calls, 'runNext should not have been called');
+
+        $logContent = (string) file_get_contents($this->logPath);
+        $this->assertStringContainsString('PAUSE', $logContent);
     }
 }

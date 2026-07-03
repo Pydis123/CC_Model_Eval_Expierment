@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+
+touch PAUSE
+echo "PAUSE requested. run-all will stop after the current run (max ~30 min)."
+if [[ -f results/run-all.pid ]] && kill -0 "$(cat results/run-all.pid)" 2>/dev/null; then
+  echo "run-all (pid $(cat results/run-all.pid)) still running."
+  echo "Wait for 'PAUSE sentinel found' in results/run-all-v2.log before going offline."
+else
+  echo "run-all does not appear to be running."
+fi

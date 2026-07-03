@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+
+touch PAUSE
+if [[ -f results/run-all.pid ]]; then
+  pid=$(cat results/run-all.pid)
+  if kill -0 "$pid" 2>/dev/null; then
+    children=$(pgrep -P "$pid" || true)
+    kill "$pid" 2>/dev/null || true
+    for c in $children; do kill "$c" 2>/dev/null || true; done
+    echo "Killed run-all (pid $pid) and children."
+  else
+    echo "run-all (pid $pid) not running."
+  fi
+else
+  echo "No pid file (results/run-all.pid); nothing to kill."
+fi
+# reset-stale uses a strict claimed_at < cutoff comparison; sleep past the
+# current second so a just-claimed run is not missed
+sleep 1
+php runner/bin/cli state reset-stale --older-than=0s
+echo "Interrupted run (if any) re-queued. Resume with runner/bin/resume."

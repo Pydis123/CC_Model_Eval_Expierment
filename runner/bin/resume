@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/../.."
+
+if [[ -f results/run-all.pid ]] && kill -0 "$(cat results/run-all.pid)" 2>/dev/null; then
+  echo "run-all already running (pid $(cat results/run-all.pid)); refusing to start a second instance." >&2
+  exit 1
+fi
+rm -f PAUSE
+php runner/bin/cli state reset-stale --older-than=30m
+nohup env PATH="$HOME/.local/bin:$PATH" php runner/bin/cli run-all >> results/run-all-v2.log 2>&1 &
+echo $! > results/run-all.pid
+echo "run-all resumed (pid $(cat results/run-all.pid))."

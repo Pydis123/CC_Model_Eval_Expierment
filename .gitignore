@@ -45,6 +45,8 @@ Thumbs.db
 /worktrees/*
 !/worktrees/.gitignore
 *.log
+/PAUSE
+/results/run-all.pid
 
 # Env secrets (om de används i framtiden)
 .env

@@ -31,6 +31,7 @@ final class RunAllCommand implements CommandInterface
         private readonly SwapDetector $swapDetector,
         private readonly ResultsTailReader $resultsTail,
         private readonly array $pinnedModels,
+        private readonly string $pauseSentinelPath,
     ) {}
 
     public function run(array $args): int
@@ -39,6 +40,11 @@ final class RunAllCommand implements CommandInterface
         $runsExecuted = 0;
 
         while ($runsExecuted < $maxRuns) {
+            if ($this->pauseSentinelPath !== '' && file_exists($this->pauseSentinelPath)) {
+                $this->progressLogger->log('PAUSE sentinel found; stopping cleanly before next run.');
+                return 0;
+            }
+
             $exit = $this->runNext->run([]);
 
             if ($exit === 1) {
