@@ -8,7 +8,7 @@ use InvalidArgumentException;
 
 final class ResultsRow
 {
-    private const VALID_TIERS = ['haiku', 'sonnet', 'opus'];
+    private const VALID_TIERS = ['haiku', 'sonnet', 'opus', 'fable'];
     private const VALID_OUTCOMES = ['passed', 'failed'];
 
     public function __construct(

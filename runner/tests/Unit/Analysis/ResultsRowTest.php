@@ -11,11 +11,12 @@ use PHPUnit\Framework\TestCase;
 final class ResultsRowTest extends TestCase
 {
     /**
+     * @param array<string, mixed> $overrides
      * @return array<string, mixed>
      */
-    private function validRowData(): array
+    private function validRowData(array $overrides = []): array
     {
-        return [
+        return array_merge([
             'run_id' => 'run-001-haiku-1',
             'task_id' => '001-i18n-status-flik',
             'model_tier' => 'haiku',
@@ -31,7 +32,7 @@ final class ResultsRowTest extends TestCase
             'timestamp_start' => '2026-04-23T10:00:00Z',
             'timestamp_end' => '2026-04-23T10:03:05Z',
             'evaluator_details' => ['outcome' => 'passed', 'checks' => []],
-        ];
+        ], $overrides);
     }
 
     public function testParsesValidRow(): void
@@ -77,5 +78,11 @@ final class ResultsRowTest extends TestCase
     {
         $row = ResultsRow::fromArray($this->validRowData());
         $this->assertSame(10_000 + 2_500, $row->tokensSubagentTotal());
+    }
+
+    public function testAcceptsFableTier(): void
+    {
+        $row = ResultsRow::fromArray($this->validRowData(['model_tier' => 'fable', 'model_id' => 'claude-fable-5']));
+        $this->assertSame('fable', $row->modelTier);
     }
 }
