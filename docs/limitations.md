@@ -171,3 +171,15 @@ from `completed_runs` back to the front of `remaining_runs` in
 row for it, so the aggregator keeps only the **last** row per run_id —
 earlier rows for a re-queued run are superseded observations, preserved
 in the log for audit but excluded from analysis.
+
+## Transient mid-response drop, 2026-07-04 evening (second re-queue)
+
+Run 0d54d7363a7a (004, opus, n=4) lost its connection mid-response during
+a seconds-long uplink blip; the offline-gate's post-error check saw the
+network already restored, so the run was recorded with
+`dispatch_disposition=error` rather than re-queued. Re-queued manually via
+the same state.json procedure (backup `state.json.bak-natt2`); the error
+row is superseded by the aggregator's last-row-per-run_id rule. If such
+blips recur, consider re-queuing on `error_category=claude_cli_is_error`
+regardless of the online check (all CLI-level connection errors are
+infrastructure, not model behavior), bounded by the existing breaker.
