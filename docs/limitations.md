@@ -152,3 +152,22 @@ dispatch to a different model or refuse in-band. The runner records
 is content-, account-, and time-dependent: two reviewers on different accounts
 may observe different rates. This is analogous to server-side model retuning —
 it cannot be fully reproduced.
+
+## Network-outage re-queue on 2026-07-04 (state.json edited mid-experiment)
+
+During the overnight v2 run, a local internet outage starting ~22:45Z on
+2026-07-03 caused 5 consecutive dispatches to fail with
+`error_category=claude_cli_is_error` / `dispatch_disposition=error`
+(002-crud-ticket-tag: opus n=4, sonnet n=2, sonnet n=3, fable n=3, haiku
+n=1), after which run-all aborted by design (5-error circuit breaker,
+crash dump `results/runner-crash-20260703T225715.json`).
+
+These are infrastructure failures, not model behavior; leaving them as
+`failed` would bias those cells. Per the append-only rule the error rows
+stay in `results/results.jsonl`; the 5 runs were re-queued by moving them
+from `completed_runs` back to the front of `remaining_runs` in
+`state.json` (same run_ids, `claimed_at` reset; backup kept at
+`state.json.bak-20260704`). Re-running a recorded run_id appends a second
+row for it, so the aggregator keeps only the **last** row per run_id —
+earlier rows for a re-queued run are superseded observations, preserved
+in the log for audit but excluded from analysis.

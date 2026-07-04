@@ -132,4 +132,32 @@ final class AggregatorTest extends TestCase
         $this->expectException(\RuntimeException::class);
         (new Aggregator())->aggregate('/nonexistent/path.jsonl', $this->miniConfig());
     }
+
+    public function testKeepsOnlyLastRowPerRunId(): void
+    {
+        // Build a complete matrix, but make one row have outcome="failed"
+        $lines = [];
+        foreach (['task-a', 'task-b'] as $taskId) {
+            foreach (['haiku', 'sonnet'] as $tier) {
+                foreach ([1, 2] as $n) {
+                    // Make task-a-haiku-1 have outcome="failed"
+                    $outcome = ($taskId === 'task-a' && $tier === 'haiku' && $n === 1) ? 'failed' : 'passed';
+                    $lines[] = $this->rowLine(['task_id' => $taskId, 'model_tier' => $tier, 'n' => $n, 'outcome' => $outcome]);
+                }
+            }
+        }
+
+        // Append a duplicate of task-a-haiku-1 with outcome="passed" (this is the retry, which succeeded)
+        $lines[] = $this->rowLine(['task_id' => 'task-a', 'model_tier' => 'haiku', 'n' => 1, 'outcome' => 'passed']);
+
+        file_put_contents($this->tmpPath, implode("\n", $lines) . "\n");
+
+        // Aggregation should succeed (because after dedup, we have exactly 2 unique run_ids per cell)
+        $matrix = (new Aggregator())->aggregate($this->tmpPath, $this->miniConfig());
+
+        // The task-a-haiku cell should have 2 runs, and both should be "passed"
+        // (the last occurrence of n=1 is "passed", and n=2 is always "passed")
+        $this->assertSame(2, $matrix['task-a']['haiku']->nPassed);
+        $this->assertSame(1.0, $matrix['task-a']['haiku']->passRate);
+    }
 }

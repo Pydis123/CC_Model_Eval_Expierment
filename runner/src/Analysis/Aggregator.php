@@ -23,8 +23,9 @@ final class Aggregator
             throw new RuntimeException("Cannot open results file: {$jsonlPath}");
         }
 
-        /** @var array<string, array<string, list<ResultsRow>>> $grouped */
-        $grouped = [];
+        // First pass: collect by run_id to handle duplicates (keep only the last)
+        /** @var array<string, ResultsRow> $byRunId */
+        $byRunId = [];
 
         try {
             while (($line = fgets($handle)) !== false) {
@@ -35,10 +36,17 @@ final class Aggregator
                 /** @var array<string, mixed> $data */
                 $data = json_decode($line, true, 512, JSON_THROW_ON_ERROR);
                 $row = ResultsRow::fromArray($data);
-                $grouped[$row->taskId][$row->modelTier][] = $row;
+                $byRunId[$row->runId] = $row;  // Later rows overwrite earlier ones
             }
         } finally {
             fclose($handle);
+        }
+
+        // Second pass: group by task_id and model_tier
+        /** @var array<string, array<string, list<ResultsRow>>> $grouped */
+        $grouped = [];
+        foreach ($byRunId as $row) {
+            $grouped[$row->taskId][$row->modelTier][] = $row;
         }
 
         $matrix = [];
