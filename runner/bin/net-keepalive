@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Keeps the iPhone-hotspot uplink alive overnight.
+# 1) Low-volume keepalive traffic every 20s so the phone never sees the
+#    tether as idle (suspected cause of the 2026-07-03 overnight pause).
+# 2) On 2 consecutive failed checks: power-cycle Wi-Fi to force a fresh
+#    association with the hotspot, which wakes a paused tether.
+# Log: results/net-keepalive.log   Stop: kill $(cat results/net-keepalive.pid)
+set -u
+
+cd "$(dirname "$0")/../.."
+LOG=results/net-keepalive.log
+WIFI_IF=en0
+fails=0
+cycles=0
+
+log() { echo "[$(date -u +%FT%TZ)] $1" >> "$LOG"; }
+
+log "net-keepalive started (pid $$)"
+while true; do
+  if curl -s --max-time 8 -o /dev/null https://api.anthropic.com; then
+    if [ "$fails" -gt 0 ]; then
+      log "connectivity restored after $fails failed checks ($cycles wifi cycles)"
+    fi
+    fails=0
+    cycles=0
+  else
+    fails=$((fails + 1))
+    log "check failed ($fails in a row)"
+    if [ "$fails" -ge 2 ]; then
+      cycles=$((cycles + 1))
+      log "cycling wifi (attempt $cycles)"
+      networksetup -setairportpower "$WIFI_IF" off
+      sleep 5
+      networksetup -setairportpower "$WIFI_IF" on
+      sleep 25
+    fi
+  fi
+  sleep 20
+done
