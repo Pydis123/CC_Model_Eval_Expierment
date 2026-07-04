@@ -7,9 +7,11 @@ namespace LlmDispatch\Runner\Cli\Command;
 use DateTimeImmutable;
 use DateTimeZone;
 use LlmDispatch\Runner\Cli\CommandInterface;
+use LlmDispatch\Runner\Execution\ConnectivityChecker;
 use LlmDispatch\Runner\Execution\ConsecutiveErrorCounter;
 use LlmDispatch\Runner\Execution\CrashContext;
 use LlmDispatch\Runner\Execution\CrashDumper;
+use LlmDispatch\Runner\Execution\OfflineGate;
 use LlmDispatch\Runner\Execution\ProgressLogger;
 use LlmDispatch\Runner\Execution\ResultsTailReader;
 use LlmDispatch\Runner\Execution\SwapDetector;
@@ -32,6 +34,8 @@ final class RunAllCommand implements CommandInterface
         private readonly ResultsTailReader $resultsTail,
         private readonly array $pinnedModels,
         private readonly string $pauseSentinelPath,
+        private readonly OfflineGate $offlineGate,
+        private readonly ConnectivityChecker $connectivity,
     ) {}
 
     public function run(array $args): int
@@ -43,6 +47,13 @@ final class RunAllCommand implements CommandInterface
             if ($this->pauseSentinelPath !== '' && file_exists($this->pauseSentinelPath)) {
                 $this->progressLogger->log('PAUSE sentinel found; stopping cleanly before next run.');
                 return 0;
+            }
+
+            if (!$this->connectivity->isOnline()) {
+                $this->progressLogger->log('offline before dispatch; gating until connectivity returns.');
+                if (!$this->offlineGate->waitUntilOnline()) {
+                    return 0; // PAUSE appeared while waiting
+                }
             }
 
             $exit = $this->runNext->run([]);
@@ -67,6 +78,20 @@ final class RunAllCommand implements CommandInterface
 
             if ($exit === 3) {
                 // Unexpected error category.
+                // Check if we're offline — if so, re-queue and wait instead of counting error.
+                if (!$this->connectivity->isOnline()) {
+                    $row = $this->resultsTail->last();
+                    $runId = (string) ($row['run_id'] ?? '');
+                    if ($runId !== '') {
+                        $this->stateManager->save($this->stateManager->load()->requeueCompleted($runId));
+                        $this->progressLogger->log(sprintf('offline after error; run %s re-queued, gating until connectivity returns.', $runId));
+                    }
+                    if (!$this->offlineGate->waitUntilOnline()) {
+                        return 0;
+                    }
+                    continue;   // do NOT touch the error counter, do NOT increment $runsExecuted
+                }
+
                 $this->errorCounter->recordUnexpectedError();
                 $this->progressLogger->log(
                     sprintf('unexpected error (count=%d/%d)', $this->errorCounter->count(), 5),

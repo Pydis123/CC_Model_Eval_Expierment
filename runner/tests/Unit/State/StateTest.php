@@ -88,4 +88,41 @@ final class StateTest extends TestCase
         $this->assertSame('claude-opus-4-7', $state->pinnedModels['opus']);
         $this->assertCount(1, $state->remainingRuns);
     }
+
+    public function testRequeueCompletedMovesRunToFrontOfRemainingUnclaimed(): void
+    {
+        $state = State::empty()
+            ->withRemainingRuns([
+                new Run('b', 't', 'sonnet', 1),
+                new Run('c', 't', 'opus', 1),
+            ])
+            ->moveToCompleted('b');
+
+        // Now we have: remaining=[c], completed=[b]
+        $this->assertCount(1, $state->remainingRuns);
+        $this->assertCount(1, $state->completedRuns);
+
+        $new = $state->requeueCompleted('b');
+
+        // After requeue: b should be back at front of remaining (with claimedAt=null)
+        $this->assertCount(2, $new->remainingRuns);
+        $this->assertSame('b', $new->remainingRuns[0]->runId);
+        $this->assertNull($new->remainingRuns[0]->claimedAt);
+        $this->assertSame('c', $new->remainingRuns[1]->runId);
+        $this->assertCount(0, $new->completedRuns);
+    }
+
+    public function testRequeueCompletedUnknownRunIdIsNoOp(): void
+    {
+        $state = State::empty()
+            ->withRemainingRuns([
+                new Run('a', 't', 'haiku', 1),
+            ]);
+
+        $new = $state->requeueCompleted('nonexistent');
+
+        $this->assertCount(1, $new->remainingRuns);
+        $this->assertSame('a', $new->remainingRuns[0]->runId);
+        $this->assertCount(0, $new->completedRuns);
+    }
 }

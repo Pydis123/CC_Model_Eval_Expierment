@@ -37,8 +37,10 @@ use LlmDispatch\Runner\Evaluator\Check\PhpunitCheck;
 use LlmDispatch\Runner\Evaluator\Check\QueryCountCheck;
 use LlmDispatch\Runner\Evaluator\Check\SmokeNoRegressionsCheck;
 use LlmDispatch\Runner\Evaluator\Evaluator;
+use LlmDispatch\Runner\Execution\ConnectivityChecker;
 use LlmDispatch\Runner\Execution\ConsecutiveErrorCounter;
 use LlmDispatch\Runner\Execution\CrashDumper;
+use LlmDispatch\Runner\Execution\OfflineGate;
 use LlmDispatch\Runner\Execution\ProgressLogger;
 use LlmDispatch\Runner\Execution\ResultsTailReader;
 use LlmDispatch\Runner\Execution\SwapDetector;
@@ -115,6 +117,9 @@ $progressLogger = new ProgressLogger($repoRoot . '/results/runner.log');
 $errorCounter = new ConsecutiveErrorCounter(5);
 $crashDumper = new CrashDumper($repoRoot . '/results');
 
+$connectivity = new ConnectivityChecker();
+$offlineGate = new OfflineGate($connectivity, $progressLogger, $repoRoot . '/PAUSE', static fn (int $s) => sleep($s));
+
 $claudeVersion = trim((string) shell_exec('claude --version 2>&1'));
 
 $runNextCommand = new RunNextCommand(
@@ -167,6 +172,8 @@ $registry = [
         resultsTail: new ResultsTailReader($resultsPath),
         pinnedModels: $config->pinnedModels,
         pauseSentinelPath: $repoRoot . '/PAUSE',
+        offlineGate: $offlineGate,
+        connectivity: $connectivity,
     ),
     'report' => new ReportCommand(
         config: $config,

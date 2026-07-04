@@ -82,6 +82,36 @@ final class State
         );
     }
 
+    public function requeueCompleted(string $runId): self
+    {
+        $completed = [];
+        $moved = null;
+        foreach ($this->completedRuns as $run) {
+            if ($run->runId === $runId) {
+                $moved = $run;
+            } else {
+                $completed[] = $run;
+            }
+        }
+
+        $remaining = $this->remainingRuns;
+        if ($moved !== null) {
+            // Reset claimedAt to null and prepend to remaining
+            $remaining = [new Run($moved->runId, $moved->taskId, $moved->modelTier, $moved->n, null), ...$remaining];
+        }
+
+        return new self(
+            $this->schemaVersion,
+            $this->experimentStartedAt,
+            $this->pinnedModels,
+            $this->nextRunIdx,
+            $completed,
+            $remaining,
+            $this->currentSessionTokensEst,
+            $this->currentSessionStartedAt,
+        );
+    }
+
     /**
      * @param array<string, string> $models
      */
