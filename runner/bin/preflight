@@ -30,11 +30,18 @@ else
   fail "claude CLI not found at $CLAUDE_BIN"
 fi
 
-# 3. Model pinning
-if php runner/bin/cli pin-check ping >/dev/null 2>&1; then
-  ok "pin-check ping: all pinned model ids respond"
+# 3. Model pinning: all four tiers pinned to sane-looking ids
+PIN_STATUS=$(php -r '
+  $s = json_decode(@file_get_contents("state.json"), true);
+  foreach (["haiku", "sonnet", "opus", "fable"] as $tier) {
+    $id = $s["pinned_models"][$tier] ?? "";
+    if (!preg_match("/^claude-[a-z0-9.-]+$/", $id)) { echo "bad:$tier"; exit; }
+  }
+  echo "ok";')
+if [ "$PIN_STATUS" = "ok" ]; then
+  ok "pinned_models: all four tiers pinned"
 else
-  fail "pin-check ping failed — verify pinned_models in state.json"
+  fail "pinned_models invalid ($PIN_STATUS) — run state pin-models"
 fi
 
 # 4. Operator env must not leak model/API overrides into the runner
