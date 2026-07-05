@@ -1,0 +1,1137 @@
+{
+    "schema_version": 1,
+    "experiment_started_at": null,
+    "pinned_models": {
+        "haiku": "claude-haiku-4-5-20251001",
+        "sonnet": "claude-sonnet-5",
+        "opus": "claude-opus-4-8",
+        "fable": "claude-fable-5"
+    },
+    "next_run_idx": 144,
+    "completed_runs": [
+        {
+            "run_id": "a1037ea91a50",
+            "task_id": "001-i18n-status-flik",
+            "model_tier": "opus",
+            "n": 3,
+            "claimed_at": "2026-07-03T12:21:39Z"
+        },
+        {
+            "run_id": "fdb22bf4ba37",
+            "task_id": "001-i18n-status-flik",
+            "model_tier": "haiku",
+            "n": 3,
+            "claimed_at": "2026-07-03T12:34:52Z"
+        },
+        {
+            "run_id": "bede25274761",
+            "task_id": "001-i18n-status-flik",
+            "model_tier": "sonnet",
+            "n": 1,
+            "claimed_at": "2026-07-03T13:01:44Z"
+        },
+        {
+            "run_id": "3f48622dc93c",
+            "task_id": "001-i18n-status-flik",
+            "model_tier": "sonnet",
+            "n": 2,
+            "claimed_at": "2026-07-03T13:12:54Z"
+        },
+        {
+            "run_id": "1be5fa65ecc0",
+            "task_id": "001-i18n-status-flik",
+            "model_tier": "sonnet",
+            "n": 4,
+            "claimed_at": "2026-07-03T13:30:06Z"
+        },
+        {
+            "run_id": "a0b278fa3a8e",
+            "task_id": "001-i18n-status-flik",
+            "model_tier": "haiku",
+            "n": 4,
+            "claimed_at": "2026-07-03T13:41:27Z"
+        },
+        {
+            "run_id": "839d11da5e0f",
+            "task_id": "001-i18n-status-flik",
+            "model_tier": "fable",
+            "n": 5,
+            "claimed_at": "2026-07-03T13:45:57Z"
+        },
+        {
+            "run_id": "22b061187cae",
+            "task_id": "001-i18n-status-flik",
+            "model_tier": "sonnet",
+            "n": 3,
+            "claimed_at": "2026-07-03T13:57:02Z"
+        },
+        {
+            "run_id": "f7899442aa6d",
+            "task_id": "001-i18n-status-flik",
+            "model_tier": "opus",
+            "n": 1,
+            "claimed_at": "2026-07-03T14:05:59Z"
+        },
+        {
+            "run_id": "c8418b664a54",
+            "task_id": "001-i18n-status-flik",
+            "model_tier": "haiku",
+            "n": 2,
+            "claimed_at": "2026-07-03T14:15:40Z"
+        },
+        {
+            "run_id": "4fd41a176d50",
+            "task_id": "001-i18n-status-flik",
+            "model_tier": "haiku",
+            "n": 1,
+            "claimed_at": "2026-07-03T18:12:19Z"
+        },
+        {
+            "run_id": "bfc798adb87f",
+            "task_id": "001-i18n-status-flik",
+            "model_tier": "sonnet",
+            "n": 5,
+            "claimed_at": "2026-07-03T18:18:54Z"
+        },
+        {
+            "run_id": "5983acc141c3",
+            "task_id": "001-i18n-status-flik",
+            "model_tier": "fable",
+            "n": 4,
+            "claimed_at": "2026-07-03T18:24:01Z"
+        },
+        {
+            "run_id": "92247529b926",
+            "task_id": "001-i18n-status-flik",
+            "model_tier": "haiku",
+            "n": 5,
+            "claimed_at": "2026-07-03T18:31:51Z"
+        },
+        {
+            "run_id": "0df3eb34edbf",
+            "task_id": "001-i18n-status-flik",
+            "model_tier": "fable",
+            "n": 3,
+            "claimed_at": "2026-07-03T18:37:48Z"
+        },
+        {
+            "run_id": "26064d31d1db",
+            "task_id": "001-i18n-status-flik",
+            "model_tier": "fable",
+            "n": 1,
+            "claimed_at": "2026-07-03T18:46:49Z"
+        },
+        {
+            "run_id": "42f2ef504a53",
+            "task_id": "001-i18n-status-flik",
+            "model_tier": "opus",
+            "n": 5,
+            "claimed_at": "2026-07-03T18:53:24Z"
+        },
+        {
+            "run_id": "e7b307744c1e",
+            "task_id": "001-i18n-status-flik",
+            "model_tier": "opus",
+            "n": 2,
+            "claimed_at": "2026-07-03T19:04:00Z"
+        },
+        {
+            "run_id": "7662d5935fee",
+            "task_id": "001-i18n-status-flik",
+            "model_tier": "fable",
+            "n": 2,
+            "claimed_at": "2026-07-03T20:19:10Z"
+        },
+        {
+            "run_id": "e34ff1082095",
+            "task_id": "001-i18n-status-flik",
+            "model_tier": "opus",
+            "n": 4,
+            "claimed_at": "2026-07-03T20:25:08Z"
+        },
+        {
+            "run_id": "f54ef2bcdfcb",
+            "task_id": "002-crud-ticket-tag",
+            "model_tier": "sonnet",
+            "n": 4,
+            "claimed_at": "2026-07-03T20:31:49Z"
+        },
+        {
+            "run_id": "4d687a8ae8a6",
+            "task_id": "002-crud-ticket-tag",
+            "model_tier": "sonnet",
+            "n": 1,
+            "claimed_at": "2026-07-03T20:46:22Z"
+        },
+        {
+            "run_id": "e51cfbd03660",
+            "task_id": "002-crud-ticket-tag",
+            "model_tier": "haiku",
+            "n": 4,
+            "claimed_at": "2026-07-03T21:01:22Z"
+        },
+        {
+            "run_id": "63060fc72fdb",
+            "task_id": "002-crud-ticket-tag",
+            "model_tier": "opus",
+            "n": 2,
+            "claimed_at": "2026-07-03T21:10:08Z"
+        },
+        {
+            "run_id": "6a3240d99713",
+            "task_id": "002-crud-ticket-tag",
+            "model_tier": "opus",
+            "n": 4,
+            "claimed_at": "2026-07-04T07:32:50Z"
+        },
+        {
+            "run_id": "c8bbf2f0cd35",
+            "task_id": "002-crud-ticket-tag",
+            "model_tier": "sonnet",
+            "n": 2,
+            "claimed_at": "2026-07-04T07:52:08Z"
+        },
+        {
+            "run_id": "60c5e7421de5",
+            "task_id": "002-crud-ticket-tag",
+            "model_tier": "fable",
+            "n": 3,
+            "claimed_at": "2026-07-04T08:09:48Z"
+        },
+        {
+            "run_id": "b894e44829f5",
+            "task_id": "002-crud-ticket-tag",
+            "model_tier": "sonnet",
+            "n": 3,
+            "claimed_at": "2026-07-04T08:20:12Z"
+        },
+        {
+            "run_id": "99adc25f452f",
+            "task_id": "002-crud-ticket-tag",
+            "model_tier": "haiku",
+            "n": 1,
+            "claimed_at": "2026-07-04T12:06:00Z"
+        },
+        {
+            "run_id": "7203b755813a",
+            "task_id": "002-crud-ticket-tag",
+            "model_tier": "fable",
+            "n": 1,
+            "claimed_at": "2026-07-04T12:10:58Z"
+        },
+        {
+            "run_id": "3e24c1049014",
+            "task_id": "002-crud-ticket-tag",
+            "model_tier": "opus",
+            "n": 3,
+            "claimed_at": "2026-07-04T12:21:37Z"
+        },
+        {
+            "run_id": "2f786a933c0c",
+            "task_id": "002-crud-ticket-tag",
+            "model_tier": "fable",
+            "n": 4,
+            "claimed_at": "2026-07-04T12:35:06Z"
+        },
+        {
+            "run_id": "225a1506937c",
+            "task_id": "002-crud-ticket-tag",
+            "model_tier": "haiku",
+            "n": 2,
+            "claimed_at": "2026-07-04T12:44:36Z"
+        },
+        {
+            "run_id": "a71150505572",
+            "task_id": "002-crud-ticket-tag",
+            "model_tier": "sonnet",
+            "n": 5,
+            "claimed_at": "2026-07-04T12:53:53Z"
+        },
+        {
+            "run_id": "8b491d0f28d7",
+            "task_id": "002-crud-ticket-tag",
+            "model_tier": "haiku",
+            "n": 3,
+            "claimed_at": "2026-07-04T13:04:33Z"
+        },
+        {
+            "run_id": "9d78a85a7d25",
+            "task_id": "002-crud-ticket-tag",
+            "model_tier": "opus",
+            "n": 1,
+            "claimed_at": "2026-07-04T13:12:48Z"
+        },
+        {
+            "run_id": "b635ad6f2e05",
+            "task_id": "002-crud-ticket-tag",
+            "model_tier": "fable",
+            "n": 2,
+            "claimed_at": "2026-07-04T13:26:54Z"
+        },
+        {
+            "run_id": "7863c6a18519",
+            "task_id": "002-crud-ticket-tag",
+            "model_tier": "opus",
+            "n": 5,
+            "claimed_at": "2026-07-04T15:27:00Z"
+        },
+        {
+            "run_id": "1a70bfabfaa9",
+            "task_id": "002-crud-ticket-tag",
+            "model_tier": "haiku",
+            "n": 5,
+            "claimed_at": "2026-07-04T15:47:43Z"
+        },
+        {
+            "run_id": "d037f7c35c1e",
+            "task_id": "002-crud-ticket-tag",
+            "model_tier": "fable",
+            "n": 5,
+            "claimed_at": "2026-07-04T15:51:34Z"
+        },
+        {
+            "run_id": "91e3caed22a5",
+            "task_id": "003-n-plus-one-fix",
+            "model_tier": "sonnet",
+            "n": 5,
+            "claimed_at": "2026-07-04T16:09:51Z"
+        },
+        {
+            "run_id": "815c7f5749f1",
+            "task_id": "003-n-plus-one-fix",
+            "model_tier": "sonnet",
+            "n": 3,
+            "claimed_at": "2026-07-04T16:14:00Z"
+        },
+        {
+            "run_id": "33e2dcc169c1",
+            "task_id": "003-n-plus-one-fix",
+            "model_tier": "sonnet",
+            "n": 4,
+            "claimed_at": "2026-07-04T16:17:23Z"
+        },
+        {
+            "run_id": "eb5b86d44c77",
+            "task_id": "003-n-plus-one-fix",
+            "model_tier": "fable",
+            "n": 1,
+            "claimed_at": "2026-07-04T16:21:11Z"
+        },
+        {
+            "run_id": "2fdfa157be66",
+            "task_id": "003-n-plus-one-fix",
+            "model_tier": "opus",
+            "n": 2,
+            "claimed_at": "2026-07-04T16:26:43Z"
+        },
+        {
+            "run_id": "0d9c508807dc",
+            "task_id": "003-n-plus-one-fix",
+            "model_tier": "haiku",
+            "n": 5,
+            "claimed_at": "2026-07-04T16:31:29Z"
+        },
+        {
+            "run_id": "678c839bc53e",
+            "task_id": "003-n-plus-one-fix",
+            "model_tier": "fable",
+            "n": 2,
+            "claimed_at": "2026-07-04T16:35:35Z"
+        },
+        {
+            "run_id": "422b355790ca",
+            "task_id": "003-n-plus-one-fix",
+            "model_tier": "fable",
+            "n": 4,
+            "claimed_at": "2026-07-04T16:40:14Z"
+        },
+        {
+            "run_id": "1b63b0ab2873",
+            "task_id": "003-n-plus-one-fix",
+            "model_tier": "opus",
+            "n": 4,
+            "claimed_at": "2026-07-04T16:45:09Z"
+        },
+        {
+            "run_id": "3b3ff7a771e0",
+            "task_id": "003-n-plus-one-fix",
+            "model_tier": "opus",
+            "n": 5,
+            "claimed_at": "2026-07-04T16:49:33Z"
+        },
+        {
+            "run_id": "7e97f21ba43e",
+            "task_id": "003-n-plus-one-fix",
+            "model_tier": "opus",
+            "n": 3,
+            "claimed_at": "2026-07-04T16:55:51Z"
+        },
+        {
+            "run_id": "22ab40f0498e",
+            "task_id": "003-n-plus-one-fix",
+            "model_tier": "haiku",
+            "n": 4,
+            "claimed_at": "2026-07-04T17:00:41Z"
+        },
+        {
+            "run_id": "e4a250015b38",
+            "task_id": "003-n-plus-one-fix",
+            "model_tier": "fable",
+            "n": 3,
+            "claimed_at": "2026-07-04T17:03:48Z"
+        },
+        {
+            "run_id": "fa52767897fe",
+            "task_id": "003-n-plus-one-fix",
+            "model_tier": "haiku",
+            "n": 2,
+            "claimed_at": "2026-07-04T17:08:30Z"
+        },
+        {
+            "run_id": "fa6ee6b9c928",
+            "task_id": "003-n-plus-one-fix",
+            "model_tier": "sonnet",
+            "n": 1,
+            "claimed_at": "2026-07-04T17:12:02Z"
+        },
+        {
+            "run_id": "b79694590668",
+            "task_id": "003-n-plus-one-fix",
+            "model_tier": "haiku",
+            "n": 1,
+            "claimed_at": "2026-07-04T17:16:36Z"
+        },
+        {
+            "run_id": "a73cc4f2da67",
+            "task_id": "003-n-plus-one-fix",
+            "model_tier": "haiku",
+            "n": 3,
+            "claimed_at": "2026-07-04T17:19:49Z"
+        },
+        {
+            "run_id": "a0a6c83c2bd4",
+            "task_id": "003-n-plus-one-fix",
+            "model_tier": "sonnet",
+            "n": 2,
+            "claimed_at": "2026-07-04T17:22:10Z"
+        },
+        {
+            "run_id": "67d56f0e92bf",
+            "task_id": "003-n-plus-one-fix",
+            "model_tier": "fable",
+            "n": 5,
+            "claimed_at": "2026-07-04T17:28:24Z"
+        },
+        {
+            "run_id": "cac98681c79c",
+            "task_id": "003-n-plus-one-fix",
+            "model_tier": "opus",
+            "n": 1,
+            "claimed_at": "2026-07-04T17:34:01Z"
+        },
+        {
+            "run_id": "8b0d11555dcb",
+            "task_id": "004-sla-deadline-migration",
+            "model_tier": "fable",
+            "n": 5,
+            "claimed_at": "2026-07-04T17:39:16Z"
+        },
+        {
+            "run_id": "314f8c601d26",
+            "task_id": "004-sla-deadline-migration",
+            "model_tier": "fable",
+            "n": 3,
+            "claimed_at": "2026-07-04T17:49:52Z"
+        },
+        {
+            "run_id": "2170e6e986e8",
+            "task_id": "004-sla-deadline-migration",
+            "model_tier": "sonnet",
+            "n": 1,
+            "claimed_at": "2026-07-04T17:58:22Z"
+        },
+        {
+            "run_id": "b3bbc29d4852",
+            "task_id": "004-sla-deadline-migration",
+            "model_tier": "opus",
+            "n": 1,
+            "claimed_at": "2026-07-04T18:06:00Z"
+        },
+        {
+            "run_id": "871a51084d76",
+            "task_id": "004-sla-deadline-migration",
+            "model_tier": "fable",
+            "n": 2,
+            "claimed_at": "2026-07-04T20:16:23Z"
+        },
+        {
+            "run_id": "a7dc57c9f720",
+            "task_id": "004-sla-deadline-migration",
+            "model_tier": "haiku",
+            "n": 3,
+            "claimed_at": "2026-07-04T20:46:48Z"
+        },
+        {
+            "run_id": "0d54d7363a7a",
+            "task_id": "004-sla-deadline-migration",
+            "model_tier": "opus",
+            "n": 4,
+            "claimed_at": "2026-07-04T22:04:44Z"
+        },
+        {
+            "run_id": "6f01f573d1a0",
+            "task_id": "004-sla-deadline-migration",
+            "model_tier": "fable",
+            "n": 1,
+            "claimed_at": "2026-07-04T22:12:45Z"
+        },
+        {
+            "run_id": "3dfde84f2a54",
+            "task_id": "004-sla-deadline-migration",
+            "model_tier": "sonnet",
+            "n": 3,
+            "claimed_at": "2026-07-04T22:19:47Z"
+        },
+        {
+            "run_id": "9f5b6f20c715",
+            "task_id": "004-sla-deadline-migration",
+            "model_tier": "opus",
+            "n": 2,
+            "claimed_at": "2026-07-04T22:28:02Z"
+        },
+        {
+            "run_id": "a92016550e48",
+            "task_id": "004-sla-deadline-migration",
+            "model_tier": "haiku",
+            "n": 4,
+            "claimed_at": "2026-07-04T22:35:26Z"
+        },
+        {
+            "run_id": "e1e1e92cb786",
+            "task_id": "004-sla-deadline-migration",
+            "model_tier": "sonnet",
+            "n": 5,
+            "claimed_at": "2026-07-04T22:39:55Z"
+        },
+        {
+            "run_id": "952293369b0e",
+            "task_id": "004-sla-deadline-migration",
+            "model_tier": "haiku",
+            "n": 2,
+            "claimed_at": "2026-07-04T22:47:14Z"
+        },
+        {
+            "run_id": "c5b2e1f28b69",
+            "task_id": "004-sla-deadline-migration",
+            "model_tier": "opus",
+            "n": 5,
+            "claimed_at": "2026-07-04T22:51:31Z"
+        },
+        {
+            "run_id": "d0b852c65df8",
+            "task_id": "004-sla-deadline-migration",
+            "model_tier": "opus",
+            "n": 3,
+            "claimed_at": "2026-07-04T23:03:01Z"
+        },
+        {
+            "run_id": "18c9a565a539",
+            "task_id": "004-sla-deadline-migration",
+            "model_tier": "fable",
+            "n": 4,
+            "claimed_at": "2026-07-04T23:25:56Z"
+        },
+        {
+            "run_id": "3646a60cd0fe",
+            "task_id": "004-sla-deadline-migration",
+            "model_tier": "haiku",
+            "n": 5,
+            "claimed_at": "2026-07-04T23:38:08Z"
+        },
+        {
+            "run_id": "f744dd8e9049",
+            "task_id": "004-sla-deadline-migration",
+            "model_tier": "haiku",
+            "n": 1,
+            "claimed_at": "2026-07-04T23:41:06Z"
+        },
+        {
+            "run_id": "bf38abd32578",
+            "task_id": "004-sla-deadline-migration",
+            "model_tier": "sonnet",
+            "n": 2,
+            "claimed_at": "2026-07-04T23:47:01Z"
+        },
+        {
+            "run_id": "9e9de9a364e9",
+            "task_id": "004-sla-deadline-migration",
+            "model_tier": "sonnet",
+            "n": 4,
+            "claimed_at": "2026-07-04T23:55:22Z"
+        },
+        {
+            "run_id": "281ebc7a9b4c",
+            "task_id": "005-state-service-refactor",
+            "model_tier": "haiku",
+            "n": 1,
+            "claimed_at": "2026-07-05T00:03:41Z"
+        },
+        {
+            "run_id": "4777e9cf9d30",
+            "task_id": "005-state-service-refactor",
+            "model_tier": "sonnet",
+            "n": 3,
+            "claimed_at": "2026-07-05T00:07:03Z"
+        },
+        {
+            "run_id": "ea1da5b815c7",
+            "task_id": "005-state-service-refactor",
+            "model_tier": "fable",
+            "n": 5,
+            "claimed_at": "2026-07-05T00:11:49Z"
+        },
+        {
+            "run_id": "e5224e82f1cf",
+            "task_id": "005-state-service-refactor",
+            "model_tier": "haiku",
+            "n": 4,
+            "claimed_at": "2026-07-05T00:16:27Z"
+        },
+        {
+            "run_id": "419254241c1f",
+            "task_id": "005-state-service-refactor",
+            "model_tier": "haiku",
+            "n": 2,
+            "claimed_at": "2026-07-05T00:19:32Z"
+        },
+        {
+            "run_id": "362aef376358",
+            "task_id": "005-state-service-refactor",
+            "model_tier": "sonnet",
+            "n": 1,
+            "claimed_at": "2026-07-05T00:23:19Z"
+        },
+        {
+            "run_id": "06cf8ea1db8f",
+            "task_id": "005-state-service-refactor",
+            "model_tier": "opus",
+            "n": 4,
+            "claimed_at": "2026-07-05T00:26:24Z"
+        },
+        {
+            "run_id": "bf9e860c5999",
+            "task_id": "005-state-service-refactor",
+            "model_tier": "opus",
+            "n": 5,
+            "claimed_at": "2026-07-05T00:30:38Z"
+        },
+        {
+            "run_id": "dc1b7e704125",
+            "task_id": "005-state-service-refactor",
+            "model_tier": "fable",
+            "n": 1,
+            "claimed_at": "2026-07-05T00:36:29Z"
+        },
+        {
+            "run_id": "46f01cd28bb9",
+            "task_id": "005-state-service-refactor",
+            "model_tier": "sonnet",
+            "n": 2,
+            "claimed_at": "2026-07-05T00:41:48Z"
+        },
+        {
+            "run_id": "f8961043a6bf",
+            "task_id": "005-state-service-refactor",
+            "model_tier": "haiku",
+            "n": 3,
+            "claimed_at": "2026-07-05T00:45:12Z"
+        },
+        {
+            "run_id": "db790deaa2d9",
+            "task_id": "005-state-service-refactor",
+            "model_tier": "opus",
+            "n": 1,
+            "claimed_at": "2026-07-05T00:49:29Z"
+        },
+        {
+            "run_id": "6ab5a3d46b1c",
+            "task_id": "005-state-service-refactor",
+            "model_tier": "fable",
+            "n": 3,
+            "claimed_at": "2026-07-05T00:53:48Z"
+        },
+        {
+            "run_id": "9b546bfd561e",
+            "task_id": "005-state-service-refactor",
+            "model_tier": "opus",
+            "n": 2,
+            "claimed_at": "2026-07-05T00:59:10Z"
+        },
+        {
+            "run_id": "ffe27dc9e998",
+            "task_id": "005-state-service-refactor",
+            "model_tier": "haiku",
+            "n": 5,
+            "claimed_at": "2026-07-05T01:03:37Z"
+        },
+        {
+            "run_id": "646873ff15ef",
+            "task_id": "005-state-service-refactor",
+            "model_tier": "opus",
+            "n": 3,
+            "claimed_at": "2026-07-05T01:05:59Z"
+        },
+        {
+            "run_id": "c6b606f10cd0",
+            "task_id": "005-state-service-refactor",
+            "model_tier": "sonnet",
+            "n": 5,
+            "claimed_at": "2026-07-05T01:09:48Z"
+        },
+        {
+            "run_id": "0b1b86fb3b67",
+            "task_id": "005-state-service-refactor",
+            "model_tier": "fable",
+            "n": 4,
+            "claimed_at": "2026-07-05T01:13:48Z"
+        },
+        {
+            "run_id": "8dc3abdba243",
+            "task_id": "005-state-service-refactor",
+            "model_tier": "sonnet",
+            "n": 4,
+            "claimed_at": "2026-07-05T01:18:06Z"
+        },
+        {
+            "run_id": "4d4a2ff7ec5d",
+            "task_id": "005-state-service-refactor",
+            "model_tier": "fable",
+            "n": 2,
+            "claimed_at": "2026-07-05T01:21:09Z"
+        },
+        {
+            "run_id": "0c15f5e9c36f",
+            "task_id": "006-intermittent-test-bugfix",
+            "model_tier": "opus",
+            "n": 2,
+            "claimed_at": "2026-07-05T01:25:57Z"
+        },
+        {
+            "run_id": "c777ece7e833",
+            "task_id": "006-intermittent-test-bugfix",
+            "model_tier": "opus",
+            "n": 1,
+            "claimed_at": "2026-07-05T01:34:57Z"
+        },
+        {
+            "run_id": "924bffc1e5b0",
+            "task_id": "006-intermittent-test-bugfix",
+            "model_tier": "fable",
+            "n": 3,
+            "claimed_at": "2026-07-05T01:41:20Z"
+        },
+        {
+            "run_id": "929ca3f8dac5",
+            "task_id": "006-intermittent-test-bugfix",
+            "model_tier": "fable",
+            "n": 4,
+            "claimed_at": "2026-07-05T01:55:53Z"
+        },
+        {
+            "run_id": "38cb9242a4d6",
+            "task_id": "006-intermittent-test-bugfix",
+            "model_tier": "opus",
+            "n": 4,
+            "claimed_at": "2026-07-05T02:00:37Z"
+        },
+        {
+            "run_id": "36721959112b",
+            "task_id": "006-intermittent-test-bugfix",
+            "model_tier": "sonnet",
+            "n": 5,
+            "claimed_at": "2026-07-05T02:10:41Z"
+        },
+        {
+            "run_id": "1d50ac2080d3",
+            "task_id": "006-intermittent-test-bugfix",
+            "model_tier": "fable",
+            "n": 2,
+            "claimed_at": "2026-07-05T02:34:04Z"
+        },
+        {
+            "run_id": "e8b23807398d",
+            "task_id": "006-intermittent-test-bugfix",
+            "model_tier": "haiku",
+            "n": 2,
+            "claimed_at": "2026-07-05T02:38:57Z"
+        },
+        {
+            "run_id": "a50f500e7331",
+            "task_id": "006-intermittent-test-bugfix",
+            "model_tier": "haiku",
+            "n": 5,
+            "claimed_at": "2026-07-05T02:41:00Z"
+        },
+        {
+            "run_id": "ffe4f867f29c",
+            "task_id": "006-intermittent-test-bugfix",
+            "model_tier": "sonnet",
+            "n": 4,
+            "claimed_at": "2026-07-05T02:43:18Z"
+        },
+        {
+            "run_id": "d12d5fb5062d",
+            "task_id": "006-intermittent-test-bugfix",
+            "model_tier": "opus",
+            "n": 5,
+            "claimed_at": "2026-07-05T02:50:03Z"
+        },
+        {
+            "run_id": "fd7382ce6f37",
+            "task_id": "006-intermittent-test-bugfix",
+            "model_tier": "fable",
+            "n": 1,
+            "claimed_at": "2026-07-05T02:57:27Z"
+        },
+        {
+            "run_id": "d1e0bb84728e",
+            "task_id": "006-intermittent-test-bugfix",
+            "model_tier": "sonnet",
+            "n": 3,
+            "claimed_at": "2026-07-05T03:03:06Z"
+        },
+        {
+            "run_id": "d81f66f7f4d8",
+            "task_id": "006-intermittent-test-bugfix",
+            "model_tier": "sonnet",
+            "n": 1,
+            "claimed_at": "2026-07-05T03:07:15Z"
+        },
+        {
+            "run_id": "196557cc360f",
+            "task_id": "006-intermittent-test-bugfix",
+            "model_tier": "haiku",
+            "n": 1,
+            "claimed_at": "2026-07-05T03:18:49Z"
+        },
+        {
+            "run_id": "59843bf818eb",
+            "task_id": "006-intermittent-test-bugfix",
+            "model_tier": "sonnet",
+            "n": 2,
+            "claimed_at": "2026-07-05T03:21:00Z"
+        },
+        {
+            "run_id": "838267d3a020",
+            "task_id": "006-intermittent-test-bugfix",
+            "model_tier": "opus",
+            "n": 3,
+            "claimed_at": "2026-07-05T03:26:01Z"
+        },
+        {
+            "run_id": "d354ebfde5f2",
+            "task_id": "006-intermittent-test-bugfix",
+            "model_tier": "fable",
+            "n": 5,
+            "claimed_at": "2026-07-05T03:49:08Z"
+        },
+        {
+            "run_id": "e14868b67ac3",
+            "task_id": "006-intermittent-test-bugfix",
+            "model_tier": "haiku",
+            "n": 4,
+            "claimed_at": "2026-07-05T03:54:21Z"
+        },
+        {
+            "run_id": "be04373c0c1d",
+            "task_id": "006-intermittent-test-bugfix",
+            "model_tier": "haiku",
+            "n": 3,
+            "claimed_at": "2026-07-05T03:56:53Z"
+        },
+        {
+            "run_id": "be131641e233",
+            "task_id": "007-batch-close-rbac",
+            "model_tier": "haiku",
+            "n": 3,
+            "claimed_at": "2026-07-05T03:59:47Z"
+        },
+        {
+            "run_id": "48256a2c88d4",
+            "task_id": "007-batch-close-rbac",
+            "model_tier": "fable",
+            "n": 5,
+            "claimed_at": "2026-07-05T04:03:54Z"
+        },
+        {
+            "run_id": "07edb87b30d6",
+            "task_id": "007-batch-close-rbac",
+            "model_tier": "fable",
+            "n": 1,
+            "claimed_at": "2026-07-05T04:13:50Z"
+        },
+        {
+            "run_id": "ac2d4d4ac135",
+            "task_id": "007-batch-close-rbac",
+            "model_tier": "opus",
+            "n": 2,
+            "claimed_at": "2026-07-05T04:20:15Z"
+        },
+        {
+            "run_id": "347e9822bbcf",
+            "task_id": "007-batch-close-rbac",
+            "model_tier": "fable",
+            "n": 3,
+            "claimed_at": "2026-07-05T04:30:40Z"
+        },
+        {
+            "run_id": "4bcc166f3d2d",
+            "task_id": "007-batch-close-rbac",
+            "model_tier": "sonnet",
+            "n": 1,
+            "claimed_at": "2026-07-05T04:38:43Z"
+        },
+        {
+            "run_id": "8949bd4a1b1f",
+            "task_id": "007-batch-close-rbac",
+            "model_tier": "opus",
+            "n": 4,
+            "claimed_at": "2026-07-05T04:46:36Z"
+        },
+        {
+            "run_id": "5f0fa529ff61",
+            "task_id": "007-batch-close-rbac",
+            "model_tier": "haiku",
+            "n": 2,
+            "claimed_at": "2026-07-05T05:18:40Z"
+        },
+        {
+            "run_id": "e4804f5f172a",
+            "task_id": "007-batch-close-rbac",
+            "model_tier": "sonnet",
+            "n": 3,
+            "claimed_at": "2026-07-05T05:22:28Z"
+        },
+        {
+            "run_id": "8c6b2072cf64",
+            "task_id": "007-batch-close-rbac",
+            "model_tier": "sonnet",
+            "n": 4,
+            "claimed_at": "2026-07-05T05:30:48Z"
+        },
+        {
+            "run_id": "989670c68955",
+            "task_id": "007-batch-close-rbac",
+            "model_tier": "opus",
+            "n": 3,
+            "claimed_at": "2026-07-05T05:38:37Z"
+        },
+        {
+            "run_id": "794219bd9607",
+            "task_id": "007-batch-close-rbac",
+            "model_tier": "haiku",
+            "n": 4,
+            "claimed_at": "2026-07-05T05:51:34Z"
+        },
+        {
+            "run_id": "17d07f787369",
+            "task_id": "007-batch-close-rbac",
+            "model_tier": "haiku",
+            "n": 5,
+            "claimed_at": "2026-07-05T05:58:03Z"
+        },
+        {
+            "run_id": "4a0e4e7a3a13",
+            "task_id": "007-batch-close-rbac",
+            "model_tier": "opus",
+            "n": 1,
+            "claimed_at": "2026-07-05T05:59:04Z"
+        },
+        {
+            "run_id": "d166b51a2163",
+            "task_id": "007-batch-close-rbac",
+            "model_tier": "opus",
+            "n": 5,
+            "claimed_at": "2026-07-05T06:08:51Z"
+        },
+        {
+            "run_id": "d05cd500382d",
+            "task_id": "007-batch-close-rbac",
+            "model_tier": "sonnet",
+            "n": 5,
+            "claimed_at": "2026-07-05T06:17:47Z"
+        },
+        {
+            "run_id": "09851cc4c0b4",
+            "task_id": "007-batch-close-rbac",
+            "model_tier": "haiku",
+            "n": 1,
+            "claimed_at": "2026-07-05T06:25:58Z"
+        },
+        {
+            "run_id": "34a6b016a1e2",
+            "task_id": "007-batch-close-rbac",
+            "model_tier": "fable",
+            "n": 2,
+            "claimed_at": "2026-07-05T06:28:14Z"
+        }
+    ],
+    "remaining_runs": [
+        {
+            "run_id": "a01143bee52f",
+            "task_id": "007-batch-close-rbac",
+            "model_tier": "fable",
+            "n": 4,
+            "claimed_at": "2026-07-05T06:56:10Z"
+        },
+        {
+            "run_id": "6ae4bb493f79",
+            "task_id": "007-batch-close-rbac",
+            "model_tier": "sonnet",
+            "n": 2,
+            "claimed_at": null
+        },
+        {
+            "run_id": "6b88ea1bbbfb",
+            "task_id": "008-comment-composer-alpine",
+            "model_tier": "fable",
+            "n": 1,
+            "claimed_at": null
+        },
+        {
+            "run_id": "f73ed830a8db",
+            "task_id": "008-comment-composer-alpine",
+            "model_tier": "fable",
+            "n": 2,
+            "claimed_at": null
+        },
+        {
+            "run_id": "8108f434a229",
+            "task_id": "008-comment-composer-alpine",
+            "model_tier": "opus",
+            "n": 2,
+            "claimed_at": null
+        },
+        {
+            "run_id": "f79ef48c58a1",
+            "task_id": "008-comment-composer-alpine",
+            "model_tier": "sonnet",
+            "n": 1,
+            "claimed_at": null
+        },
+        {
+            "run_id": "6fc5bc572123",
+            "task_id": "008-comment-composer-alpine",
+            "model_tier": "haiku",
+            "n": 3,
+            "claimed_at": null
+        },
+        {
+            "run_id": "4089c30b106a",
+            "task_id": "008-comment-composer-alpine",
+            "model_tier": "sonnet",
+            "n": 2,
+            "claimed_at": null
+        },
+        {
+            "run_id": "ee9884579746",
+            "task_id": "008-comment-composer-alpine",
+            "model_tier": "opus",
+            "n": 3,
+            "claimed_at": null
+        },
+        {
+            "run_id": "cea9ec3a11dc",
+            "task_id": "008-comment-composer-alpine",
+            "model_tier": "fable",
+            "n": 3,
+            "claimed_at": null
+        },
+        {
+            "run_id": "e9ca39ffa359",
+            "task_id": "008-comment-composer-alpine",
+            "model_tier": "haiku",
+            "n": 5,
+            "claimed_at": null
+        },
+        {
+            "run_id": "8ebdce4f5a37",
+            "task_id": "008-comment-composer-alpine",
+            "model_tier": "haiku",
+            "n": 2,
+            "claimed_at": null
+        },
+        {
+            "run_id": "fb3ac0dca112",
+            "task_id": "008-comment-composer-alpine",
+            "model_tier": "sonnet",
+            "n": 5,
+            "claimed_at": null
+        },
+        {
+            "run_id": "48b64325dc2a",
+            "task_id": "008-comment-composer-alpine",
+            "model_tier": "fable",
+            "n": 5,
+            "claimed_at": null
+        },
+        {
+            "run_id": "75e76a24d7c5",
+            "task_id": "008-comment-composer-alpine",
+            "model_tier": "fable",
+            "n": 4,
+            "claimed_at": null
+        },
+        {
+            "run_id": "1805d494dad7",
+            "task_id": "008-comment-composer-alpine",
+            "model_tier": "sonnet",
+            "n": 3,
+            "claimed_at": null
+        },
+        {
+            "run_id": "fd72f9c4209c",
+            "task_id": "008-comment-composer-alpine",
+            "model_tier": "sonnet",
+            "n": 4,
+            "claimed_at": null
+        },
+        {
+            "run_id": "a0c35cd6fae1",
+            "task_id": "008-comment-composer-alpine",
+            "model_tier": "opus",
+            "n": 4,
+            "claimed_at": null
+        },
+        {
+            "run_id": "30fb3a80427b",
+            "task_id": "008-comment-composer-alpine",
+            "model_tier": "haiku",
+            "n": 4,
+            "claimed_at": null
+        },
+        {
+            "run_id": "321277c887fd",
+            "task_id": "008-comment-composer-alpine",
+            "model_tier": "haiku",
+            "n": 1,
+            "claimed_at": null
+        },
+        {
+            "run_id": "986e2844d76e",
+            "task_id": "008-comment-composer-alpine",
+            "model_tier": "opus",
+            "n": 1,
+            "claimed_at": null
+        },
+        {
+            "run_id": "72e8a57f777b",
+            "task_id": "008-comment-composer-alpine",
+            "model_tier": "opus",
+            "n": 5,
+            "claimed_at": null
+        }
+    ],
+    "current_session_tokens_est": 0,
+    "current_session_started_at": null
+}
