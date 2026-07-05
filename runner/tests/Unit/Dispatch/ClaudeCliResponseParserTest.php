@@ -205,4 +205,54 @@ final class ClaudeCliResponseParserTest extends TestCase
 
         $this->assertFalse($response->isError);
     }
+
+    public function testReportsModelFromAssistantEventsNotModelUsageOrder(): void
+    {
+        // CLI 2.1.201+ includes its internal small model in modelUsage, and it
+        // can appear first; the authored model comes from assistant events.
+        $stream = implode("\n", [
+            json_encode(['type' => 'system', 'subtype' => 'init', 'model' => 'claude-opus-4-8']),
+            json_encode(['type' => 'assistant', 'message' => ['model' => 'claude-opus-4-8', 'content' => [['type' => 'text', 'text' => 'ok']]]]),
+            json_encode([
+                'type' => 'result',
+                'subtype' => 'success',
+                'is_error' => false,
+                'result' => 'ok',
+                'stop_reason' => 'end_turn',
+                'duration_ms' => 10,
+                'usage' => ['input_tokens' => 1, 'output_tokens' => 1],
+                'modelUsage' => [
+                    'claude-haiku-4-5-20251001' => ['outputTokens' => 15],
+                    'claude-opus-4-8' => ['outputTokens' => 5000],
+                ],
+                'total_cost_usd' => 0.0,
+            ]),
+        ]) . "\n";
+
+        $response = (new ClaudeCliResponseParser())->parse($stream, '', 0);
+
+        $this->assertSame('claude-opus-4-8', $response->modelIdReported);
+    }
+
+    public function testFallsBackToLargestModelUsageWhenNoAssistantEvents(): void
+    {
+        $stream = json_encode([
+            'type' => 'result',
+            'subtype' => 'success',
+            'is_error' => false,
+            'result' => 'ok',
+            'stop_reason' => 'end_turn',
+            'duration_ms' => 10,
+            'usage' => ['input_tokens' => 1, 'output_tokens' => 1],
+            'modelUsage' => [
+                'claude-haiku-4-5-20251001' => ['outputTokens' => 15],
+                'claude-opus-4-8' => ['outputTokens' => 5000],
+            ],
+            'total_cost_usd' => 0.0,
+        ]) . "\n";
+
+        $response = (new ClaudeCliResponseParser())->parse($stream, '', 0);
+
+        $this->assertSame('claude-opus-4-8', $response->modelIdReported);
+    }
 }

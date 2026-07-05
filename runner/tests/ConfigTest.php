@@ -16,7 +16,7 @@ final class ConfigTest extends TestCase
         $config = Config::fromFile(self::FIXTURE_PATH);
 
         $this->assertSame(1, $config->schemaVersion);
-        $this->assertSame('llm-dispatch-v2-phase1', $config->experimentName);
+        $this->assertSame('llm-dispatch-v2.1-isolated', $config->experimentName);
         $this->assertSame(42, $config->planSeed);
         $this->assertSame(5, $config->nReplicates);
         $this->assertSame(3, $config->maxIterationsPerRun);

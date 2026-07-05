@@ -16,6 +16,7 @@ final class ClaudeCliResponseParser
         $resultEvent = null;
         /** @var array<string, mixed>|null $lastRateLimitEvent */
         $lastRateLimitEvent = null;
+        $assistantModel = '';
 
         foreach ($lines as $line) {
             $line = trim($line);
@@ -38,6 +39,11 @@ final class ClaudeCliResponseParser
                 $resultEvent = $event;
             } elseif ($type === 'rate_limit_event') {
                 $lastRateLimitEvent = $event;
+            } elseif ($type === 'assistant') {
+                $candidate = (string) ($event['message']['model'] ?? '');
+                if ($candidate !== '') {
+                    $assistantModel = $candidate;
+                }
             }
         }
 
@@ -50,9 +56,23 @@ final class ClaudeCliResponseParser
         /** @var array<string, mixed> $usage */
         $usage = (array) ($resultEvent['usage'] ?? []);
 
+        // The model that authored the assistant messages is authoritative.
+        // modelUsage also lists the CLI's internal small model (haiku) since
+        // CLI 2.1.201 and its key order is not meaningful; as a fallback,
+        // pick the entry with the most output tokens.
         /** @var array<string, mixed> $modelUsage */
         $modelUsage = (array) ($resultEvent['modelUsage'] ?? []);
-        $modelIdReported = (string) (array_key_first($modelUsage) ?? '');
+        $modelIdReported = $assistantModel;
+        if ($modelIdReported === '') {
+            $maxOut = -1;
+            foreach ($modelUsage as $modelId => $modelStats) {
+                $out = (int) (((array) $modelStats)['outputTokens'] ?? 0);
+                if ($out > $maxOut) {
+                    $maxOut = $out;
+                    $modelIdReported = (string) $modelId;
+                }
+            }
+        }
 
         return new ClaudeCliResponse(
             isError: (bool) ($resultEvent['is_error'] ?? false),
