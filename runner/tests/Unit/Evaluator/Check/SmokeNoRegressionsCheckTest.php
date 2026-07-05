@@ -47,7 +47,7 @@ final class SmokeNoRegressionsCheckTest extends TestCase
         $capturedCwd = null;
         $stub = new class($capturedCmd, $capturedCwd) extends ProcessExecutor {
             public function __construct(public mixed &$captured, public mixed &$cwd) {}
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 $this->captured = $command;
                 $this->cwd = $cwd;
@@ -68,7 +68,7 @@ final class SmokeNoRegressionsCheckTest extends TestCase
     {
         return new class($result) extends ProcessExecutor {
             public function __construct(private ProcessResult $stub) {}
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 return $this->stub;
             }

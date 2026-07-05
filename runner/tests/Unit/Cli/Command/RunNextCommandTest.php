@@ -105,7 +105,7 @@ final class RunNextCommandTest extends TestCase
         // Make worktree "git worktree add" a no-op that doesn't actually invoke git,
         // but recreate the directory structure to avoid scandir warnings.
         return new class extends ProcessExecutor {
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 // When git worktree add is called (stubbed), recreate the directory
                 if (count($command) >= 3 && $command[0] === 'git' && $command[1] === 'worktree' && $command[2] === 'add') {

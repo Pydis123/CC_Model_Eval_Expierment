@@ -43,7 +43,7 @@ final class LintCheckTest extends TestCase
         $capturedCwd = null;
         $stub = new class($captured, $capturedCwd) extends ProcessExecutor {
             public function __construct(public mixed &$captured, public mixed &$capturedCwd) {}
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 $this->captured = $command;
                 $this->capturedCwd = $cwd;
@@ -63,7 +63,7 @@ final class LintCheckTest extends TestCase
     {
         return new class($result) extends ProcessExecutor {
             public function __construct(private ProcessResult $stub) {}
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 return $this->stub;
             }

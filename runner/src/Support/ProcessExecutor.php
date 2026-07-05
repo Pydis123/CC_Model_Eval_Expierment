@@ -10,8 +10,9 @@ class ProcessExecutor
 {
     /**
      * @param list<string> $command  Argv-style command + args.
+     * @param ?array<string, string> $env Optional environment variables. When null, inherits parent.
      */
-    public function exec(string $cwd, array $command): ProcessResult
+    public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
     {
         $descriptorSpec = [
             0 => ['pipe', 'r'],
@@ -19,7 +20,7 @@ class ProcessExecutor
             2 => ['pipe', 'w'],
         ];
 
-        $process = proc_open($command, $descriptorSpec, $pipes, $cwd);
+        $process = proc_open($command, $descriptorSpec, $pipes, $cwd, $env);
         if (!is_resource($process)) {
             throw new RuntimeException('Failed to start process: ' . implode(' ', $command));
         }

@@ -51,7 +51,7 @@ final class QueryCountCheckTest extends TestCase
         $capturedCommand = null;
         $stub = new class($capturedCommand) extends ProcessExecutor {
             public function __construct(public mixed &$captured) {}
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 $this->captured = $command;
                 return new ProcessResult(0, '{"route":"/foo","query_count":1}', '');
@@ -79,7 +79,7 @@ final class QueryCountCheckTest extends TestCase
         $capturedCommand = null;
         $stub = new class($capturedCommand) extends ProcessExecutor {
             public function __construct(public mixed &$captured) {}
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 $this->captured = $command;
                 return new ProcessResult(0, '{"route":"/foo","query_count":1}', '');
@@ -102,7 +102,7 @@ final class QueryCountCheckTest extends TestCase
     {
         return new class($result) extends ProcessExecutor {
             public function __construct(private ProcessResult $stub) {}
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 return $this->stub;
             }

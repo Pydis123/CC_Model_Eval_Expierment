@@ -39,7 +39,7 @@ final class PhpunitCheckTest extends TestCase
         $capturedCommand = null;
         $stub = new class($capturedCommand) extends ProcessExecutor {
             public function __construct(public mixed &$captured) {}
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 $this->captured = $command;
                 return new ProcessResult(0, "OK\n", '');
@@ -58,7 +58,7 @@ final class PhpunitCheckTest extends TestCase
         $calls = 0;
         $stub = new class($calls) extends ProcessExecutor {
             public function __construct(public int &$calls) {}
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 $this->calls++;
                 return new ProcessResult(0, "OK\n", '');
@@ -78,7 +78,7 @@ final class PhpunitCheckTest extends TestCase
         $calls = 0;
         $stub = new class($calls) extends ProcessExecutor {
             public function __construct(public int &$calls) {}
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 $this->calls++;
                 return new ProcessResult($this->calls === 3 ? 1 : 0, '', '');
@@ -96,7 +96,7 @@ final class PhpunitCheckTest extends TestCase
     {
         return new class($result) extends ProcessExecutor {
             public function __construct(private ProcessResult $stub) {}
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 return $this->stub;
             }

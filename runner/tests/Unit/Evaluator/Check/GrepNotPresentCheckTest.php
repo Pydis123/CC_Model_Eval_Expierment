@@ -44,7 +44,7 @@ final class GrepNotPresentCheckTest extends TestCase
         $captured = null;
         $stub = new class($captured) extends ProcessExecutor {
             public function __construct(public mixed &$captured) {}
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 $this->captured = $command;
                 return new ProcessResult(1, '', '');
@@ -63,7 +63,7 @@ final class GrepNotPresentCheckTest extends TestCase
     {
         return new class($result) extends ProcessExecutor {
             public function __construct(private ProcessResult $stub) {}
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 return $this->stub;
             }
