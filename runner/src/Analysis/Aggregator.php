@@ -42,6 +42,12 @@ final class Aggregator
             fclose($handle);
         }
 
+        // Filter out rows with dispatch_disposition="error"
+        $byRunId = array_filter(
+            $byRunId,
+            static fn(ResultsRow $row) => $row->dispatchDisposition !== 'error'
+        );
+
         // Second pass: group by task_id and model_tier
         /** @var array<string, array<string, list<ResultsRow>>> $grouped */
         $grouped = [];

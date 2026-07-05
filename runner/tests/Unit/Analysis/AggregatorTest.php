@@ -41,7 +41,7 @@ final class AggregatorTest extends TestCase
     }
 
     /**
-     * @param array{task_id: string, model_tier: string, n: int, outcome?: string} $overrides
+     * @param array{task_id: string, model_tier: string, n: int, outcome?: string, dispatch_disposition?: string} $overrides
      */
     private function rowLine(array $overrides): string
     {
@@ -60,6 +60,7 @@ final class AggregatorTest extends TestCase
             'wall_clock_total_s' => 155,
             'timestamp_start' => '2026-04-23T10:00:00Z',
             'timestamp_end' => '2026-04-23T10:02:35Z',
+            'dispatch_disposition' => $overrides['dispatch_disposition'] ?? 'completed',
         ];
         return json_encode($defaults, JSON_THROW_ON_ERROR);
     }
@@ -157,6 +158,48 @@ final class AggregatorTest extends TestCase
 
         // The task-a-haiku cell should have 2 runs, and both should be "passed"
         // (the last occurrence of n=1 is "passed", and n=2 is always "passed")
+        $this->assertSame(2, $matrix['task-a']['haiku']->nPassed);
+        $this->assertSame(1.0, $matrix['task-a']['haiku']->passRate);
+    }
+
+    public function testExcludesTrailingErrorDispositionRows(): void
+    {
+        // Write a complete matrix, then add one run with dispatch_disposition="error"
+        $this->writeComplete();
+
+        // Append an error-disposition row for task-a-haiku-1
+        $errorLine = $this->rowLine(['task_id' => 'task-a', 'model_tier' => 'haiku', 'n' => 1]);
+        $errorData = json_decode($errorLine, true, 512, JSON_THROW_ON_ERROR);
+        $errorData['dispatch_disposition'] = 'error';
+        file_put_contents($this->tmpPath, file_get_contents($this->tmpPath) . json_encode($errorData, JSON_THROW_ON_ERROR) . "\n");
+
+        // After dedup, task-a-haiku will only have n=2 (1 run), which is < nReplicates (2)
+        $this->expectException(IncompleteResultsException::class);
+        (new Aggregator())->aggregate($this->tmpPath, $this->miniConfig());
+    }
+
+    public function testErrorRowSupersededByRerunStillCounts(): void
+    {
+        // Build a complete matrix
+        $this->writeComplete();
+
+        // Append an error-disposition row for task-a-haiku-1
+        $errorLine = $this->rowLine(['task_id' => 'task-a', 'model_tier' => 'haiku', 'n' => 1]);
+        $errorData = json_decode($errorLine, true, 512, JSON_THROW_ON_ERROR);
+        $errorData['dispatch_disposition'] = 'error';
+        file_put_contents($this->tmpPath, file_get_contents($this->tmpPath) . json_encode($errorData, JSON_THROW_ON_ERROR) . "\n");
+
+        // Append a completed retry of the same run
+        $retryLine = $this->rowLine(['task_id' => 'task-a', 'model_tier' => 'haiku', 'n' => 1, 'outcome' => 'passed']);
+        $retryData = json_decode($retryLine, true, 512, JSON_THROW_ON_ERROR);
+        $retryData['dispatch_disposition'] = 'completed';
+        file_put_contents($this->tmpPath, file_get_contents($this->tmpPath) . json_encode($retryData, JSON_THROW_ON_ERROR) . "\n");
+
+        // Aggregation should succeed; after dedup (last row wins), task-a-haiku-1 has dispatch_disposition="completed"
+        $matrix = (new Aggregator())->aggregate($this->tmpPath, $this->miniConfig());
+
+        // Should have 2 runs, and the cell should count as passed
+        $this->assertSame(2, $matrix['task-a']['haiku']->nRuns);
         $this->assertSame(2, $matrix['task-a']['haiku']->nPassed);
         $this->assertSame(1.0, $matrix['task-a']['haiku']->passRate);
     }

@@ -85,4 +85,16 @@ final class ResultsRowTest extends TestCase
         $row = ResultsRow::fromArray($this->validRowData(['model_tier' => 'fable', 'model_id' => 'claude-fable-5']));
         $this->assertSame('fable', $row->modelTier);
     }
+
+    public function testParsesDispatchDispositionField(): void
+    {
+        $row = ResultsRow::fromArray($this->validRowData(['dispatch_disposition' => 'error']));
+        $this->assertSame('error', $row->dispatchDisposition);
+    }
+
+    public function testDefaultsDispatchDispositionToCompleted(): void
+    {
+        $row = ResultsRow::fromArray($this->validRowData());
+        $this->assertSame('completed', $row->dispatchDisposition);
+    }
 }

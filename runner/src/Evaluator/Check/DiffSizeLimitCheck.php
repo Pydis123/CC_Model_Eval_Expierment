@@ -37,6 +37,7 @@ final class DiffSizeLimitCheck implements CheckInterface
 
         $total = 0;
         $perFile = [];
+        $excludedCount = 0;
         foreach (explode("\n", trim($res->stdout)) as $line) {
             if ($line === '') {
                 continue;
@@ -47,6 +48,11 @@ final class DiffSizeLimitCheck implements CheckInterface
             }
             [$added, $removed, $file] = $parts;
             if ($added === '-' || $removed === '-') {
+                continue;
+            }
+            // Only count files within mock-project/
+            if (!str_starts_with($file, 'mock-project/')) {
+                $excludedCount++;
                 continue;
             }
             $addInt = (int) $added;
@@ -62,6 +68,7 @@ final class DiffSizeLimitCheck implements CheckInterface
                 'max_lines' => $this->maxLines,
                 'actual_lines' => $total,
                 'per_file' => $perFile,
+                'excluded_non_mock_project_files' => $excludedCount,
             ],
         );
     }

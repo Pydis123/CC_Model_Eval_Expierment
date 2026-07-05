@@ -26,6 +26,7 @@ final class ResultsRow
         public readonly int $wallClockTotalS,
         public readonly string $timestampStart,
         public readonly string $timestampEnd,
+        public readonly string $dispatchDisposition = 'completed',
     ) {
         if (!in_array($modelTier, self::VALID_TIERS, true)) {
             throw new InvalidArgumentException("Invalid model_tier: {$modelTier}");
@@ -72,6 +73,7 @@ final class ResultsRow
             wallClockTotalS: (int) $data['wall_clock_total_s'],
             timestampStart: (string) $data['timestamp_start'],
             timestampEnd: (string) $data['timestamp_end'],
+            dispatchDisposition: (string) ($data['dispatch_disposition'] ?? 'completed'),
         );
     }
 }
