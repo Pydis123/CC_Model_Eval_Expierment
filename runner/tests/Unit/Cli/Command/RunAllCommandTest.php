@@ -413,10 +413,10 @@ final class RunAllCommandTest extends TestCase
             {
                 $this->calls++;
                 if ($this->calls === 1) {
-                    // First call: write a result and return error
+                    // First call: write a result with claude_cli_is_error and return error
                     file_put_contents(
                         $this->resultsPath,
-                        json_encode(['run_id' => $this->runId, 'status' => 'error']) . "\n",
+                        json_encode(['run_id' => $this->runId, 'status' => 'error', 'error_category' => 'claude_cli_is_error']) . "\n",
                         FILE_APPEND,
                     );
                     return 3;
@@ -520,5 +520,236 @@ final class RunAllCommandTest extends TestCase
 
         // Verify that sleep was called at least once while offline
         $this->assertGreaterThan(0, count($sleeps));
+    }
+
+    public function testOnlineInfraErrorIsRequeuedWithoutCountingTowardBreaker(): void
+    {
+        $base = dirname($this->statePath);
+        $resultsPath = $base . '/results.jsonl';
+
+        $runId = 'test-run-infra-123';
+
+        // Setup initial state with a run that we'll move to completed then re-queue
+        $manager = new StateManager($this->statePath);
+        $manager->save(State::empty()->withRemainingRuns([
+            new Run($runId, 'task1', 'haiku', 1),
+        ])->moveToCompleted($runId));
+
+        // runNext: returns exit 3 (error) once with claude_cli_is_error, then 1 (queue empty)
+        $runNext = new class($resultsPath, $runId) implements CommandInterface {
+            private int $calls = 0;
+
+            public function __construct(private readonly string $resultsPath, private readonly string $runId) {}
+
+            public function run(array $args): int
+            {
+                $this->calls++;
+                if ($this->calls === 1) {
+                    // First call: write a result with claude_cli_is_error and return error
+                    file_put_contents(
+                        $this->resultsPath,
+                        json_encode(['run_id' => $this->runId, 'status' => 'error', 'error_category' => 'claude_cli_is_error']) . "\n",
+                        FILE_APPEND,
+                    );
+                    return 3;
+                }
+                return 1; // Queue empty
+            }
+        };
+
+        // Connectivity: always online
+        $connectivity = $this->makeOnlineChecker(true);
+
+        $cmd = new RunAllCommand(
+            runNext: $runNext,
+            progressLogger: new ProgressLogger($this->logPath),
+            errorCounter: new ConsecutiveErrorCounter(5),
+            crashDumper: new CrashDumper($this->crashDir),
+            stateManager: $manager,
+            environment: [],
+            swapDetector: new SwapDetector(3),
+            resultsTail: new ResultsTailReader($resultsPath),
+            pinnedModels: [],
+            pauseSentinelPath: $this->pauseSentinelPath,
+            offlineGate: new OfflineGate(
+                $connectivity,
+                new ProgressLogger($this->logPath),
+                '',
+                static fn(int $s) => null,
+            ),
+            connectivity: $connectivity,
+        );
+
+        ob_start();
+        $exit = $cmd->run([]);
+        ob_end_clean();
+
+        $this->assertSame(0, $exit);
+
+        // Verify that the run was re-queued
+        $finalState = $manager->load();
+        $this->assertCount(1, $finalState->remainingRuns);
+        $this->assertSame($runId, $finalState->remainingRuns[0]->runId);
+        $this->assertNull($finalState->remainingRuns[0]->claimedAt);
+        $this->assertCount(0, $finalState->completedRuns);
+
+        // Verify no crash dump was written
+        $crashFiles = glob($this->crashDir . '/runner-crash-*.json') ?: [];
+        $this->assertCount(0, $crashFiles, 'crash dump should not have been written');
+
+        // Verify re-queue message is in log
+        $logContent = (string) file_get_contents($this->logPath);
+        $this->assertStringContainsString('re-queued', $logContent);
+    }
+
+    public function testRequeueCapFallsThroughToBreaker(): void
+    {
+        $base = dirname($this->statePath);
+        $resultsPath = $base . '/results.jsonl';
+
+        $runId = 'test-run-cap-123';
+
+        // Setup initial state with a run that we'll re-queue multiple times
+        $manager = new StateManager($this->statePath);
+        $manager->save(State::empty()->withRemainingRuns([
+            new Run($runId, 'task1', 'haiku', 1),
+        ])->moveToCompleted($runId));
+
+        // runNext: returns exit 3 (error) 8 times with claude_cli_is_error, then 1 (queue empty)
+        // First 3 should requeue, remaining 5 should count toward breaker (breaker threshold is 5)
+        $runNext = new class($resultsPath, $runId) implements CommandInterface {
+            private int $calls = 0;
+
+            public function __construct(private readonly string $resultsPath, private readonly string $runId) {}
+
+            public function run(array $args): int
+            {
+                $this->calls++;
+                if ($this->calls <= 8) {
+                    // Write a result with claude_cli_is_error and return error
+                    file_put_contents(
+                        $this->resultsPath,
+                        json_encode(['run_id' => $this->runId, 'status' => 'error', 'error_category' => 'claude_cli_is_error']) . "\n",
+                        FILE_APPEND,
+                    );
+                    return 3;
+                }
+                return 1; // Queue empty
+            }
+        };
+
+        // Connectivity: always online
+        $connectivity = $this->makeOnlineChecker(true);
+
+        $cmd = new RunAllCommand(
+            runNext: $runNext,
+            progressLogger: new ProgressLogger($this->logPath),
+            errorCounter: new ConsecutiveErrorCounter(5),
+            crashDumper: new CrashDumper($this->crashDir),
+            stateManager: $manager,
+            environment: [],
+            swapDetector: new SwapDetector(3),
+            resultsTail: new ResultsTailReader($resultsPath),
+            pinnedModels: [],
+            pauseSentinelPath: $this->pauseSentinelPath,
+            offlineGate: new OfflineGate(
+                $connectivity,
+                new ProgressLogger($this->logPath),
+                '',
+                static fn(int $s) => null,
+            ),
+            connectivity: $connectivity,
+        );
+
+        ob_start();
+        $exit = $cmd->run([]);
+        ob_end_clean();
+
+        // Should abort after 5 breaker-counted errors (3 requeues + 5 counted toward breaker = 8 total)
+        $this->assertSame(10, $exit);
+
+        // Verify crash dump was written
+        $crashFiles = glob($this->crashDir . '/runner-crash-*.json') ?: [];
+        $this->assertCount(1, $crashFiles, 'crash dump should have been written after breaker reached');
+
+        // Verify log shows exactly 3 re-queue messages and then error counter messages
+        $logContent = (string) file_get_contents($this->logPath);
+        $requeueCount = substr_count($logContent, 're-queued');
+        $this->assertSame(3, $requeueCount, 'should have exactly 3 re-queue messages');
+        $this->assertStringContainsString('unexpected error', $logContent);
+    }
+
+    public function testNonInfraErrorStillCountsTowardBreaker(): void
+    {
+        $base = dirname($this->statePath);
+        $resultsPath = $base . '/results.jsonl';
+
+        $runId = 'test-run-non-infra-123';
+
+        // Setup initial state with a run that we'll move to completed
+        $manager = new StateManager($this->statePath);
+        $manager->save(State::empty()->withRemainingRuns([
+            new Run($runId, 'task1', 'haiku', 1),
+        ])->moveToCompleted($runId));
+
+        // runNext: returns exit 3 (error) once with non-claude_cli_is_error category, then 1 (queue empty)
+        $runNext = new class($resultsPath, $runId) implements CommandInterface {
+            private int $calls = 0;
+
+            public function __construct(private readonly string $resultsPath, private readonly string $runId) {}
+
+            public function run(array $args): int
+            {
+                $this->calls++;
+                if ($this->calls === 1) {
+                    // First call: write a result with non-infra error and return error
+                    file_put_contents(
+                        $this->resultsPath,
+                        json_encode(['run_id' => $this->runId, 'status' => 'error', 'error_category' => 'some_other_error']) . "\n",
+                        FILE_APPEND,
+                    );
+                    return 3;
+                }
+                return 1; // Queue empty
+            }
+        };
+
+        // Connectivity: always online
+        $connectivity = $this->makeOnlineChecker(true);
+
+        $cmd = new RunAllCommand(
+            runNext: $runNext,
+            progressLogger: new ProgressLogger($this->logPath),
+            errorCounter: new ConsecutiveErrorCounter(5),
+            crashDumper: new CrashDumper($this->crashDir),
+            stateManager: $manager,
+            environment: [],
+            swapDetector: new SwapDetector(3),
+            resultsTail: new ResultsTailReader($resultsPath),
+            pinnedModels: [],
+            pauseSentinelPath: $this->pauseSentinelPath,
+            offlineGate: new OfflineGate(
+                $connectivity,
+                new ProgressLogger($this->logPath),
+                '',
+                static fn(int $s) => null,
+            ),
+            connectivity: $connectivity,
+        );
+
+        ob_start();
+        $exit = $cmd->run([]);
+        ob_end_clean();
+
+        $this->assertSame(0, $exit);
+
+        // Verify no re-queue happened (error still counts toward breaker)
+        $logContent = (string) file_get_contents($this->logPath);
+        $this->assertStringNotContainsString('re-queued', $logContent);
+        $this->assertStringContainsString('unexpected error (count=1/5)', $logContent);
+
+        // Verify no crash dump was written (only 1 error, not 5)
+        $crashFiles = glob($this->crashDir . '/runner-crash-*.json') ?: [];
+        $this->assertCount(0, $crashFiles, 'crash dump should not have been written for non-infra error');
     }
 }

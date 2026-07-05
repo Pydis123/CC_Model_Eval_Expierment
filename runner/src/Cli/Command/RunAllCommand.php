@@ -19,6 +19,11 @@ use LlmDispatch\Runner\State\StateManager;
 
 final class RunAllCommand implements CommandInterface
 {
+    private const MAX_REQUEUES_PER_RUN = 3;
+
+    /** @var array<string, int> */
+    private array $requeueCounts = [];
+
     /**
      * @param array<string, string> $environment
      * @param array<string, string> $pinnedModels
@@ -77,21 +82,28 @@ final class RunAllCommand implements CommandInterface
             }
 
             if ($exit === 3) {
-                // Unexpected error category.
-                // Check if we're offline — if so, re-queue and wait instead of counting error.
-                if (!$this->connectivity->isOnline()) {
-                    $row = $this->resultsTail->last();
-                    $runId = (string) ($row['run_id'] ?? '');
-                    if ($runId !== '') {
-                        $this->stateManager->save($this->stateManager->load()->requeueCompleted($runId));
-                        $this->progressLogger->log(sprintf('offline after error; run %s re-queued, gating until connectivity returns.', $runId));
+                $row = $this->resultsTail->last();
+                $runId = (string) ($row['run_id'] ?? '');
+                $errorCategory = (string) ($row['error_category'] ?? '');
+
+                $requeues = $this->requeueCounts[$runId] ?? 0;
+                if ($runId !== '' && $errorCategory === 'claude_cli_is_error' && $requeues < self::MAX_REQUEUES_PER_RUN) {
+                    $this->requeueCounts[$runId] = $requeues + 1;
+                    $this->stateManager->save($this->stateManager->load()->requeueCompleted($runId));
+                    $this->progressLogger->log(sprintf(
+                        'infra error (%s); run %s re-queued (%d/%d).',
+                        $errorCategory,
+                        $runId,
+                        $this->requeueCounts[$runId],
+                        self::MAX_REQUEUES_PER_RUN,
+                    ));
+                    if (!$this->connectivity->isOnline() && !$this->offlineGate->waitUntilOnline()) {
+                        return 0; // PAUSE appeared while gating
                     }
-                    if (!$this->offlineGate->waitUntilOnline()) {
-                        return 0;
-                    }
-                    continue;   // do NOT touch the error counter, do NOT increment $runsExecuted
+                    continue; // breaker untouched, runsExecuted not incremented
                 }
 
+                // fall through: existing unexpected-error counter + abort logic unchanged
                 $this->errorCounter->recordUnexpectedError();
                 $this->progressLogger->log(
                     sprintf('unexpected error (count=%d/%d)', $this->errorCounter->count(), 5),
