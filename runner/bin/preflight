@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+# Pre-flight checks before starting (or resuming) a full experiment run.
+# Read-only except --clean, which removes stale /tmp/llm-disp-* worktrees.
+# Exit code: 0 all green, 1 at least one FAIL (warnings do not fail).
+set -u
+
+cd "$(dirname "$0")/../.."
+
+FAIL=0
+ok()   { printf '  OK    %s\n' "$1"; }
+warn() { printf '  WARN  %s\n' "$1"; }
+fail() { printf '  FAIL  %s\n' "$1"; FAIL=1; }
+
+echo "== preflight $(date -u +%FT%TZ) =="
+
+# 1. No PAUSE sentinel, no runner already going
+[ -f PAUSE ] && fail "PAUSE sentinel present — remove before starting" || ok "no PAUSE sentinel"
+if [ -f results/run-all.pid ] && kill -0 "$(cat results/run-all.pid)" 2>/dev/null; then
+  fail "run-all already running (pid $(cat results/run-all.pid))"
+else
+  ok "no run-all process"
+fi
+
+# 2. Claude CLI present and version pinned for the whole run
+CLAUDE_BIN="$HOME/.local/bin/claude"
+if [ -x "$CLAUDE_BIN" ]; then
+  VERSION=$("$CLAUDE_BIN" --version 2>/dev/null | awk '{print $1}')
+  ok "claude CLI $VERSION at $CLAUDE_BIN (recorded per run; autoupdater disabled in dispatch env)"
+else
+  fail "claude CLI not found at $CLAUDE_BIN"
+fi
+
+# 3. Model pinning
+if php runner/bin/cli pin-check ping >/dev/null 2>&1; then
+  ok "pin-check ping: all pinned model ids respond"
+else
+  fail "pin-check ping failed — verify pinned_models in state.json"
+fi
+
+# 4. Operator env must not leak model/API overrides into the runner
+LEAKS=$(env | grep -iE '^(CLAUDE|ANTHROPIC)[A-Z_]*=' || true)
+if [ -n "$LEAKS" ]; then
+  warn "operator env contains: $(echo "$LEAKS" | cut -d= -f1 | tr '\n' ' ')(dispatch env strips these, but verify they are intentional)"
+else
+  ok "no CLAUDE_*/ANTHROPIC_* vars in operator env"
+fi
+
+# 5. MariaDB up
+if mysqladmin --host=127.0.0.1 --port=3307 --user=ticket_app --password=ticket_app_pw ping >/dev/null 2>&1; then
+  ok "MariaDB on :3307 answers"
+else
+  fail "MariaDB on :3307 not answering (docker compose up?)"
+fi
+
+# 6. Disk
+AVAIL_GB=$(df -g /tmp 2>/dev/null | awk 'NR==2 {print $4}')
+if [ -n "${AVAIL_GB:-}" ] && [ "$AVAIL_GB" -ge 10 ]; then
+  ok "/tmp has ${AVAIL_GB}G free"
+else
+  warn "/tmp free space low or unknown (${AVAIL_GB:-?}G)"
+fi
+
+# 7. Stale worktrees
+STALE=$(ls -d /tmp/llm-disp-* 2>/dev/null | wc -l | tr -d ' ')
+if [ "$STALE" -gt 0 ]; then
+  if [ "${1:-}" = "--clean" ]; then
+    for d in /tmp/llm-disp-*; do
+      git worktree remove --force "$d" 2>/dev/null || rm -rf "$d"
+    done
+    git worktree prune
+    ok "removed $STALE stale worktree(s)"
+  else
+    warn "$STALE stale /tmp/llm-disp-* worktree(s) — rerun with --clean to remove"
+  fi
+else
+  ok "no stale worktrees"
+fi
+
+# 8. Uplink: warn when running on iPhone hotspot without the keepalive daemon
+GATEWAY=$(route -n get default 2>/dev/null | awk '/gateway/ {print $2}')
+if [ "${GATEWAY:-}" = "172.20.10.1" ]; then
+  if [ -f results/net-keepalive.pid ] && kill -0 "$(cat results/net-keepalive.pid)" 2>/dev/null; then
+    ok "hotspot uplink with net-keepalive running"
+  else
+    warn "uplink is iPhone hotspot but net-keepalive is NOT running — start runner/bin/net-keepalive for long runs"
+  fi
+else
+  ok "uplink is not a hotspot (gateway ${GATEWAY:-unknown})"
+fi
+
+# 9. Repo state
+DIRTY=$(git status --porcelain -- runner/ | wc -l | tr -d ' ')
+[ "$DIRTY" -gt 0 ] && warn "uncommitted changes under runner/ ($DIRTY files) — commit before a long run" || ok "runner/ clean in git"
+
+echo "== preflight done (fail=$FAIL) =="
+exit "$FAIL"

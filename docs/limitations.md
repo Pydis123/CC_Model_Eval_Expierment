@@ -183,3 +183,31 @@ row is superseded by the aggregator's last-row-per-run_id rule. If such
 blips recur, consider re-queuing on `error_category=claude_cli_is_error`
 regardless of the online check (all CLI-level connection errors are
 infrastructure, not model behavior), bounded by the existing breaker.
+
+## v2.0 harness confounds (discovered 2026-07-05, motivates the v2.1 re-run)
+
+Post-completion review of the 160-run v2.0 dataset found two harness
+confounds:
+
+1. **Diff-trap.** The worktree prune left ~18 infra files (~2,330 lines) as
+   unstaged deletions, and `diff_size_limit` counted the whole-worktree
+   diff. Every run of the three tasks carrying that check (001/002/004)
+   failed iteration 1 on arrival and spent an iteration discovering and
+   repairing the pruned files (iteration means of exactly 2.0; tokens
+   inflated 11–74% per cell; three 001 runs failed on the repair, not the
+   feature). Fixed: the check now counts `mock-project/` paths only.
+2. **Operator-context leakage.** Dispatched `claude -p` sessions loaded the
+   operator's user-level CLAUDE.md (PM role, model tier tables, skills),
+   verified empirically. Runs therefore measured "model + operator
+   harness", including models reading a table stating what their own tier
+   is expected to handle. Fixed: dispatches now run with
+   `--setting-sources project`, a sanitized environment (no
+   `CLAUDE_*`/`ANTHROPIC_*` vars, claude binary dir removed from child
+   PATH, `DISABLE_AUTOUPDATER=1`).
+
+The v2.0 dataset is retained as
+`results/results-v2.0-harness-confound-2026-07.jsonl` (renamed at the
+v2.1 boundary). It remains internally consistent — all tiers faced the
+same confounds — and the v2.0→v2.1 delta doubles as a measurement of the
+operator-harness effect. The claude CLI also auto-updated mid-v2.0
+(2.1.200→2.1.201, recorded per run); v2.1 pins the autoupdater off.

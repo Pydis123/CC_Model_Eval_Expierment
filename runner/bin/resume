@@ -9,6 +9,15 @@ if [[ -f results/run-all.pid ]] && kill -0 "$(cat results/run-all.pid)" 2>/dev/n
 fi
 rm -f PAUSE
 php runner/bin/cli state reset-stale --older-than=30m
+
+# Hotspot uplinks die when idle; warn if the keepalive daemon is not running.
+gateway=$(route -n get default 2>/dev/null | awk '/gateway/ {print $2}')
+if [[ "${gateway:-}" == "172.20.10.1" ]]; then
+  if ! { [[ -f results/net-keepalive.pid ]] && kill -0 "$(cat results/net-keepalive.pid)" 2>/dev/null; }; then
+    echo "WARNING: uplink is iPhone hotspot but net-keepalive is not running." >&2
+    echo "         Start it with: nohup ./runner/bin/net-keepalive & echo \$! > results/net-keepalive.pid" >&2
+  fi
+fi
 nohup env PATH="$HOME/.local/bin:$PATH" php runner/bin/cli run-all >> results/run-all-v2.log 2>&1 &
 echo $! > results/run-all.pid
 echo "run-all resumed (pid $(cat results/run-all.pid))."
