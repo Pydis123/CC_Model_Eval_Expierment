@@ -18,7 +18,7 @@ final class WorktreeManagerTest extends TestCase
 
         $executor = new class($capturedCommands, $tmpFs['worktreePath']) extends ProcessExecutor {
             public function __construct(public array &$commands, private string $worktreePath) {}
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 $this->commands[] = ['cwd' => $cwd, 'cmd' => $command];
                 // When git worktree add is called (stubbed), recreate the directory
@@ -79,7 +79,7 @@ final class WorktreeManagerTest extends TestCase
 
         $executor = new class($tmpFs['worktreePath']) extends ProcessExecutor {
             public function __construct(private string $worktreePath) {}
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 // When git worktree add is called (stubbed), recreate the directory
                 if (count($command) >= 3 && $command[0] === 'git' && $command[1] === 'worktree' && $command[2] === 'add') {
@@ -111,7 +111,7 @@ final class WorktreeManagerTest extends TestCase
 
         $executor = new class($tmpFs['worktreePath']) extends ProcessExecutor {
             public function __construct(private string $worktreePath) {}
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 // When git worktree add is called (stubbed), recreate the directory
                 if (count($command) >= 3 && $command[0] === 'git' && $command[1] === 'worktree' && $command[2] === 'add') {
@@ -153,7 +153,7 @@ final class WorktreeManagerTest extends TestCase
 
         $executor = new class($tmpFs['worktreePath']) extends ProcessExecutor {
             public function __construct(private string $worktreePath) {}
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 if ($command[0] === 'git') {
                     // When git worktree add is called (stubbed), recreate the directory
@@ -190,7 +190,7 @@ final class WorktreeManagerTest extends TestCase
         $capturedCommands = [];
         $executor = new class($capturedCommands) extends ProcessExecutor {
             public function __construct(public array &$commands) {}
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 $this->commands[] = $command;
                 return new ProcessResult(0, '', '');
@@ -224,7 +224,7 @@ final class WorktreeManagerTest extends TestCase
     public function testCleanupFailedMovesWorktreeToFailedDir(): void
     {
         $executor = new class extends ProcessExecutor {
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 return new ProcessResult(0, '', '');
             }
@@ -250,7 +250,7 @@ final class WorktreeManagerTest extends TestCase
     public function testResolveWorktreePathProducesStableName(): void
     {
         $executor = new class extends ProcessExecutor {
-            public function exec(string $cwd, array $command): ProcessResult { return new ProcessResult(0, '', ''); }
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult { return new ProcessResult(0, '', ''); }
         };
 
         $manager = new WorktreeManager(
@@ -273,7 +273,7 @@ final class WorktreeManagerTest extends TestCase
 
         $executor = new class($capturedCommands, $tmpFs['worktreePath']) extends ProcessExecutor {
             public function __construct(public array &$commands, private string $worktreePath) {}
-            public function exec(string $cwd, array $command): ProcessResult
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
             {
                 $this->commands[] = ['cwd' => $cwd, 'cmd' => $command];
                 // When git worktree add is called (stubbed), recreate the directory
