@@ -59,13 +59,15 @@ final class ReportDeltaCommand implements CommandInterface
         if (!is_file($path)) {
             return [];
         }
+        // Keyed by run_id so a re-run supersedes its earlier (error) row,
+        // matching Aggregator's last-row-per-run_id rule.
         $rows = [];
         foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
             $decoded = json_decode($line, true);
             if (is_array($decoded)) {
-                $rows[] = $decoded;
+                $rows[(string) ($decoded['run_id'] ?? count($rows))] = $decoded;
             }
         }
-        return $rows;
+        return array_values($rows);
     }
 }
