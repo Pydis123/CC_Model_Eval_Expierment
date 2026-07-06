@@ -59,4 +59,33 @@ final class ConfigTest extends TestCase
             unlink($tmp);
         }
     }
+
+    public function testReadsJudgeModelWhenPresent(): void
+    {
+        $path = $this->writeTempConfig(['judge_model' => 'claude-opus-4-8']);
+        $this->assertSame('claude-opus-4-8', Config::fromFile($path)->judgeModel);
+    }
+
+    public function testJudgeModelDefaultsToNull(): void
+    {
+        $path = $this->writeTempConfig([]);
+        $this->assertNull(Config::fromFile($path)->judgeModel);
+    }
+
+    /** @param array<string, mixed> $overrides */
+    private function writeTempConfig(array $overrides): string
+    {
+        $base = [
+            'schema_version' => 1, 'experiment_name' => 't', 'plan_seed' => 42,
+            'n_replicates' => 5, 'max_iterations_per_run' => 3,
+            'max_wall_clock_seconds' => 1800, 'tiers' => ['haiku'],
+            'task_ids' => ['001-x'],
+            'pinned_models' => ['haiku' => null],
+            'policy' => 'retry-only',
+            'db' => ['host' => 'h', 'port' => 1, 'database' => 'd', 'user' => 'u', 'password' => 'p'],
+        ];
+        $path = sys_get_temp_dir() . '/cfg-' . bin2hex(random_bytes(4)) . '.json';
+        file_put_contents($path, json_encode(array_merge($base, $overrides), JSON_THROW_ON_ERROR));
+        return $path;
+    }
 }

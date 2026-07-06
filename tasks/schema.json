@@ -17,6 +17,10 @@
             "type": "string",
             "pattern": "^[0-9]{3}-[a-z0-9-]+$"
         },
+        "export_ref": {
+            "type": "string",
+            "description": "Experiment-repo ref exported into an isolated non-linked run dir (Phase 2 isolation). Absence means classic linked-worktree preparation."
+        },
         "category": {
             "type": "string",
             "enum": [
@@ -27,7 +31,13 @@
                 "refactor",
                 "bugfix_root_cause",
                 "route_rbac",
-                "frontend_alpine"
+                "frontend_alpine",
+                "plan_review",
+                "security_audit",
+                "code_review",
+                "architecture_decision",
+                "bugfix_no_repro",
+                "impl_hard"
             ]
         },
         "size_estimate": {
@@ -64,7 +74,10 @@
                             "lint",
                             "file_exists",
                             "grep_not_present",
-                            "diff_size_limit"
+                            "diff_size_limit",
+                            "findings_score",
+                            "rubric_score",
+                            "regression_red_green"
                         ]
                     }
                 }

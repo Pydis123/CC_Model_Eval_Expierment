@@ -11,10 +11,13 @@ use LlmDispatch\Runner\Dispatch\DispatchDisposition;
 use LlmDispatch\Runner\Dispatch\RunCoordinator;
 use LlmDispatch\Runner\Dispatch\RunOutcome;
 use LlmDispatch\Runner\Execution\TaskPromptLoader;
+use LlmDispatch\Runner\Judge\JudgeClient;
 use LlmDispatch\Runner\Logging\ResultsLogger;
 use LlmDispatch\Runner\State\Run;
 use LlmDispatch\Runner\State\StateManager;
+use LlmDispatch\Runner\Worktree\ExportWorktreeManager;
 use LlmDispatch\Runner\Worktree\WorktreeManager;
+use RuntimeException;
 
 final class RunNextCommand implements CommandInterface
 {
@@ -31,6 +34,8 @@ final class RunNextCommand implements CommandInterface
         private readonly array $allowedTools,
         private $now,
         private readonly string $claudeVersion = '',
+        private readonly ?ExportWorktreeManager $exportWorktreeManager = null,
+        private readonly ?JudgeClient $judgeClient = null,
     ) {}
 
     public function run(array $args): int
@@ -52,7 +57,15 @@ final class RunNextCommand implements CommandInterface
 
         $task = $this->taskPromptLoader->load($claimed->taskId);
 
-        $worktreePath = $this->worktreeManager->prepare($claimed->runId);
+        $exportRef = $task->taskDef['export_ref'] ?? null;
+        if ($exportRef !== null && $this->exportWorktreeManager === null) {
+            fwrite(STDERR, "Task requires export isolation but no ExportWorktreeManager is wired.\n");
+            return 4;
+        }
+        $manager = $exportRef !== null ? $this->exportWorktreeManager : $this->worktreeManager;
+        $worktreePath = $exportRef !== null
+            ? $this->exportWorktreeManager->prepareExport($claimed->runId, (string) $exportRef, $claimed->taskId)
+            : $this->worktreeManager->prepare($claimed->runId);
 
         $outcome = $this->coordinator->execute(
             rawPrompt: $task->prompt,
@@ -70,7 +83,7 @@ final class RunNextCommand implements CommandInterface
 
         $this->stateManager->save($this->stateManager->load()->moveToCompleted($claimed->runId));
 
-        $this->worktreeManager->cleanup($claimed->runId, $worktreePath, $outcome->finalOutcome === 'passed');
+        $manager->cleanup($claimed->runId, $worktreePath, $outcome->finalOutcome === 'passed');
 
         if ($outcome->finalOutcome === 'error') {
             return 3;
@@ -117,9 +130,44 @@ final class RunNextCommand implements CommandInterface
             'timestamp_start' => $startIso,
             'timestamp_end' => $endIso,
             'evaluator_details' => $outcome->lastEvaluation()?->toArray() ?? ['outcome' => 'error', 'checks' => []],
-            'dispatch_disposition' => DispatchDisposition::classify($modelId, $outcome),
+            'metrics' => $outcome->lastEvaluation()?->metrics(),
+            'dispatch_disposition' => $this->classifyDisposition($modelId, $outcome),
             'claude_cli_version' => $this->claudeVersion,
             'error_category' => $outcome->errorCategory,
         ];
+    }
+
+    private function classifyDisposition(string $modelId, RunOutcome $outcome): string
+    {
+        $disposition = DispatchDisposition::classify($modelId, $outcome);
+        if ($disposition !== DispatchDisposition::COMPLETED || !$this->artifactMissing($outcome)) {
+            return $disposition;
+        }
+        if ($this->judgeClient === null) {
+            return $disposition;
+        }
+        $last = $outcome->iterations[count($outcome->iterations) - 1] ?? null;
+        try {
+            $verdict = $this->judgeClient->judgeJson(sprintf(
+                "An agent was asked to produce a findings/decision artifact and produced none.\n"
+                . "Its final message follows. Did it refuse the task, or attempt it and fail?\n"
+                . "MESSAGE:\n%s\n"
+                . 'Reply ONLY with JSON: {"verdict": "refusal" | "attempted"}',
+                mb_substr($last?->resultText ?? '', 0, 2000),
+            ));
+        } catch (RuntimeException) {
+            return $disposition;
+        }
+        return ($verdict['verdict'] ?? '') === 'refusal' ? DispatchDisposition::REFUSED : $disposition;
+    }
+
+    private function artifactMissing(RunOutcome $outcome): bool
+    {
+        foreach ($outcome->lastEvaluation()?->checks ?? [] as $check) {
+            if (($check->details['artifact_missing'] ?? false) === true) {
+                return true;
+            }
+        }
+        return false;
     }
 }

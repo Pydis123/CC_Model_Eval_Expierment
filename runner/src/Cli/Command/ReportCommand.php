@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use LlmDispatch\Runner\Analysis\Aggregator;
 use LlmDispatch\Runner\Analysis\BootstrapSimulator;
+use LlmDispatch\Runner\Analysis\DispositionTally;
 use LlmDispatch\Runner\Analysis\IncompleteResultsException;
 use LlmDispatch\Runner\Cli\CommandInterface;
 use LlmDispatch\Runner\Config;
@@ -62,6 +63,7 @@ final class ReportCommand implements CommandInterface
             sourcePath: $inputPath,
             rowCount: $rowCount,
             generatedAt: $generatedAt,
+            dispositionTally: (new DispositionTally())->tally($inputPath),
         );
 
         $dir = dirname($outputPath);

@@ -57,4 +57,47 @@ final class EvaluationResultTest extends TestCase
             ],
         ], $r->toArray());
     }
+
+    public function testMetricsReturnsMetricsFromCheckThatCarriesThem(): void
+    {
+        $r = new EvaluationResult([
+            new CheckResult('findings', true, ['metrics' => ['recall' => 0.5]]),
+            new CheckResult('lint', true, []),
+        ], 1.0);
+
+        $this->assertSame(['recall' => 0.5], $r->metrics());
+    }
+
+    public function testMetricsMergesAcrossChecksWithLaterOverridingOnCollision(): void
+    {
+        $r = new EvaluationResult([
+            new CheckResult('findings', true, ['metrics' => ['recall' => 0.5, 'precision_adjusted' => 0.8]]),
+            new CheckResult('rubric', true, ['metrics' => ['recall' => 0.9, 'rubric_total' => 4.0]]),
+        ], 1.0);
+
+        $this->assertSame([
+            'recall' => 0.9,
+            'precision_adjusted' => 0.8,
+            'rubric_total' => 4.0,
+        ], $r->metrics());
+    }
+
+    public function testMetricsIsNullWhenNoCheckCarriesArrayMetrics(): void
+    {
+        $r = new EvaluationResult([
+            new CheckResult('phpunit', true, []),
+            new CheckResult('lint', true, ['errors' => []]),
+        ], 1.0);
+
+        $this->assertNull($r->metrics());
+    }
+
+    public function testMetricsIsNullWhenOnlyCheckHasExplicitNullMetrics(): void
+    {
+        $r = new EvaluationResult([
+            new CheckResult('findings', true, ['metrics' => null]),
+        ], 1.0);
+
+        $this->assertNull($r->metrics());
+    }
 }

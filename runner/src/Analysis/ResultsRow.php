@@ -11,6 +11,9 @@ final class ResultsRow
     private const VALID_TIERS = ['haiku', 'sonnet', 'opus', 'fable'];
     private const VALID_OUTCOMES = ['passed', 'failed'];
 
+    /**
+     * @param ?array<string, mixed> $metrics
+     */
     public function __construct(
         public readonly string $runId,
         public readonly string $taskId,
@@ -27,6 +30,7 @@ final class ResultsRow
         public readonly string $timestampStart,
         public readonly string $timestampEnd,
         public readonly string $dispatchDisposition = 'completed',
+        public readonly ?array $metrics = null,
     ) {
         if (!in_array($modelTier, self::VALID_TIERS, true)) {
             throw new InvalidArgumentException("Invalid model_tier: {$modelTier}");
@@ -74,6 +78,7 @@ final class ResultsRow
             timestampStart: (string) $data['timestamp_start'],
             timestampEnd: (string) $data['timestamp_end'],
             dispatchDisposition: (string) ($data['dispatch_disposition'] ?? 'completed'),
+            metrics: is_array($data['metrics'] ?? null) ? $data['metrics'] : null,
         );
     }
 }

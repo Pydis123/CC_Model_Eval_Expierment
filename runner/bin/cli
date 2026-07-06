@@ -31,10 +31,13 @@ use LlmDispatch\Runner\Dispatch\RateLimitWaiter;
 use LlmDispatch\Runner\Dispatch\RunCoordinator;
 use LlmDispatch\Runner\Evaluator\Check\DiffSizeLimitCheck;
 use LlmDispatch\Runner\Evaluator\Check\FileExistsCheck;
+use LlmDispatch\Runner\Evaluator\Check\FindingsScoreCheck;
 use LlmDispatch\Runner\Evaluator\Check\GrepNotPresentCheck;
 use LlmDispatch\Runner\Evaluator\Check\LintCheck;
 use LlmDispatch\Runner\Evaluator\Check\PhpunitCheck;
 use LlmDispatch\Runner\Evaluator\Check\QueryCountCheck;
+use LlmDispatch\Runner\Evaluator\Check\RegressionRedGreenCheck;
+use LlmDispatch\Runner\Evaluator\Check\RubricScoreCheck;
 use LlmDispatch\Runner\Evaluator\Check\SmokeNoRegressionsCheck;
 use LlmDispatch\Runner\Evaluator\Evaluator;
 use LlmDispatch\Runner\Execution\ConnectivityChecker;
@@ -45,12 +48,14 @@ use LlmDispatch\Runner\Execution\ProgressLogger;
 use LlmDispatch\Runner\Execution\ResultsTailReader;
 use LlmDispatch\Runner\Execution\SwapDetector;
 use LlmDispatch\Runner\Execution\TaskPromptLoader;
+use LlmDispatch\Runner\Judge\JudgeClient;
 use LlmDispatch\Runner\Logging\ResultsLogger;
 use LlmDispatch\Runner\PinCheck\PinCheckService;
 use LlmDispatch\Runner\Probe\QueryCountProbe;
 use LlmDispatch\Runner\State\RunQueue;
 use LlmDispatch\Runner\State\StateManager;
 use LlmDispatch\Runner\Support\ProcessExecutor;
+use LlmDispatch\Runner\Worktree\ExportWorktreeManager;
 use LlmDispatch\Runner\Worktree\WorktreeManager;
 
 $repoRoot = dirname(__DIR__, 2);
@@ -62,6 +67,16 @@ $config = Config::fromFile($repoRoot . '/experiment_config.json');
 $stateManager = new StateManager($statePath);
 $resultsLogger = new ResultsLogger($resultsPath);
 $runQueue = new RunQueue($config);
+
+$processExecutor = new ProcessExecutor();
+
+$judgeClient = $config->judgeModel !== null
+    ? new JudgeClient(
+        new ProcessClaudeCli($processExecutor, new ClaudeCliResponseParser(), 'claude'),
+        $config->judgeModel,
+        sys_get_temp_dir(),
+    )
+    : null;
 
 $checkFactories = [
     'phpunit' => static fn(array $c) => new PhpunitCheck(
@@ -84,11 +99,25 @@ $checkFactories = [
         maxLines: (int) $c['max_lines'],
         baseRef: (string) ($c['base_ref'] ?? 'scaffold_complete'),
     ),
+    'findings_score' => static fn(array $c) => new FindingsScoreCheck(
+        groundTruthPath: $repoRoot . '/tasks/ground-truth/' . (string) $c['ground_truth'],
+        artifactRelPath: (string) ($c['artifact'] ?? 'findings.json'),
+        recallMin: (float) $c['recall_min'],
+        precisionMin: (float) $c['precision_min'],
+        findingsCap: (int) ($c['findings_cap'] ?? 25),
+        judge: $judgeClient ?? throw new RuntimeException('findings_score requires judge_model in config'),
+    ),
+    'rubric_score' => static fn(array $c) => new RubricScoreCheck(
+        rubricPath: $repoRoot . '/tasks/rubrics/' . (string) $c['rubric'],
+        artifactRelPath: (string) ($c['artifact'] ?? 'decision-memo.md'),
+        threshold: (int) $c['threshold'],
+        judge: $judgeClient ?? throw new RuntimeException('rubric_score requires judge_model in config'),
+    ),
+    'regression_red_green' => static fn(array $c) => new RegressionRedGreenCheck(),
 ];
 
 $evaluator = new Evaluator($checkFactories);
 
-$processExecutor = new ProcessExecutor();
 $claudeCli = new ProcessClaudeCli(
     $processExecutor,
     new ClaudeCliResponseParser(),
@@ -113,6 +142,14 @@ $worktreeManager = new WorktreeManager(
     baseRef: 'scaffold_complete',
 );
 
+$exportWorktreeManager = new ExportWorktreeManager(
+    executor: $processExecutor,
+    repoRoot: $repoRoot,
+    worktreeBaseDir: '/tmp',
+    failedDir: $repoRoot . '/worktrees/failed',
+    fixturesDir: $repoRoot . '/tasks/fixtures',
+);
+
 $progressLogger = new ProgressLogger($repoRoot . '/results/runner.log');
 $errorCounter = new ConsecutiveErrorCounter(5);
 $crashDumper = new CrashDumper($repoRoot . '/results');
@@ -131,6 +168,8 @@ $runNextCommand = new RunNextCommand(
     allowedTools: ['Bash', 'Edit', 'Read', 'Write', 'Glob', 'Grep'],
     now: static fn() => (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s\Z'),
     claudeVersion: $claudeVersion,
+    exportWorktreeManager: $exportWorktreeManager,
+    judgeClient: $judgeClient,
 );
 
 $environment = [

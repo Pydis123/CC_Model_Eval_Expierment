@@ -12,11 +12,11 @@ use PHPUnit\Framework\TestCase;
 final class CellStatsTest extends TestCase
 {
     /**
-     * @param array{outcome?: string, tokens_in?: int, tokens_out?: int, wall_clock_s?: int, iterations?: int} $overrides
+     * @param array{outcome?: string, tokens_in?: int, tokens_out?: int, wall_clock_s?: int, iterations?: int, metrics?: ?array<string, mixed>} $overrides
      */
     private function makeRow(array $overrides = []): ResultsRow
     {
-        return ResultsRow::fromArray([
+        $data = [
             'run_id' => 'x',
             'task_id' => '001-i18n-status-flik',
             'model_tier' => 'haiku',
@@ -31,7 +31,12 @@ final class CellStatsTest extends TestCase
             'wall_clock_total_s' => ($overrides['wall_clock_s'] ?? 180) + 5,
             'timestamp_start' => '2026-04-23T10:00:00Z',
             'timestamp_end' => '2026-04-23T10:03:05Z',
-        ]);
+        ];
+        if (array_key_exists('metrics', $overrides)) {
+            $data['metrics'] = $overrides['metrics'];
+        }
+
+        return ResultsRow::fromArray($data);
     }
 
     public function testComputesPassRateMeanAndStdDev(): void
@@ -105,5 +110,82 @@ final class CellStatsTest extends TestCase
 
         $stats = new CellStats($runs);
         $this->assertEqualsWithDelta(1632.99, $stats->stdTokens, 0.1);
+    }
+
+    public function testMeanRecallAveragedWhenAllRunsCarryMetrics(): void
+    {
+        $runs = [
+            $this->makeRow(['metrics' => ['recall' => 0.5]]),
+            $this->makeRow(['metrics' => ['recall' => 0.7]]),
+            $this->makeRow(['metrics' => ['recall' => 0.9]]),
+        ];
+
+        $stats = new CellStats($runs);
+
+        $this->assertEqualsWithDelta(0.7, $stats->meanRecall, 0.0001);
+    }
+
+    public function testMeanRecallIsNullWhenOneRunMissingMetricsKey(): void
+    {
+        $runs = [
+            $this->makeRow(['metrics' => ['recall' => 0.5]]),
+            $this->makeRow(['metrics' => null]),
+            $this->makeRow(['metrics' => ['recall' => 0.9]]),
+        ];
+
+        $stats = new CellStats($runs);
+
+        $this->assertNull($stats->meanRecall);
+    }
+
+    public function testMeanRecallIsNullWhenOneRunLacksRecallKeyInsideMetrics(): void
+    {
+        $runs = [
+            $this->makeRow(['metrics' => ['recall' => 0.5]]),
+            $this->makeRow(['metrics' => ['precision_adjusted' => 0.8]]),
+            $this->makeRow(['metrics' => ['recall' => 0.9]]),
+        ];
+
+        $stats = new CellStats($runs);
+
+        $this->assertNull($stats->meanRecall);
+    }
+
+    public function testMeanRecallIsNullWhenNoRunsHaveMetricsAtAll(): void
+    {
+        $runs = [
+            $this->makeRow(),
+            $this->makeRow(),
+        ];
+
+        $stats = new CellStats($runs);
+
+        $this->assertNull($stats->meanRecall);
+    }
+
+    public function testMeanPrecisionAdjustedAndRubricTotalAveraged(): void
+    {
+        $runs = [
+            $this->makeRow(['metrics' => ['precision_adjusted' => 0.4, 'rubric_total' => 3.0]]),
+            $this->makeRow(['metrics' => ['precision_adjusted' => 0.6, 'rubric_total' => 5.0]]),
+        ];
+
+        $stats = new CellStats($runs);
+
+        $this->assertEqualsWithDelta(0.5, $stats->meanPrecisionAdjusted, 0.0001);
+        $this->assertEqualsWithDelta(4.0, $stats->meanRubricTotal, 0.0001);
+    }
+
+    public function testMetricValuesReturnsFloatListInRunOrder(): void
+    {
+        $runs = [
+            $this->makeRow(['metrics' => ['recall' => 0.5]]),
+            $this->makeRow(['metrics' => ['recall' => 0.7]]),
+            $this->makeRow(['metrics' => ['recall' => 0.9]]),
+        ];
+
+        $stats = new CellStats($runs);
+
+        $this->assertSame([0.5, 0.7, 0.9], $stats->metricValues('recall'));
     }
 }

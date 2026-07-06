@@ -211,3 +211,16 @@ v2.1 boundary). It remains internally consistent — all tiers faced the
 same confounds — and the v2.0→v2.1 delta doubles as a measurement of the
 operator-harness effect. The claude CLI also auto-updated mid-v2.0
 (2.1.200→2.1.201, recorded per run); v2.1 pins the autoupdater off.
+
+## Phase 2 instrumentation choices (2026-07-06)
+
+- The rubric/triage judge is pinned to `claude-opus-4-8`, not the top tier
+  under test. Rationale: judge calls triage vulnerability findings, the most
+  safeguard-exposed content in the experiment; Fable 5's dual-use safeguards
+  could reroute or refuse inside the measurement instrument (a live reroute
+  was observed in v2.1 on an innocuous prompt). A constant judge bias
+  survives relative tier comparison; Opus-judging-Fable weakness is bounded
+  by anchored 0/1/2 rubrics and mechanical-first matching.
+- Safeguard routing is content-, account- and time-dependent and therefore a
+  non-reproducibility source: two accounts may measure different interference
+  rates for the same task bank.

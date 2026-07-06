@@ -18,6 +18,9 @@ final class CellStats
     public readonly float $stdTokens;
     public readonly float $stdWallClockS;
     public readonly float $meanIterations;
+    public readonly ?float $meanRecall;
+    public readonly ?float $meanPrecisionAdjusted;
+    public readonly ?float $meanRubricTotal;
 
     /**
      * @param list<ResultsRow> $runs
@@ -42,6 +45,40 @@ final class CellStats
         $this->meanIterations = array_sum($iters) / $this->nRuns;
         $this->stdTokens = $this->populationStdDev($tokens, $this->meanTokens);
         $this->stdWallClockS = $this->populationStdDev($walls, $this->meanWallClockS);
+
+        $this->meanRecall = $this->meanOf($this->metricValues('recall'));
+        $this->meanPrecisionAdjusted = $this->meanOf($this->metricValues('precision_adjusted'));
+        $this->meanRubricTotal = $this->meanOf($this->metricValues('rubric_total'));
+    }
+
+    /**
+     * @return ?list<float>
+     */
+    public function metricValues(string $key): ?array
+    {
+        $values = [];
+        foreach ($this->runs as $run) {
+            if ($run->metrics === null || !array_key_exists($key, $run->metrics)) {
+                return null;
+            }
+            $value = $run->metrics[$key];
+            if (!is_int($value) && !is_float($value)) {
+                return null;
+            }
+            $values[] = (float) $value;
+        }
+        return $values;
+    }
+
+    /**
+     * @param ?list<float> $values
+     */
+    private function meanOf(?array $values): ?float
+    {
+        if ($values === null) {
+            return null;
+        }
+        return array_sum($values) / count($values);
     }
 
     /**

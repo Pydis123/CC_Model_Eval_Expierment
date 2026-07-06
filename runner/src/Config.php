@@ -24,6 +24,7 @@ final class Config
         public readonly array $pinnedModels,
         public readonly string $policy,
         public readonly array $db,
+        public readonly ?string $judgeModel = null,
     ) {}
 
     public static function fromFile(string $path): self
@@ -52,6 +53,7 @@ final class Config
             pinnedModels: (array) $data['pinned_models'],
             policy: (string) $data['policy'],
             db: (array) $data['db'],
+            judgeModel: isset($data['judge_model']) ? (string) $data['judge_model'] : null,
         );
     }
 }

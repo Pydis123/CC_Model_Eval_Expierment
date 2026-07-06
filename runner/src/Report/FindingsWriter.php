@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace LlmDispatch\Runner\Report;
 
 use LlmDispatch\Runner\Analysis\CellStats;
+use LlmDispatch\Runner\Analysis\MetricCi;
 use LlmDispatch\Runner\Analysis\PolicyBResult;
 use LlmDispatch\Runner\Analysis\PolicyBSimulation;
 use LlmDispatch\Runner\Config;
@@ -13,6 +14,7 @@ final class FindingsWriter
 {
     /**
      * @param array<string, array<string, CellStats>> $matrix
+     * @param array<string, array<string, array<string, int>>>|null $dispositionTally
      */
     public function render(
         array $matrix,
@@ -21,6 +23,7 @@ final class FindingsWriter
         string $sourcePath,
         int $rowCount,
         string $generatedAt,
+        ?array $dispositionTally = null,
     ): string {
         $md = new MarkdownBuilder();
 
@@ -37,6 +40,8 @@ final class FindingsWriter
         $this->appendSummary($md, $simulation, $config);
         $this->appendPerTaskResults($md, $matrix, $config);
         $this->appendPolicyB($md, $simulation, $config);
+        $this->appendPhase2Metrics($md, $matrix, $config);
+        $this->appendSafeguardInterference($md, $dispositionTally);
         $this->appendReproducibility($md);
 
         return $md->build();
@@ -138,6 +143,73 @@ final class FindingsWriter
             sprintf('[%s, %s]', $this->fmt($r->ciLowWallClockS), $this->fmt($r->ciHighWallClockS)),
             sprintf('%.2f', $r->maxTierFailRate),
         ];
+    }
+
+    /** @param array<string, array<string, CellStats>> $matrix */
+    private function appendPhase2Metrics(MarkdownBuilder $md, array $matrix, Config $config): void
+    {
+        $rows = [];
+        foreach ($config->taskIds as $taskId) {
+            foreach ($config->tiers as $tier) {
+                $s = $matrix[$taskId][$tier];
+                if ($s->meanRecall === null && $s->meanRubricTotal === null) {
+                    continue;
+                }
+                $rows[] = [
+                    $taskId,
+                    $tier,
+                    $this->fmtMetric($s->meanRecall, $s->metricValues('recall'), $config),
+                    $this->fmtMetric($s->meanPrecisionAdjusted, $s->metricValues('precision_adjusted'), $config),
+                    $this->fmtMetric($s->meanRubricTotal, $s->metricValues('rubric_total'), $config),
+                ];
+            }
+        }
+        if ($rows === []) {
+            return;
+        }
+        $md->h2('Findings/rubric metrics (Phase 2 categories)');
+        $md->table(
+            headers: ['Task', 'Tier', 'Recall (95% CI)', 'Precision adj. (95% CI)', 'Rubric total (95% CI)'],
+            rows: $rows,
+        );
+    }
+
+    /** @param list<float>|null $values */
+    private function fmtMetric(?float $mean, ?array $values, Config $config): string
+    {
+        if ($mean === null || $values === null) {
+            return '—';
+        }
+        $ci = MetricCi::bootstrap($values, 1000, $config->planSeed);
+        return sprintf('%.2f [%.2f, %.2f]', $mean, $ci['low'], $ci['high']);
+    }
+
+    /** @param array<string, array<string, array<string, int>>>|null $tally */
+    private function appendSafeguardInterference(MarkdownBuilder $md, ?array $tally): void
+    {
+        if ($tally === null) {
+            return;
+        }
+        $md->h2('Safeguard interference');
+        $rows = [];
+        foreach ($tally as $taskId => $byTier) {
+            foreach ($byTier as $tier => $counts) {
+                $refused = $counts['refused_in_band'] ?? 0;
+                $rerouted = $counts['model_rerouted'] ?? 0;
+                if ($refused === 0 && $rerouted === 0) {
+                    continue;
+                }
+                $rows[] = [$taskId, $tier, (string) $refused, (string) $rerouted, (string) array_sum($counts)];
+            }
+        }
+        if ($rows === []) {
+            $md->paragraph('No in-band refusals or model reroutes recorded across any attempt.');
+            return;
+        }
+        $md->table(
+            headers: ['Task', 'Tier', 'Refused (in-band)', 'Rerouted', 'Total attempts'],
+            rows: $rows,
+        );
     }
 
     private function appendReproducibility(MarkdownBuilder $md): void

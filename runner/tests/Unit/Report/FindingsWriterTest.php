@@ -32,7 +32,7 @@ final class FindingsWriterTest extends TestCase
     }
 
     /**
-     * @param array{tier: string, outcome?: string} $p
+     * @param array{tier: string, outcome?: string, metrics?: array<string, mixed>} $p
      */
     private function row(array $p): ResultsRow
     {
@@ -51,6 +51,7 @@ final class FindingsWriterTest extends TestCase
             'wall_clock_total_s' => 105,
             'timestamp_start' => '2026-04-23T10:00:00Z',
             'timestamp_end' => '2026-04-23T10:01:45Z',
+            'metrics' => $p['metrics'] ?? null,
         ]);
     }
 
@@ -225,5 +226,109 @@ final class FindingsWriterTest extends TestCase
     {
         $md = $this->renderWithFourTiers();
         $this->assertStringContainsString('4 model tiers (haiku, sonnet, opus, fable)', $md);
+    }
+
+    /**
+     * @return array<string, array<string, CellStats>>
+     */
+    private function matrixWithMetrics(): array
+    {
+        $metrics = ['recall' => 1.0, 'precision_adjusted' => 1.0];
+        $haikuRuns = [
+            $this->row(['tier' => 'haiku', 'metrics' => $metrics]),
+            $this->row(['tier' => 'haiku', 'metrics' => $metrics]),
+            $this->row(['tier' => 'haiku', 'metrics' => $metrics]),
+        ];
+        $sonnetRuns = [$this->row(['tier' => 'sonnet']), $this->row(['tier' => 'sonnet']), $this->row(['tier' => 'sonnet'])];
+        $opusRuns = [$this->row(['tier' => 'opus']), $this->row(['tier' => 'opus']), $this->row(['tier' => 'opus'])];
+
+        return [
+            'task-a' => [
+                'haiku' => new CellStats($haikuRuns),
+                'sonnet' => new CellStats($sonnetRuns),
+                'opus' => new CellStats($opusRuns),
+            ],
+        ];
+    }
+
+    public function testRendersPhase2MetricsOnlyForCellsWithMetrics(): void
+    {
+        $mdWithMetrics = (new FindingsWriter())->render(
+            matrix: $this->matrixWithMetrics(),
+            simulation: $this->simulation(),
+            config: $this->miniConfig(),
+            sourcePath: 'results/results.jsonl',
+            rowCount: 9,
+            generatedAt: '2026-04-23T12:00:00Z',
+        );
+
+        $this->assertStringContainsString('## Findings/rubric metrics', $mdWithMetrics);
+        $this->assertStringContainsString('1.00 [1.00, 1.00]', $mdWithMetrics);
+
+        $mdWithoutMetrics = (new FindingsWriter())->render(
+            matrix: $this->matrix(),
+            simulation: $this->simulation(),
+            config: $this->miniConfig(),
+            sourcePath: 'results/results.jsonl',
+            rowCount: 9,
+            generatedAt: '2026-04-23T12:00:00Z',
+        );
+
+        $this->assertStringNotContainsString('## Findings/rubric metrics', $mdWithoutMetrics);
+    }
+
+    public function testRendersInterferenceRowsAndFallbackParagraph(): void
+    {
+        $tallyWithRefusal = [
+            'task-a' => [
+                'haiku' => ['refused_in_band' => 1, 'completed' => 2],
+            ],
+        ];
+
+        $mdWithRefusal = (new FindingsWriter())->render(
+            matrix: $this->matrix(),
+            simulation: $this->simulation(),
+            config: $this->miniConfig(),
+            sourcePath: 'results/results.jsonl',
+            rowCount: 9,
+            generatedAt: '2026-04-23T12:00:00Z',
+            dispositionTally: $tallyWithRefusal,
+        );
+
+        $this->assertStringContainsString('## Safeguard interference', $mdWithRefusal);
+        $this->assertStringContainsString('| task-a | haiku | 1 | 0 | 3 |', $mdWithRefusal);
+
+        $tallyAllCompleted = [
+            'task-a' => [
+                'haiku' => ['completed' => 3],
+            ],
+        ];
+
+        $mdAllCompleted = (new FindingsWriter())->render(
+            matrix: $this->matrix(),
+            simulation: $this->simulation(),
+            config: $this->miniConfig(),
+            sourcePath: 'results/results.jsonl',
+            rowCount: 9,
+            generatedAt: '2026-04-23T12:00:00Z',
+            dispositionTally: $tallyAllCompleted,
+        );
+
+        $this->assertStringContainsString('## Safeguard interference', $mdAllCompleted);
+        $this->assertStringContainsString(
+            'No in-band refusals or model reroutes recorded across any attempt.',
+            $mdAllCompleted,
+        );
+
+        $mdNoTally = (new FindingsWriter())->render(
+            matrix: $this->matrix(),
+            simulation: $this->simulation(),
+            config: $this->miniConfig(),
+            sourcePath: 'results/results.jsonl',
+            rowCount: 9,
+            generatedAt: '2026-04-23T12:00:00Z',
+        );
+
+        $this->assertStringNotContainsString('## Safeguard interference', $mdNoTally);
     }
 }

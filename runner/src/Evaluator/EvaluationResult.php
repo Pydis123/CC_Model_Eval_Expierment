@@ -32,6 +32,22 @@ final class EvaluationResult
     }
 
     /**
+     * @return ?array<string, mixed>
+     */
+    public function metrics(): ?array
+    {
+        $merged = null;
+        foreach ($this->checks as $check) {
+            $metrics = $check->details['metrics'] ?? null;
+            if (!is_array($metrics)) {
+                continue;
+            }
+            $merged = array_merge($merged ?? [], $metrics);
+        }
+        return $merged;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(): array
