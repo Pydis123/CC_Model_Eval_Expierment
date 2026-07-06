@@ -1,0 +1,13 @@
+{
+    "id": "106-bug-no-repro",
+    "category": "bugfix_no_repro",
+    "size_estimate": "l",
+    "prompt_file": "106-bug-no-repro.prompt.md",
+    "max_iterations": 3,
+    "max_wall_clock_s": 2400,
+    "export_ref": "phase2-bug-noRepro-106",
+    "success_criteria": [
+        {"type": "regression_red_green"},
+        {"type": "smoke_no_regressions"}
+    ]
+}
