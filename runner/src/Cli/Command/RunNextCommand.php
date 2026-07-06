@@ -116,8 +116,8 @@ final class RunNextCommand implements CommandInterface
 
         $totalS = (new DateTimeImmutable($endIso))->getTimestamp() - (new DateTimeImmutable($startIso))->getTimestamp();
 
-        $disposition = $this->classifyDisposition($modelId, $outcome);
         $contamination = $this->scanContamination($outcome);
+        $disposition = $this->classifyDisposition($modelId, $outcome, $contamination);
 
         $row = [
             'run_id' => $run->runId,
@@ -149,9 +149,12 @@ final class RunNextCommand implements CommandInterface
         return $row;
     }
 
-    private function classifyDisposition(string $modelId, RunOutcome $outcome): string
+    /**
+     * @param array{contaminated: bool, matches: list<string>} $contamination
+     */
+    private function classifyDisposition(string $modelId, RunOutcome $outcome, array $contamination): string
     {
-        if ($this->scanContamination($outcome)['contaminated']) {
+        if ($contamination['contaminated']) {
             return DispatchDisposition::CONTAMINATED;
         }
 
