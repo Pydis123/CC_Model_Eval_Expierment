@@ -1,0 +1,85 @@
+{
+  "criteria": [
+    {
+      "id": "identifies-tables-needing-tenant-scope",
+      "text": "Correctly identifies which existing tables need a tenant/company identifier and which do not, based on the real schema.",
+      "anchors": {
+        "0": "No tables named, or generic claim that 'all tables need a tenant_id column' without checking the schema.",
+        "1": "Names one or two tables (e.g. 'tickets needs a tenant_id') but does not reconcile with the existing companies/users relationship or misses categories/comments/i18n_strings.",
+        "2": "Correctly notes that `companies` (mock-project/database/migrations/001_create_companies.sql) is the existing tenant boundary, that `users.company_id` (002_create_users.sql:7) already scopes users to a company, but that `tickets` (004_create_tickets.sql) and `comments` (005_create_comments.sql) have no company_id column at all — tenancy is currently only reachable by joining through requester_user_id/assignee_user_id to users.company_id — and correctly reasons about whether categories (003_create_categories.sql, globally unique by name via uniq_categories_name) should be per-tenant or shared."
+      }
+    },
+    {
+      "id": "backfill-migration-ordering",
+      "text": "Addresses the migration/backfill ordering problem: existing rows have no tenant value when a tenant_id column is first added.",
+      "anchors": {
+        "0": "No mention of backfill or migration ordering; treats adding tenant_id as a single trivial ALTER TABLE.",
+        "1": "Mentions 'need a backfill' in the abstract without a concrete ordering plan (add nullable column, backfill, then add NOT NULL constraint/FK) or without acknowledging the current all-single-tenant seed data.",
+        "2": "Gives a concrete ordered plan matching this repo's migration convention (numbered files under database/migrations/, e.g. would follow 013_create_i18n_strings.sql as 016_...): add tenant_id as NULL, backfill tickets.tenant_id from a join through requester_user_id -> users.company_id (or assignee), then add NOT NULL + FK + index in a follow-up migration, mirroring how fk_tickets_requester was added only after 004_create_tickets.sql in a later migration (010_add_fk_tickets_requester.sql)."
+      }
+    },
+    {
+      "id": "repository-touch-cost",
+      "text": "Recognizes that every repository query must be rewritten to filter by tenant, and estimates/scopes that cost concretely.",
+      "anchors": {
+        "0": "No mention of the repository layer; assumes tenancy is 'just a column' with no query-site impact.",
+        "1": "Vague acknowledgment that 'queries need updating' without naming which classes/methods.",
+        "2": "Names the actual repository classes/methods that currently issue unscoped queries and must add a WHERE tenant_id = :tenant clause — e.g. TicketRepository::findAll() and findByStatus() (src/Domain/Repository/TicketRepository.php:46,55), CommentRepository::findByTicket() (src/Domain/Repository/CommentRepository.php:41), UserRepository::findAll() (src/Domain/Repository/UserRepository.php:51) — and notes findById() methods across repositories (e.g. TicketRepository::findById, line 33) also need tenant filtering to prevent cross-tenant access by guessing an id."
+      }
+    },
+    {
+      "id": "cross-tenant-leak-at-boundary",
+      "text": "Analyzes the concrete cross-tenant leak risk at the controller/route boundary and whether existing middleware would catch it.",
+      "anchors": {
+        "0": "No discussion of leak risk, or generic 'add authorization checks' with no reference to this app's request flow.",
+        "1": "States there is a leak risk in general terms ('a user could access another tenant's ticket') without tracing through the actual code path.",
+        "2": "Traces the real path: TicketController::show() (src/Http/Controller/TicketController.php:57-73) takes `id` from the route and calls TicketRepository::findById($id) with no ownership check beyond 404-if-null; AuthMiddleware (src/Http/Middleware/AuthMiddleware.php) only authenticates (attaches `user`), and RoleMiddleware (src/Http/Middleware/RoleMiddleware.php) only checks role, not tenant — so today, and after a naive tenant_id rollout, any authenticated user of ANY company can view/comment on any ticket by id (e.g. CommentController::create, src/Http/Controller/CommentController.php:45-67) unless a new tenant-scoping check is added at the repository or middleware layer."
+      }
+    },
+    {
+      "id": "index-implications",
+      "text": "Considers index implications of adding tenant_id to hot query paths.",
+      "anchors": {
+        "0": "No mention of indexes.",
+        "1": "Generic statement that 'we'll need an index on tenant_id' without referencing existing indexes or query patterns.",
+        "2": "References the existing indexes in 006_add_indexes_tickets.sql (idx_tickets_status, idx_tickets_assignee, idx_tickets_requester, idx_tickets_category, idx_tickets_created_at) and 007_add_indexes_comments.sql (idx_comments_ticket composite on ticket_id, created_at) and reasons that tenant_id should become a leading column in composite indexes (e.g. (tenant_id, status) rather than a bolt-on single-column index) since almost every list query (TicketRepository::findByStatus, findAll) will now filter by tenant first."
+      }
+    },
+    {
+      "id": "schema-per-tenant-connection-implications",
+      "text": "For the schema-per-tenant alternative, addresses connection/pooling implications given this app's PDO usage.",
+      "anchors": {
+        "0": "No discussion of schema-per-tenant connection handling, or treats it as equivalent effort to row-scoping with no distinct tradeoffs.",
+        "1": "Mentions 'each tenant gets its own schema/database' without addressing how the app would obtain/switch PDO connections per request.",
+        "2": "Notes that every repository (TicketRepository, CommentRepository, UserRepository, CompanyRepository, CategoryRepository — all constructed with a single injected `PDO $pdo`, e.g. src/Domain/Repository/TicketRepository.php:12) currently receives one shared PDO instance from the DI container (App\\App::buildContainer(), wired in public/index.php), so schema-per-tenant requires either a per-request connection resolved after AuthMiddleware identifies the user's company, or a connection pool keyed by tenant — a structural DI change, not a query change, and discusses migration-runner cost of applying all 15 migrations per-schema as tenants grow."
+      }
+    },
+    {
+      "id": "auth-service-and-session-tenancy",
+      "text": "Addresses how tenant identity is established and carried through the request (login/session), not just how it's stored in tables.",
+      "anchors": {
+        "0": "No mention of how tenant context enters the request lifecycle.",
+        "1": "Says 'the user's tenant should be in the session' without tracing to actual auth code.",
+        "2": "Traces that AuthService::authenticate() (src/Domain/Service/AuthService.php:17-27) returns a User already carrying company_id (from users.company_id), and that AuthMiddleware (src/Http/Middleware/AuthMiddleware.php:20-21) reads `$_SESSION['user_id']` and re-fetches the user on every request — proposes concretely deriving/caching tenant context from that already-fetched User object rather than re-deriving it per repository call, and flags that admin routes (src/Http/Routes.php:62-74, RoleMiddleware(['admin'])) currently have no tenant boundary at all and would need one for a cross-tenant admin to be prevented."
+      }
+    },
+    {
+      "id": "recommendation-with-tradeoffs",
+      "text": "Gives a clear, justified recommendation (shared-schema vs schema-per-tenant) rather than presenting both with no decision.",
+      "anchors": {
+        "0": "No recommendation, or a recommendation with no reasoning tied to this codebase's scale/shape.",
+        "1": "States a preference (e.g. 'shared schema is usually better') citing generic industry reasoning only.",
+        "2": "Recommends one approach and justifies it against this specific system's characteristics — e.g. small number of tables (5 domain tables total: companies, users, categories, tickets, comments), single shared PDO/DI wiring, Slim's lack of per-request connection-swapping support, i18n_strings (013_create_i18n_strings.sql) being intentionally cross-tenant shared reference data that must NOT be row-scoped — and explains why that tips the balance toward row-scoping (or schema-per-tenant) for this app rather than in the abstract."
+      }
+    },
+    {
+      "id": "failure-modes-catalog",
+      "text": "Catalogs concrete failure modes beyond the leak risk, e.g. missed WHERE clause regression, FK cascade behavior across tenants, seed/test data collisions.",
+      "anchors": {
+        "0": "No failure-mode discussion beyond the single leak scenario already covered elsewhere.",
+        "1": "Lists failure modes generically ('bugs could happen', 'performance could degrade') without grounding in this codebase's mechanics.",
+        "2": "Names concrete failure modes such as: a future repository method that forgets the tenant WHERE clause (no compiler/type enforcement in this PDO-based layer, e.g. TicketRepository has six methods each writing raw SQL by hand); FK ON DELETE behavior in 009_add_fk_tickets_assignee.sql/010_add_fk_tickets_requester.sql/012_add_fk_comments.sql needing re-verification once tenant_id is introduced (a cross-tenant FK could otherwise silently point across tenants if company_id and requester_user_id are not both validated together); and the project's own test/seed collision convention (tests inserting into seeded tables) needing tenant-aware fixtures to avoid cross-tenant collisions in test data."
+      }
+    }
+  ]
+}

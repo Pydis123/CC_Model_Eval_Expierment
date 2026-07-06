@@ -1,0 +1,580 @@
+diff --git a/mock-project/database/migrations/016_create_ticket_activity.sql b/mock-project/database/migrations/016_create_ticket_activity.sql
+new file mode 100644
+index 0000000..52c41c0
+--- /dev/null
++++ b/mock-project/database/migrations/016_create_ticket_activity.sql
+@@ -0,0 +1,17 @@
++CREATE TABLE ticket_activity (
++    id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
++    ticket_id INT UNSIGNED NOT NULL,
++    actor_user_id INT UNSIGNED NOT NULL,
++    action VARCHAR(50) NOT NULL,
++    note TEXT NULL,
++    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
++    CONSTRAINT fk_ticket_activity_ticket
++        FOREIGN KEY (ticket_id) REFERENCES tickets(id)
++        ON DELETE CASCADE ON UPDATE CASCADE,
++    CONSTRAINT fk_ticket_activity_actor
++        FOREIGN KEY (actor_user_id) REFERENCES users(id)
++        ON DELETE CASCADE ON UPDATE CASCADE
++) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
++
++CREATE INDEX idx_ticket_activity_ticket ON ticket_activity (ticket_id, created_at);
++CREATE INDEX idx_ticket_activity_created_at ON ticket_activity (created_at);
+diff --git a/mock-project/database/migrations/017_create_ticket_watchers.sql b/mock-project/database/migrations/017_create_ticket_watchers.sql
+new file mode 100644
+index 0000000..3b3f899
+--- /dev/null
++++ b/mock-project/database/migrations/017_create_ticket_watchers.sql
+@@ -0,0 +1,13 @@
++CREATE TABLE ticket_watchers (
++    id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
++    ticket_id INT UNSIGNED NOT NULL,
++    user_id INT UNSIGNED NOT NULL,
++    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
++    UNIQUE KEY uniq_ticket_watchers (ticket_id, user_id),
++    CONSTRAINT fk_ticket_watchers_ticket
++        FOREIGN KEY (ticket_id) REFERENCES tickets(id)
++        ON DELETE CASCADE ON UPDATE CASCADE,
++    CONSTRAINT fk_ticket_watchers_user
++        FOREIGN KEY (user_id) REFERENCES users(id)
++        ON DELETE CASCADE ON UPDATE CASCADE
++) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+diff --git a/mock-project/src/App.php b/mock-project/src/App.php
+index 60367c2..640e50b 100644
+--- a/mock-project/src/App.php
++++ b/mock-project/src/App.php
+@@ -8,7 +8,9 @@ use App\Domain\I18n\I18nLoader;
+ use App\Domain\Repository\CategoryRepository;
+ use App\Domain\Repository\CommentRepository;
+ use App\Domain\Repository\CompanyRepository;
++use App\Domain\Repository\TicketActivityRepository;
+ use App\Domain\Repository\TicketRepository;
++use App\Domain\Repository\TicketWatcherRepository;
+ use App\Domain\Repository\UserRepository;
+ use App\Domain\Service\AuthService;
+ use App\Domain\Service\PasswordHasher;
+@@ -72,6 +74,8 @@ final class App
+         $container->set(CategoryRepository::class, fn(Container $c) => new CategoryRepository($c->get(PDO::class)));
+         $container->set(TicketRepository::class, fn(Container $c) => new TicketRepository($c->get(PDO::class)));
+         $container->set(CommentRepository::class, fn(Container $c) => new CommentRepository($c->get(PDO::class)));
++        $container->set(TicketActivityRepository::class, fn(Container $c) => new TicketActivityRepository($c->get(PDO::class)));
++        $container->set(TicketWatcherRepository::class, fn(Container $c) => new TicketWatcherRepository($c->get(PDO::class)));
+         $container->set(AuthService::class, fn(Container $c) => new AuthService(
+             $c->get(UserRepository::class),
+             $c->get(PasswordHasher::class)
+diff --git a/mock-project/src/Domain/Entity/TicketActivity.php b/mock-project/src/Domain/Entity/TicketActivity.php
+new file mode 100644
+index 0000000..0e13da2
+--- /dev/null
++++ b/mock-project/src/Domain/Entity/TicketActivity.php
+@@ -0,0 +1,34 @@
++<?php
++
++declare(strict_types=1);
++
++namespace App\Domain\Entity;
++
++use DateTimeImmutable;
++
++final class TicketActivity
++{
++    public function __construct(
++        public readonly ?int $id,
++        public readonly int $ticketId,
++        public readonly int $actorUserId,
++        public readonly string $action,
++        public readonly ?string $note,
++        public readonly ?DateTimeImmutable $createdAt = null,
++    ) {}
++
++    /**
++     * @param array<string, mixed> $row
++     */
++    public static function fromRow(array $row): self
++    {
++        return new self(
++            id: isset($row['id']) ? (int) $row['id'] : null,
++            ticketId: (int) $row['ticket_id'],
++            actorUserId: (int) $row['actor_user_id'],
++            action: (string) $row['action'],
++            note: isset($row['note']) ? (string) $row['note'] : null,
++            createdAt: isset($row['created_at']) ? new DateTimeImmutable((string) $row['created_at']) : null,
++        );
++    }
++}
+diff --git a/mock-project/src/Domain/Repository/TicketActivityRepository.php b/mock-project/src/Domain/Repository/TicketActivityRepository.php
+new file mode 100644
+index 0000000..a8b91fe
+--- /dev/null
++++ b/mock-project/src/Domain/Repository/TicketActivityRepository.php
+@@ -0,0 +1,49 @@
++<?php
++
++declare(strict_types=1);
++
++namespace App\Domain\Repository;
++
++use App\Domain\Entity\TicketActivity;
++use PDO;
++
++final class TicketActivityRepository
++{
++    private const PER_PAGE = 20;
++
++    public function __construct(private readonly PDO $pdo) {}
++
++    public function log(int $ticketId, int $actorUserId, string $action, ?string $note = null): void
++    {
++        $stmt = $this->pdo->prepare(
++            'INSERT INTO ticket_activity (ticket_id, actor_user_id, action, note)
++             VALUES (:ticket, :actor, :action, :note)'
++        );
++        $stmt->execute([
++            ':ticket' => $ticketId,
++            ':actor' => $actorUserId,
++            ':action' => $action,
++            ':note' => $note,
++        ]);
++    }
++
++    /**
++     * Recent activity across all tickets, most recent first. Supports an optional
++     * action filter (e.g. "closed", "commented") for the feed's quick-filter buttons.
++     *
++     * @return list<TicketActivity>
++     */
++    public function findRecent(?string $actionFilter, int $page): array
++    {
++        $sql = 'SELECT * FROM ticket_activity';
++        if ($actionFilter !== null && $actionFilter !== '') {
++            $sql .= " WHERE action = '{$actionFilter}'";
++        }
++
++        $offset = $page * self::PER_PAGE;
++        $sql .= ' ORDER BY created_at DESC LIMIT ' . self::PER_PAGE . " OFFSET {$offset}";
++
++        $rows = $this->pdo->query($sql)->fetchAll();
++        return array_map(TicketActivity::fromRow(...), $rows);
++    }
++}
+diff --git a/mock-project/src/Domain/Repository/TicketRepository.php b/mock-project/src/Domain/Repository/TicketRepository.php
+index 1f29f2c..786b83c 100644
+--- a/mock-project/src/Domain/Repository/TicketRepository.php
++++ b/mock-project/src/Domain/Repository/TicketRepository.php
+@@ -38,6 +38,25 @@ final class TicketRepository
+         return $row ? Ticket::fromRow($row) : null;
+     }
+ 
++    /**
++     * Fetches many tickets in one query. Used by bulk actions (e.g. bulk-close) so
++     * we don't issue a findById() per row.
++     *
++     * @param list<int> $ids
++     * @return list<Ticket>
++     */
++    public function findByIds(array $ids): array
++    {
++        if ($ids === []) {
++            return [];
++        }
++
++        $placeholders = implode(',', array_fill(0, count($ids), '?'));
++        $stmt = $this->pdo->prepare("SELECT * FROM tickets WHERE id IN ({$placeholders})");
++        $stmt->execute($ids);
++        return array_map(Ticket::fromRow(...), $stmt->fetchAll());
++    }
++
+     /**
+      * @return list<Ticket>
+      *
+diff --git a/mock-project/src/Domain/Repository/TicketWatcherRepository.php b/mock-project/src/Domain/Repository/TicketWatcherRepository.php
+new file mode 100644
+index 0000000..467f106
+--- /dev/null
++++ b/mock-project/src/Domain/Repository/TicketWatcherRepository.php
+@@ -0,0 +1,36 @@
++<?php
++
++declare(strict_types=1);
++
++namespace App\Domain\Repository;
++
++use PDO;
++
++final class TicketWatcherRepository
++{
++    public function __construct(private readonly PDO $pdo) {}
++
++    /**
++     * Subscribes a user to a ticket's activity. Called every time the user hits the
++     * "Watch" button on the ticket page.
++     */
++    public function add(int $ticketId, int $userId): void
++    {
++        $stmt = $this->pdo->prepare(
++            'INSERT INTO ticket_watchers (ticket_id, user_id) VALUES (:ticket, :user)'
++        );
++        $stmt->execute([':ticket' => $ticketId, ':user' => $userId]);
++    }
++
++    /**
++     * @return list<int>
++     */
++    public function userIdsForTicket(int $ticketId): array
++    {
++        $stmt = $this->pdo->prepare('SELECT user_id FROM ticket_watchers WHERE ticket_id = :ticket');
++        $stmt->execute([':ticket' => $ticketId]);
++
++        /** @var list<int> */
++        return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
++    }
++}
+diff --git a/mock-project/src/Http/Controller/ActivityController.php b/mock-project/src/Http/Controller/ActivityController.php
+new file mode 100644
+index 0000000..6970d03
+--- /dev/null
++++ b/mock-project/src/Http/Controller/ActivityController.php
+@@ -0,0 +1,47 @@
++<?php
++
++declare(strict_types=1);
++
++namespace App\Http\Controller;
++
++use App\Domain\Repository\TicketActivityRepository;
++use App\Domain\Repository\TicketRepository;
++use App\Domain\Repository\UserRepository;
++use Psr\Http\Message\ResponseInterface;
++use Psr\Http\Message\ServerRequestInterface;
++use Slim\Views\Twig;
++
++final class ActivityController
++{
++    public function __construct(
++        private readonly TicketActivityRepository $activity,
++        private readonly TicketRepository $tickets,
++        private readonly UserRepository $users,
++        private readonly Twig $twig,
++    ) {}
++
++    public function index(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
++    {
++        $query = $request->getQueryParams();
++        $actionFilter = is_string($query['action'] ?? null) ? $query['action'] : null;
++        $page = max(1, (int) ($query['page'] ?? 1));
++
++        $entries = $this->activity->findRecent($actionFilter, $page);
++
++        $rows = [];
++        foreach ($entries as $entry) {
++            $rows[] = [
++                'entry' => $entry,
++                'ticket' => $this->tickets->findById($entry->ticketId),
++                'actor' => $this->users->findById($entry->actorUserId),
++            ];
++        }
++
++        return $this->twig->render($response, 'tickets/activity.twig', [
++            'rows' => $rows,
++            'action_filter' => $actionFilter,
++            'page' => $page,
++            'user' => $request->getAttribute('user'),
++        ]);
++    }
++}
+diff --git a/mock-project/src/Http/Controller/CommentController.php b/mock-project/src/Http/Controller/CommentController.php
+index f0580a5..f99c9bb 100644
+--- a/mock-project/src/Http/Controller/CommentController.php
++++ b/mock-project/src/Http/Controller/CommentController.php
+@@ -7,6 +7,7 @@ namespace App\Http\Controller;
+ use App\Domain\Entity\Comment;
+ use App\Domain\Entity\User;
+ use App\Domain\Repository\CommentRepository;
++use App\Domain\Repository\TicketActivityRepository;
+ use App\Domain\Repository\TicketRepository;
+ use Psr\Http\Message\ResponseInterface;
+ use Psr\Http\Message\ServerRequestInterface;
+@@ -17,6 +18,7 @@ final class CommentController
+     public function __construct(
+         private readonly TicketRepository $tickets,
+         private readonly CommentRepository $comments,
++        private readonly TicketActivityRepository $activity,
+         private readonly Twig $twig,
+     ) {}
+ 
+@@ -62,6 +64,7 @@ final class CommentController
+         }
+ 
+         $this->comments->insert(new Comment(null, $ticketId, (int) $user->id, $text));
++        $this->activity->log((int) $user->id, $ticketId, 'commented');
+ 
+         return $response->withStatus(302)->withHeader('Location', "/tickets/{$ticketId}/comments");
+     }
+diff --git a/mock-project/src/Http/Controller/TicketController.php b/mock-project/src/Http/Controller/TicketController.php
+index 40c09a3..7c1a891 100644
+--- a/mock-project/src/Http/Controller/TicketController.php
++++ b/mock-project/src/Http/Controller/TicketController.php
+@@ -7,7 +7,9 @@ namespace App\Http\Controller;
+ use App\Domain\Entity\Ticket;
+ use App\Domain\Entity\User;
+ use App\Domain\Repository\CategoryRepository;
++use App\Domain\Repository\TicketActivityRepository;
+ use App\Domain\Repository\TicketRepository;
++use App\Domain\Repository\TicketWatcherRepository;
+ use App\Domain\Repository\UserRepository;
+ use Psr\Http\Message\ResponseInterface;
+ use Psr\Http\Message\ServerRequestInterface;
+@@ -27,6 +29,8 @@ final class TicketController
+         private readonly TicketRepository $tickets,
+         private readonly UserRepository $users,
+         private readonly CategoryRepository $categories,
++        private readonly TicketActivityRepository $activity,
++        private readonly TicketWatcherRepository $watchers,
+         private readonly Twig $twig,
+     ) {}
+ 
+@@ -130,4 +134,67 @@ final class TicketController
+ 
+         return $response->withStatus(302)->withHeader('Location', "/tickets/{$id}");
+     }
++
++    /**
++     * Closes every eligible ticket from the submitted id list in one request, driven
++     * by the bulk-select checkboxes on the ticket index. Only tickets that have
++     * reached "resolved" are eligible — anything still in progress is left alone.
++     */
++    public function bulkClose(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
++    {
++        $user = $request->getAttribute('user');
++        if (!$user instanceof User) {
++            return $response->withStatus(401);
++        }
++
++        $body = $request->getParsedBody();
++        $rawIds = is_array($body) ? ($body['ticket_ids'] ?? []) : [];
++        $ids = array_values(array_filter(array_map('intval', is_array($rawIds) ? $rawIds : [])));
++
++        if ($ids === []) {
++            return $response->withStatus(422);
++        }
++
++        $tickets = $this->tickets->findByIds($ids);
++        foreach ($tickets as $ticket) {
++            if (!$this->canBulkClose($ticket)) {
++                continue;
++            }
++
++            $this->tickets->updateStatus((int) $ticket->id, 'closed');
++            $this->activity->log((int) $ticket->id, (int) $user->id, 'closed');
++        }
++
++        return $response->withStatus(302)->withHeader('Location', '/tickets');
++    }
++
++    /**
++     * Only resolved tickets are eligible for a direct bulk-close.
++     */
++    private function canBulkClose(Ticket $ticket): bool
++    {
++        return $ticket->status !== 'resolved';
++    }
++
++    /**
++     * Subscribes the current user to a ticket's activity feed.
++     *
++     * @param array<string,string> $args
++     */
++    public function watch(ServerRequestInterface $request, ResponseInterface $response, array $args): ResponseInterface
++    {
++        $user = $request->getAttribute('user');
++        if (!$user instanceof User) {
++            return $response->withStatus(401);
++        }
++
++        $ticketId = (int) ($args['id'] ?? 0);
++        if ($this->tickets->findById($ticketId) === null) {
++            return $response->withStatus(404);
++        }
++
++        $this->watchers->add($ticketId, (int) $user->id);
++
++        return $response->withStatus(302)->withHeader('Location', "/tickets/{$ticketId}");
++    }
+ }
+diff --git a/mock-project/src/Http/Routes.php b/mock-project/src/Http/Routes.php
+index 482c4ba..4d0ae57 100644
+--- a/mock-project/src/Http/Routes.php
++++ b/mock-project/src/Http/Routes.php
+@@ -5,6 +5,7 @@ declare(strict_types=1);
+ namespace App\Http;
+ 
+ use App\Domain\Repository\UserRepository;
++use App\Http\Controller\ActivityController;
+ use App\Http\Controller\Admin;
+ use App\Http\Controller\AuthController;
+ use App\Http\Controller\CommentController;
+@@ -53,9 +54,13 @@ final class Routes
+             $g->get('/tickets/{id}', [TicketController::class, 'show']);
+             $g->post('/tickets/{id}/status', [TicketController::class, 'changeStatus'])
+                 ->add(new RoleMiddleware(['admin', 'agent']));
++            $g->post('/tickets/bulk-close', [TicketController::class, 'bulkClose']);
++            $g->post('/tickets/{id}/watch', [TicketController::class, 'watch']);
+ 
+             $g->get('/tickets/{id}/comments', [CommentController::class, 'index']);
+             $g->post('/tickets/{id}/comments', [CommentController::class, 'create']);
++
++            $g->get('/activity', [ActivityController::class, 'index']);
+         })->add(new AuthMiddleware($c->get(UserRepository::class)));
+ 
+         // Admin HTML group
+diff --git a/mock-project/templates/partials/_nav.twig b/mock-project/templates/partials/_nav.twig
+index d9701d8..f9ea510 100644
+--- a/mock-project/templates/partials/_nav.twig
++++ b/mock-project/templates/partials/_nav.twig
+@@ -5,6 +5,7 @@
+                 <a href="/tickets" class="text-lg font-semibold text-gray-900">{{ t('app.name') }}</a>
+                 <div class="hidden md:flex gap-4">
+                     <a href="/tickets" class="text-sm text-gray-700 hover:text-gray-900">{{ t('nav.tickets') }}</a>
++                    <a href="/activity" class="text-sm text-gray-700 hover:text-gray-900">Activity</a>
+                     {% if user and user.role == 'admin' %}
+                         <a href="/admin/users" class="text-sm text-gray-700 hover:text-gray-900">{{ t('nav.admin') }}</a>
+                     {% endif %}
+diff --git a/mock-project/templates/tickets/activity.twig b/mock-project/templates/tickets/activity.twig
+new file mode 100644
+index 0000000..9371369
+--- /dev/null
++++ b/mock-project/templates/tickets/activity.twig
+@@ -0,0 +1,44 @@
++{% extends 'layout.twig' %}
++
++{% block title %}Recent activity — {{ t('app.name') }}{% endblock %}
++
++{% block content %}
++<div class="space-y-4">
++    <div class="flex items-center justify-between">
++        <h1 class="text-2xl font-semibold">Recent activity</h1>
++        <div class="flex gap-2 text-sm">
++            <a href="/activity" class="text-blue-700 hover:underline {% if action_filter is empty %}font-semibold{% endif %}">All</a>
++            <a href="/activity?action=closed" class="text-blue-700 hover:underline {% if action_filter == 'closed' %}font-semibold{% endif %}">Closed</a>
++            <a href="/activity?action=commented" class="text-blue-700 hover:underline {% if action_filter == 'commented' %}font-semibold{% endif %}">Commented</a>
++        </div>
++    </div>
++
++    {% if rows is empty %}
++        <p class="text-gray-600">No activity yet.</p>
++    {% else %}
++        <ul class="space-y-2">
++            {% for row in rows %}
++                <li class="bg-white p-3 rounded-lg shadow-sm border border-gray-200 text-sm flex justify-between">
++                    <span>
++                        {{ row.actor ? row.actor.name : 'Unknown' }}
++                        {{ row.entry.action }}
++                        {% if row.ticket %}
++                            <a href="/tickets/{{ row.ticket.id }}" class="text-blue-700 hover:underline">#{{ row.ticket.id }} — {{ row.ticket.subject }}</a>
++                        {% endif %}
++                    </span>
++                    <span class="text-gray-500">{{ row.entry.createdAt ? row.entry.createdAt|date('Y-m-d H:i') : '' }}</span>
++                </li>
++            {% endfor %}
++        </ul>
++    {% endif %}
++
++    <div class="flex justify-between text-sm">
++        {% if page > 1 %}
++            <a href="/activity?page={{ page - 1 }}{{ action_filter ? '&action=' ~ action_filter : '' }}" class="text-blue-700 hover:underline">← Newer</a>
++        {% else %}
++            <span></span>
++        {% endif %}
++        <a href="/activity?page={{ page + 1 }}{{ action_filter ? '&action=' ~ action_filter : '' }}" class="text-blue-700 hover:underline">Older →</a>
++    </div>
++</div>
++{% endblock %}
+diff --git a/mock-project/templates/tickets/index.twig b/mock-project/templates/tickets/index.twig
+index 680f294..f1c09c1 100644
+--- a/mock-project/templates/tickets/index.twig
++++ b/mock-project/templates/tickets/index.twig
+@@ -5,9 +5,12 @@
+ {% block content %}
+ <div class="flex items-center justify-between mb-4">
+     <h1 class="text-2xl font-semibold">{{ t('tickets.index.title') }}</h1>
+-    <a href="/tickets/new" class="bg-blue-600 text-white text-sm rounded px-3 py-2 hover:bg-blue-700">
+-        {{ t('tickets.index.new_button') }}
+-    </a>
++    <div class="flex gap-2">
++        <a href="/activity" class="text-sm text-blue-700 hover:underline self-center">Recent activity</a>
++        <a href="/tickets/new" class="bg-blue-600 text-white text-sm rounded px-3 py-2 hover:bg-blue-700">
++            {{ t('tickets.index.new_button') }}
++        </a>
++    </div>
+ </div>
+ 
+ {% if rows is empty %}
+@@ -25,9 +28,21 @@
+             {% endfor %}
+         </div>
+ 
++        {% if user and user.role in ['admin', 'agent'] %}
++            <form method="post" action="/tickets/bulk-close" class="flex items-center justify-between">
++                <input type="hidden" name="_csrf" value="{{ csrf_token }}">
++                <span class="text-xs text-gray-500">Select resolved tickets to close them in bulk.</span>
++                <button type="submit" class="bg-gray-800 text-white text-sm rounded px-3 py-2 hover:bg-gray-900">
++                    Close selected
++                </button>
++        {% endif %}
++
+         <table class="w-full text-sm">
+             <thead class="text-left text-gray-600 border-b border-gray-200">
+                 <tr>
++                    {% if user and user.role in ['admin', 'agent'] %}
++                        <th class="py-2 pr-4"></th>
++                    {% endif %}
+                     <th class="py-2 pr-4">{{ t('tickets.index.header_subject') }}</th>
+                     <th class="py-2 pr-4">{{ t('tickets.index.header_status') }}</th>
+                     <th class="py-2 pr-4">{{ t('tickets.index.header_requester') }}</th>
+@@ -40,6 +55,11 @@
+                     <tr data-status="{{ row.ticket.status }}"
+                         x-show="selected === 'all' || selected === '{{ row.ticket.status }}'"
+                         class="border-b border-gray-100">
++                        {% if user and user.role in ['admin', 'agent'] %}
++                            <td class="py-2 pr-4">
++                                <input type="checkbox" name="ticket_ids[]" value="{{ row.ticket.id }}">
++                            </td>
++                        {% endif %}
+                         <td class="py-2 pr-4">
+                             <a href="/tickets/{{ row.ticket.id }}" class="text-blue-700 hover:underline">
+                                 #{{ row.ticket.id }} — {{ row.ticket.subject }}
+@@ -55,6 +75,9 @@
+                 {% endfor %}
+             </tbody>
+         </table>
++        {% if user and user.role in ['admin', 'agent'] %}
++            </form>
++        {% endif %}
+     </div>
+ {% endif %}
+ {% endblock %}
+diff --git a/mock-project/templates/tickets/show.twig b/mock-project/templates/tickets/show.twig
+index a08c3b2..17fd8c3 100644
+--- a/mock-project/templates/tickets/show.twig
++++ b/mock-project/templates/tickets/show.twig
+@@ -55,10 +55,18 @@
+         </section>
+     {% endif %}
+ 
+-    <footer class="pt-4 border-t border-gray-200">
++    <footer class="pt-4 border-t border-gray-200 flex items-center justify-between">
+         <a href="/tickets/{{ ticket.id }}/comments" class="text-sm text-blue-700 hover:underline">
+             {{ t('comments.list.title') }}
+         </a>
++        {% if user %}
++            <form method="post" action="/tickets/{{ ticket.id }}/watch">
++                <input type="hidden" name="_csrf" value="{{ csrf_token }}">
++                <button type="submit" class="text-sm text-gray-600 hover:text-gray-900">
++                    Watch this ticket
++                </button>
++            </form>
++        {% endif %}
+     </footer>
+ </article>
+ {% endblock %}

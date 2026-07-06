@@ -1,0 +1,76 @@
+{
+  "defects": [
+    {
+      "id": "authz-missing-bulk-close",
+      "file": "mock-project/src/Http/Routes.php",
+      "defect_class": "authz_missing",
+      "line": 57,
+      "span_start": 55,
+      "span_end": 58,
+      "detectability_proof": "$g->post('/tickets/bulk-close', [TicketController::class, 'bulkClose']) is registered directly under the '' group that is closed only by ->add(new AuthMiddleware(...)) (line 64), unlike its sibling POST /tickets/{id}/status (lines 55-56) which adds ->add(new RoleMiddleware(['admin', 'agent'])). TicketController::bulkClose() itself performs no role check. Any authenticated 'requester' can POST /tickets/bulk-close with ticket_ids[]=1&ticket_ids[]=2 and force-close tickets that only agents/admins should be able to close."
+    },
+    {
+      "id": "logic-error-bulk-close-eligibility",
+      "file": "mock-project/src/Http/Controller/TicketController.php",
+      "defect_class": "logic_error",
+      "line": 176,
+      "span_start": 171,
+      "span_end": 177,
+      "detectability_proof": "canBulkClose()'s doc comment states 'Only resolved tickets are eligible for a direct bulk-close' but the body returns $ticket->status !== 'resolved' instead of === 'resolved', inverting the check. Calling POST /tickets/bulk-close with a mix of ticket ids therefore closes every ticket whose status is new/open/pending/closed and skips the ones that are actually resolved (the only status meant to be bulk-closable), the exact opposite of the intended behavior."
+    },
+    {
+      "id": "race-condition-bulk-close-status",
+      "file": "mock-project/src/Http/Controller/TicketController.php",
+      "defect_class": "race_condition",
+      "line": 164,
+      "span_start": 143,
+      "span_end": 169,
+      "detectability_proof": "bulkClose() reads all target tickets once via findByIds($ids) (line 158) and then, for each one that passes the (buggy) eligibility check, calls $this->tickets->updateStatus((int) $ticket->id, 'closed') (line 164) — an unconditional UPDATE with no WHERE status = 'resolved' guard, no SELECT ... FOR UPDATE, and no transaction wrapping the read-check-write sequence. Two overlapping POST /tickets/bulk-close requests (e.g. a double form submit, or one racing a concurrent POST /tickets/{id}/status reopening the same ticket) can both act on the same stale in-memory ticket read, so a ticket reopened by another request moments earlier gets silently re-closed and double-logged with no error surfaced."
+    },
+    {
+      "id": "constraint-break-ticket-watch",
+      "file": "mock-project/src/Domain/Repository/TicketWatcherRepository.php",
+      "defect_class": "constraint_break",
+      "line": 20,
+      "span_start": 17,
+      "span_end": 23,
+      "detectability_proof": "add() unconditionally runs INSERT INTO ticket_watchers (ticket_id, user_id) VALUES (:ticket, :user) with no prior existence check and no INSERT IGNORE / ON DUPLICATE KEY UPDATE, while migration 017_create_ticket_watchers.sql defines UNIQUE KEY uniq_ticket_watchers (ticket_id, user_id). TicketController::watch() (called from POST /tickets/{id}/watch, reachable by any authenticated user via the new 'Watch this ticket' button with no client-side disable-after-click) calls add() on every submit, so clicking Watch a second time on a ticket the user already watches throws an uncaught PDOException duplicate-entry error, surfacing as a 500."
+    },
+    {
+      "id": "sqli-activity-action-filter",
+      "file": "mock-project/src/Domain/Repository/TicketActivityRepository.php",
+      "defect_class": "sqli",
+      "line": 40,
+      "span_start": 36,
+      "span_end": 48,
+      "detectability_proof": "findRecent() builds $sql .= \" WHERE action = '{$actionFilter}'\" by directly interpolating the caller-supplied $actionFilter into the query string, then runs it via $this->pdo->query($sql) with no binding. ActivityController::index() passes the raw ?action= query parameter straight through (only checked with is_string()). A request like GET /activity?action=x%27%20UNION%20SELECT%20email%2Cpassword_hash%2C3%2C4%2C5%2C6%20FROM%20users--%20- breaks out of the quoted literal and appends a UNION SELECT, exposing password hashes in the activity feed."
+    },
+    {
+      "id": "off-by-one-activity-pagination",
+      "file": "mock-project/src/Domain/Repository/TicketActivityRepository.php",
+      "defect_class": "off_by_one",
+      "line": 43,
+      "span_start": 36,
+      "span_end": 48,
+      "detectability_proof": "findRecent() computes $offset = $page * self::PER_PAGE (PER_PAGE = 20) instead of ($page - 1) * self::PER_PAGE. ActivityController::index() defaults $page to 1 for the first page (max(1, (int) ($query['page'] ?? 1))), so GET /activity with no page parameter requests OFFSET 20, silently skipping the 20 most recent activity entries — the newest activity on the site never appears on the default/first page of the feed."
+    },
+    {
+      "id": "n-plus-one-activity-feed",
+      "file": "mock-project/src/Http/Controller/ActivityController.php",
+      "defect_class": "n_plus_one",
+      "line": 35,
+      "span_start": 23,
+      "span_end": 46,
+      "detectability_proof": "index() loops over up to 20 activity entries per page and calls $this->tickets->findById($entry->ticketId) (line 35) individually for every row — one query per row — even though this same PR adds TicketRepository::findByIds(array $ids) and uses it correctly, in a single batched WHERE id IN (...) query, in TicketController::bulkClose() (line 158). GET /activity therefore issues up to 20 extra per-row ticket queries (plus 20 more for actor lookups) on every page load instead of collecting the ticket ids up front and calling findByIds() once."
+    },
+    {
+      "id": "api-contract-break-comment-activity-log",
+      "file": "mock-project/src/Http/Controller/CommentController.php",
+      "defect_class": "api_contract_break",
+      "line": 67,
+      "span_start": 47,
+      "span_end": 70,
+      "detectability_proof": "TicketActivityRepository::log(int $ticketId, int $actorUserId, string $action, ?string $note = null) expects ticket id first, actor id second — exactly how TicketController::bulkClose() calls it: $this->activity->log((int) $ticket->id, (int) $user->id, 'closed'). CommentController::create() instead calls $this->activity->log((int) $user->id, $ticketId, 'commented') with the arguments swapped. Every comment posted via POST /tickets/{id}/comments therefore logs a ticket_activity row with ticket_id set to the commenting user's id and actor_user_id set to the actual ticket id, silently corrupting the activity feed's 'commented' entries with wrong/nonexistent ticket and actor references."
+    }
+  ]
+}

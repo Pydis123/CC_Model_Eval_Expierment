@@ -1,0 +1,76 @@
+{
+  "defects": [
+    {
+      "id": "i18n-key-collision",
+      "file": "PLAN.md",
+      "defect_class": "constraint_break",
+      "line": 287,
+      "span_start": 276,
+      "span_end": 301,
+      "detectability_proof": "Migration 013_create_i18n_strings.sql:6 defines UNIQUE KEY uniq_locale_key (locale, key_name). Migration 014_seed_i18n_strings_sv.sql:55 already inserts ('sv', 'admin.categories.header_sla', 'SLA (timmar)'). The plan's new migration 019 re-inserts ('sv', 'admin.categories.header_sla', 'Timmar kvar') for the same locale/key pair, which a reviewer can confirm violates the existing unique key and would make migration 019 fail with a duplicate-key error rather than adding a new label."
+    },
+    {
+      "id": "backfill-column-name-mismatch",
+      "file": "PLAN.md",
+      "defect_class": "logic_error",
+      "line": 94,
+      "span_start": 90,
+      "span_end": 114,
+      "detectability_proof": "database/migrations/003_create_categories.sql:4 defines the column as `default_sla_hours`, and Category::fromRow (src/Domain/Entity/Category.php) reads `$row['default_sla_hours']`. The plan's backfill SQL selects `c.sla_hours FROM categories c` and later reads `$row['sla_hours']` (line 102) — no such column exists, so the query would fail with an unknown-column error the moment the script runs, which a reviewer confirms by diffing the plan's SELECT against the real CREATE TABLE."
+    },
+    {
+      "id": "missing-due-at-index",
+      "file": "PLAN.md",
+      "defect_class": "missing_index",
+      "line": 64,
+      "span_start": 53,
+      "span_end": 66,
+      "detectability_proof": "The plan's migration 017 (line 59) only creates `idx_sla_escalations_ticket ON sla_escalations (ticket_id)`, then claims at line 64 that this index backs both the sweep in SlaEscalationRepository::findOverdue() (WHERE due_at <= NOW() AND escalated_at IS NULL ORDER BY due_at) and the admin list view — both of which filter/sort on `due_at`, a column with no index anywhere in the plan. The existing convention in database/migrations/006_add_indexes_tickets.sql:5 (`idx_tickets_created_at ON tickets (created_at)`) shows the codebase already indexes timestamp columns used for filtering/ordering, which findOverdue()'s query would need but never gets."
+    },
+    {
+      "id": "findall-return-shape-break",
+      "file": "PLAN.md",
+      "defect_class": "api_contract_break",
+      "line": 231,
+      "span_start": 225,
+      "span_end": 236,
+      "detectability_proof": "src/Http/Controller/TicketController.php:40 and :66 (index() and show()) both do `'ticket' => $ticket` after calling `$this->tickets->findAll()` / `findById()`, treating each element as a plain Ticket entity with properties like `$ticket->assigneeUserId`. tests/Integration/Repository/TicketRepositoryTest.php:88-97 (testFindAllDoesNotJoinRelatedTables) additionally asserts the method's source contains no 'JOIN'. The plan changes findAll() to LEFT JOIN sla_escalations and return associative arrays instead of Ticket objects, which breaks both existing callers (index()/show() would receive arrays, not Ticket entities) and the guard test, without the plan updating either."
+    },
+    {
+      "id": "escalate-route-missing-role-guard",
+      "file": "PLAN.md",
+      "defect_class": "authz_missing",
+      "line": 256,
+      "span_start": 246,
+      "span_end": 265,
+      "detectability_proof": "src/Http/Routes.php:54-55 shows the sibling state-changing route `POST /tickets/{id}/status` is guarded with `->add(new RoleMiddleware(['admin', 'agent']))` on top of AuthMiddleware, restricting status changes to admins/agents. The plan's new `POST /tickets/{id}/escalate` route (line 256) is placed in the same authenticated group but has no RoleMiddleware call, so any authenticated requester (not just admin/agent) could trigger escalation, unlike its sibling route."
+    },
+    {
+      "id": "backfill-check-then-insert-race",
+      "file": "PLAN.md",
+      "defect_class": "backfill_race",
+      "line": 126,
+      "span_start": 115,
+      "span_end": 133,
+      "detectability_proof": "The plan's own migration 016 (section 2.1) defines UNIQUE KEY uniq_sla_escalations_ticket (ticket_id), and section 5.1 adds an sla_escalations insert to the live ticket-creation path in src/Http/Controller/TicketController.php::create. Section 3.2 (line 126-127) asserts the backfill's unguarded read-then-write is 'fine' and safe to re-run, but a reviewer can show that once section 5.1 is live, re-running the backfill (e.g. for newly added categories) races with concurrent ticket creation on the same UNIQUE-constrained ticket_id: two unsynchronized check-then-insert paths against the same key will throw a duplicate-key error or leave a partially-applied backfill with no transaction/lock/ON DUPLICATE KEY handling to reconcile it."
+    },
+    {
+      "id": "escalate-test-tautological-assertion",
+      "file": "PLAN.md",
+      "defect_class": "test_unfailable",
+      "line": 328,
+      "span_start": 319,
+      "span_end": 337,
+      "detectability_proof": "testEscalateEndpointDoesNotError (line 322-329) only asserts the response status is not 500. A 404 (ticket not found), 422, or a 302 redirect where escalate() silently no-ops due to the wrong ticket id or a broken SlaEscalationService::escalate() call would all satisfy assertNotEquals(500, ...), so the test passes whether or not escalation actually happens or the correct row gets updated in sla_escalations — it never checks the escalated_at column or the response's Location header the way testUpdateStatus in tests/Integration/Repository/TicketRepositoryTest.php checks the actual persisted status value."
+    },
+    {
+      "id": "rollback-deletes-all-sv-strings",
+      "file": "PLAN.md",
+      "defect_class": "rollback_wrong",
+      "line": 373,
+      "span_start": 364,
+      "span_end": 382,
+      "detectability_proof": "database/migrations/014_seed_i18n_strings_sv.sql inserts 63 pre-existing Swedish strings (app.name, nav.*, auth.*, tickets.*, comments.*, admin.*, errors.*, etc.) unrelated to this feature. The plan's rollback step (line 373) runs `DELETE FROM i18n_strings WHERE locale = 'sv'`, which deletes every Swedish string in the table, not just the handful of admin.sla_escalations.*/tickets.show.escalate_button rows this plan adds — reverting this feature would take down the entire Swedish locale rather than just the new keys."
+    }
+  ]
+}

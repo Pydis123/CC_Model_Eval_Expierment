@@ -1,0 +1,103 @@
+{
+  "criteria": [
+    {
+      "id": "identifies-emission-points",
+      "text": "Identifies the concrete controller/service methods where ticket events (created, status changed, commented) actually occur today.",
+      "anchors": {
+        "0": "No specific emission points named; speaks only of 'ticket events' abstractly.",
+        "1": "Names one plausible event (e.g. 'ticket creation') without locating it in code, or lists events not backed by the actual controllers.",
+        "2": "Names the real call sites: TicketController::create() (src/Http/Controller/TicketController.php:84-105, inserts via TicketRepository::insert then redirects), TicketController::changeStatus() (same file, lines 113-132, calls TicketRepository::updateStatus($id, $desired) after validating against ALLOWED_TRANSITIONS), and CommentController::create() (src/Http/Controller/CommentController.php:45-67, calls CommentRepository::insert). Correctly notes these are the only three tenant-relevant mutation points today and that a webhook hook would need to fire after each repository write succeeds, inside the controller or by wrapping the repository."
+      }
+    },
+    {
+      "id": "acknowledges-no-queue-exists",
+      "text": "Explicitly acknowledges that no queue/async infrastructure exists in this stack and that this is the central design constraint.",
+      "anchors": {
+        "0": "Assumes a queue/worker system exists or is trivially available; recommends 'push to the existing queue' with no acknowledgment it must be introduced.",
+        "1": "Vaguely says 'we don't have a queue' without checking the actual dependency manifest.",
+        "2": "Confirms from composer.json (mock-project/composer.json) that the stack is slim/slim ^4.13 + php-di/php-di ^7.0 + twig/twig + vlucas/phpdotenv with no queue, Redis, RabbitMQ, or job-runner dependency at all (verified: no beanstalkd/redis/amqp/queue reference anywhere in src/ or composer.json), and that public/index.php runs a single synchronous `$app->run()` per request — so async delivery requires either introducing a new dependency+worker process, or a lightweight in-request/cron-polled outbox table, and the memo must justify that choice rather than assume infrastructure that isn't there."
+      }
+    },
+    {
+      "id": "sync-vs-async-tradeoff",
+      "text": "Analyzes the sync-in-request vs async-queue tradeoff specifically in terms of request latency and failure isolation for this app.",
+      "anchors": {
+        "0": "No discussion of where webhook delivery executes relative to the HTTP response.",
+        "1": "States 'sync blocks the request, async doesn't' as a generic fact without connecting it to this app's request flow.",
+        "2": "Reasons concretely that firing a webhook synchronously inside TicketController::create() or CommentController::create() before returning the 302 redirect (see lines returning `$response->withStatus(302)`) would tie ticket-creation latency and error handling to third-party receiver uptime, whereas an outbox-table approach (write a delivery row in the same transaction as the ticket/comment insert, deliver out-of-band via a cron-invoked `bin/` script or worker) decouples them at the cost of introducing eventual consistency and a second moving part to operate given no existing worker infrastructure."
+      }
+    },
+    {
+      "id": "delivery-semantics-choice",
+      "text": "Chooses and justifies at-least-once vs at-most-once delivery semantics rather than asserting one without reasoning.",
+      "anchors": {
+        "0": "No explicit delivery-semantics choice.",
+        "1": "States a preference ('at-least-once is safer') without connecting it to receiver-side idempotency cost or ticket-event characteristics.",
+        "2": "Recommends at-least-once (justified: silently dropping a ticket-created or status-change notification is worse than an occasional duplicate) and explicitly ties this to the need for a stable per-event idempotency key, e.g. derived from the tickets.id / comments.id primary key plus event type plus updated_at, so receivers can dedupe — recognizing that Ticket and Comment entities (src/Domain/Entity/Ticket.php, src/Domain/Entity/Comment.php) already expose stable integer ids usable as that key."
+      }
+    },
+    {
+      "id": "retry-backoff-idempotency-key",
+      "text": "Specifies a concrete retry/backoff strategy plus an idempotency key mechanism for receivers.",
+      "anchors": {
+        "0": "No retry policy or idempotency key mentioned.",
+        "1": "Says 'retry with backoff' with no concrete schedule, cap, or idempotency mechanism.",
+        "2": "Specifies a bounded exponential (or similar) backoff schedule with a max attempt count, and a concrete idempotency key format (e.g. `{event_type}:{entity_id}:{updated_at|attempt_epoch}` or a generated UUID stored per delivery row) sent as a header so receivers can dedupe retried deliveries of the same underlying ticket/comment event."
+      }
+    },
+    {
+      "id": "poison-dead-letter-handling",
+      "text": "Describes what happens to a delivery that exhausts retries (poison message / dead-letter handling), not just the happy retry path.",
+      "anchors": {
+        "0": "No mention of what happens after retries are exhausted.",
+        "1": "Says 'move to a dead-letter queue' with no concrete storage/visibility mechanism for this app.",
+        "2": "Proposes a concrete mechanism consistent with this codebase's conventions — e.g. a `status` column on the new delivery table (mirroring tickets.status's ENUM pattern in 004_create_tickets.sql) with a terminal `failed`/`dead` state, surfaced to admins via a new page under the existing `/admin` route group (src/Http/Routes.php:62-68, currently RoleMiddleware(['admin']) + AuthMiddleware) so a human can inspect or manually replay failed deliveries."
+      }
+    },
+    {
+      "id": "ordering-guarantees-and-cost",
+      "text": "Addresses whether webhook deliveries need to preserve event ordering (e.g. status transitions) and what guaranteeing that costs.",
+      "anchors": {
+        "0": "No discussion of ordering.",
+        "1": "Asserts 'events must be delivered in order' or 'ordering doesn't matter' without justification tied to actual ticket state transitions.",
+        "2": "Reasons about TicketController::ALLOWED_TRANSITIONS (src/Http/Controller/TicketController.php:18-24, e.g. new->open->pending/resolved->closed) and notes that out-of-order delivery of two status-change webhooks could show a receiver an impossible transition (e.g. 'closed' arriving before 'open'); proposes either a per-ticket sequence number/serial delivery queue to preserve order at the cost of throughput, or embedding the authoritative current status in every payload so receivers are order-tolerant instead of order-dependent."
+      }
+    },
+    {
+      "id": "failure-isolation-slow-receiver",
+      "text": "Ensures a slow or down external receiver cannot block or slow down ticket/comment writes.",
+      "anchors": {
+        "0": "No isolation discussion; implies webhook HTTP calls happen inline with no timeout/circuit-breaker consideration.",
+        "1": "Says 'a slow receiver shouldn't block requests' generically without tying it to the specific write paths at risk.",
+        "2": "Explicitly identifies that TicketRepository::insert()/updateStatus() and CommentRepository::insert() (src/Domain/Repository/TicketRepository.php, CommentRepository.php) must complete and return control to the controller regardless of receiver latency, and proposes decoupling via the outbox/delivery-table pattern (or a short in-request HTTP timeout plus async retry) plus per-receiver circuit-breaking so one broken webhook subscriber cannot degrade ticket creation for all tenants/users."
+      }
+    },
+    {
+      "id": "delivery-state-persistence-convention",
+      "text": "Proposes a concrete new table for delivery state that follows this repo's actual migration and repository conventions.",
+      "anchors": {
+        "0": "No persistence design, or 'store deliveries somewhere' with no schema.",
+        "1": "Mentions 'a new table for webhook deliveries' with a rough column list but doesn't follow the repo's numbering/FK/index conventions.",
+        "2": "Proposes a new numbered migration continuing the sequence (next after 015_seed_i18n_strings_en.sql, i.e. 016_create_webhook_*.sql) with columns modeled on existing patterns — INT UNSIGNED AUTO_INCREMENT PK, created_at/updated_at DEFAULT CURRENT_TIMESTAMP as in every existing table (e.g. 001_create_companies.sql:4-5), a status ENUM analogous to tickets.status (004_create_tickets.sql:5), and FKs added in a later migration matching the project's pattern of separating CREATE TABLE from ADD CONSTRAINT (e.g. 004_create_tickets.sql vs 009/010/011_add_fk_*.sql) — plus a new WebhookDeliveryRepository following the existing repository shape (constructor-injected PDO, insert()/findById() methods as in every repository under src/Domain/Repository/)."
+      }
+    },
+    {
+      "id": "integration-with-request-lifecycle-and-csrf",
+      "text": "Addresses how the new subsystem integrates with the existing middleware stack (routing, CSRF exemption, auth) rather than treating it as fully separate from the HTTP layer.",
+      "anchors": {
+        "0": "No mention of routing/middleware integration.",
+        "1": "Mentions 'add an endpoint' without addressing how it fits the existing CSRF/auth middleware stack.",
+        "2": "Notes that any admin-facing configuration UI for webhook subscriptions belongs under the existing `/api/admin` or `/admin` route groups (src/Http/Routes.php:62-74), that CsrfMiddleware already exempts all `/api/` paths (src/Http/Middleware/CsrfMiddleware.php:21-24: `str_starts_with($path, '/api/')` bypasses CSRF), so a JSON admin API for managing webhook subscriptions can reuse that existing exemption zone consistent with the project's established '/api/ is the JSON-mutation zone' convention, while outbound webhook HTTP calls to receivers are a distinct concern (an egress client, not a route) and must not be confused with inbound route protection."
+      }
+    },
+    {
+      "id": "recommendation-with-tradeoffs",
+      "text": "Gives a clear, justified end-to-end recommendation rather than presenting options with no decision.",
+      "anchors": {
+        "0": "No overall recommendation.",
+        "1": "States a preference without tying it to this app's actual scale/stack constraints.",
+        "2": "Recommends a specific concrete design (e.g. transactional outbox table + at-least-once delivery + idempotency key + bounded exponential backoff + admin-visible dead-letter state) and justifies it against this app's real constraints: single synchronous Slim process (public/index.php), no existing queue dependency (composer.json), small write volume (only three mutation call sites total), and the existing admin route group as the natural home for operational visibility."
+      }
+    }
+  ]
+}
