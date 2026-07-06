@@ -1,0 +1,17 @@
+{
+    "id": "105-webhook-delivery",
+    "category": "architecture_decision",
+    "size_estimate": "l",
+    "prompt_file": "105-webhook-delivery.prompt.md",
+    "max_iterations": 1,
+    "max_wall_clock_s": 1800,
+    "export_ref": "scaffold_complete",
+    "success_criteria": [
+        {
+            "type": "rubric_score",
+            "rubric": "105-webhook-delivery.json",
+            "threshold": 12,
+            "artifact": "decision-memo.md"
+        }
+    ]
+}

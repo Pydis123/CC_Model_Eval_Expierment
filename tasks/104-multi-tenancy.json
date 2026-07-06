@@ -1,0 +1,17 @@
+{
+    "id": "104-multi-tenancy",
+    "category": "architecture_decision",
+    "size_estimate": "l",
+    "prompt_file": "104-multi-tenancy.prompt.md",
+    "max_iterations": 1,
+    "max_wall_clock_s": 1800,
+    "export_ref": "scaffold_complete",
+    "success_criteria": [
+        {
+            "type": "rubric_score",
+            "rubric": "104-multi-tenancy.json",
+            "threshold": 10,
+            "artifact": "decision-memo.md"
+        }
+    ]
+}

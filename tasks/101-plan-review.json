@@ -1,0 +1,19 @@
+{
+    "id": "101-plan-review",
+    "category": "plan_review",
+    "size_estimate": "l",
+    "prompt_file": "101-plan-review.prompt.md",
+    "max_iterations": 1,
+    "max_wall_clock_s": 1800,
+    "export_ref": "scaffold_complete",
+    "success_criteria": [
+        {
+            "type": "findings_score",
+            "ground_truth": "101-plan-review.json",
+            "recall_min": 0.5,
+            "precision_min": 0.6,
+            "findings_cap": 25,
+            "artifact": "findings.json"
+        }
+    ]
+}
