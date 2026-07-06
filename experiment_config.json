@@ -1,6 +1,6 @@
 {
     "schema_version": 1,
-    "experiment_name": "llm-dispatch-v2.1-isolated",
+    "experiment_name": "llm-dispatch-v2-phase2",
     "plan_seed": 42,
     "n_replicates": 5,
     "max_iterations_per_run": 3,
@@ -8,19 +8,19 @@
     "tiers": [
         "haiku",
         "sonnet",
-        "opus",
-        "fable"
+        "opus"
     ],
     "task_ids": [
-        "001-i18n-status-flik",
-        "002-crud-ticket-tag",
-        "003-n-plus-one-fix",
-        "004-sla-deadline-migration",
-        "005-state-service-refactor",
-        "006-intermittent-test-bugfix",
-        "007-batch-close-rbac",
-        "008-comment-composer-alpine"
+        "101-plan-review",
+        "102-security-audit",
+        "103-code-review",
+        "104-multi-tenancy",
+        "105-webhook-delivery",
+        "106-bug-no-repro",
+        "107-transactional-refactor",
+        "108-query-budget-perf"
     ],
+    "judge_model": "claude-opus-4-8",
     "pinned_models": {
         "haiku": null,
         "sonnet": null,

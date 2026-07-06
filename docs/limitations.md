@@ -251,6 +251,20 @@ back-pointer to the repo). Such a model has neither motive nor route to run
 `sandbox-exec` / container) would close the vector but was judged
 disproportionate for a private calibration.
 
+## Phase 2 campaign boundary (2026-07-07)
+
+`experiment_config.json` was re-pointed from v2.1 (`llm-dispatch-v2.1-isolated`,
+tasks 001–008, 4 tiers) to the Phase 2 campaign (`llm-dispatch-v2-phase2`,
+tasks 101–108, `judge_model` = `claude-opus-4-8`). This is a documented
+version boundary, not a mid-experiment mutation — v2.1 is complete and its
+data is archived at `results/results-v2.1-2026-07.jsonl` (findings at
+`docs/archive/findings-v2.1.md`). Phase 2 runs in two batches appending to one
+`results/results.jsonl`: Batch 1 sets `tiers` to `[haiku,sonnet,opus]`
+(subscription, usage-credits off); Batch 2 sets `tiers` to `[fable]`
+(usage-credits on, after the July 7/8 cutover) so only Fable draws metered
+credits. All four ids are pinned in `state.json`; the queue is scoped per
+batch via `tiers`. The aggregator's final report sets `tiers` to all four.
+
 **Compensating control — detect and discard.** Every run's full transcript
 (model tool calls, including bash) is scanned by `ContaminationDetector`,
 which flags any reference to the experiment repo's `tasks/` path or
