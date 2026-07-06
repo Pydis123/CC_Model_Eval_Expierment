@@ -44,7 +44,14 @@ else
   fail "pinned_models invalid ($PIN_STATUS) — run state pin-models"
 fi
 
-# 4. Operator env must not leak model/API overrides into the runner
+# 4. Task answer keys and rubrics must be well-formed before spending tokens
+if php runner/bin/cli validate-tasks >/dev/null 2>&1; then
+  ok "task artifacts validate"
+else
+  fail "task artifact validation failed — see php runner/bin/cli validate-tasks"
+fi
+
+# 5. Operator env must not leak model/API overrides into the runner
 LEAKS=$(env | grep -iE '^(CLAUDE|ANTHROPIC)[A-Z_]*=' || true)
 if [ -n "$LEAKS" ]; then
   warn "operator env contains: $(echo "$LEAKS" | cut -d= -f1 | tr '\n' ' ')(dispatch env strips these, but verify they are intentional)"
@@ -52,14 +59,14 @@ else
   ok "no CLAUDE_*/ANTHROPIC_* vars in operator env"
 fi
 
-# 5. MariaDB up
+# 6. MariaDB up
 if mysqladmin --host=127.0.0.1 --port=3307 --user=ticket_app --password=ticket_app_pw ping >/dev/null 2>&1; then
   ok "MariaDB on :3307 answers"
 else
   fail "MariaDB on :3307 not answering (docker compose up?)"
 fi
 
-# 6. Disk
+# 7. Disk
 AVAIL_GB=$(df -g /tmp 2>/dev/null | awk 'NR==2 {print $4}')
 if [ -n "${AVAIL_GB:-}" ] && [ "$AVAIL_GB" -ge 10 ]; then
   ok "/tmp has ${AVAIL_GB}G free"
@@ -67,7 +74,7 @@ else
   warn "/tmp free space low or unknown (${AVAIL_GB:-?}G)"
 fi
 
-# 7. Stale worktrees
+# 8. Stale worktrees
 STALE=$(ls -d /tmp/llm-disp-* 2>/dev/null | wc -l | tr -d ' ')
 if [ "$STALE" -gt 0 ]; then
   if [ "${1:-}" = "--clean" ]; then
@@ -83,7 +90,7 @@ else
   ok "no stale worktrees"
 fi
 
-# 8. Uplink: warn when running on iPhone hotspot without the keepalive daemon
+# 9. Uplink: warn when running on iPhone hotspot without the keepalive daemon
 GATEWAY=$(route -n get default 2>/dev/null | awk '/gateway/ {print $2}')
 if [ "${GATEWAY:-}" = "172.20.10.1" ]; then
   if [ -f results/net-keepalive.pid ] && kill -0 "$(cat results/net-keepalive.pid)" 2>/dev/null; then
@@ -95,7 +102,7 @@ else
   ok "uplink is not a hotspot (gateway ${GATEWAY:-unknown})"
 fi
 
-# 9. Repo state
+# 10. Repo state
 DIRTY=$(git status --porcelain -- runner/ | wc -l | tr -d ' ')
 [ "$DIRTY" -gt 0 ] && warn "uncommitted changes under runner/ ($DIRTY files) — commit before a long run" || ok "runner/ clean in git"
 

@@ -21,6 +21,7 @@ use LlmDispatch\Runner\Cli\Command\StateNextRunCommand;
 use LlmDispatch\Runner\Cli\Command\StatePinModelsCommand;
 use LlmDispatch\Runner\Cli\Command\StateRecordRunCommand;
 use LlmDispatch\Runner\Cli\Command\StateResetStaleCommand;
+use LlmDispatch\Runner\Cli\Command\ValidateTasksCommand;
 use LlmDispatch\Runner\Config;
 use LlmDispatch\Runner\Report\FindingsWriter;
 use LlmDispatch\Runner\Dispatch\ClaudeCliResponseParser;
@@ -224,6 +225,7 @@ $registry = [
         defaultBootstrapSamples: 1000,
         defaultBootstrapSeed: $config->planSeed,
     ),
+    'validate-tasks' => new ValidateTasksCommand(tasksDir: $repoRoot . '/tasks', repoRoot: $repoRoot),
     'report-delta' => new ReportDeltaCommand(
         oldPath: $repoRoot . '/results/results-v1-2026-04.jsonl',
         newPath: $resultsPath,
