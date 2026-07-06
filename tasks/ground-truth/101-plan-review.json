@@ -70,7 +70,7 @@
       "line": 373,
       "span_start": 364,
       "span_end": 382,
-      "detectability_proof": "database/migrations/014_seed_i18n_strings_sv.sql inserts 63 pre-existing Swedish strings (app.name, nav.*, auth.*, tickets.*, comments.*, admin.*, errors.*, etc.) unrelated to this feature. The plan's rollback step (line 373) runs `DELETE FROM i18n_strings WHERE locale = 'sv'`, which deletes every Swedish string in the table, not just the handful of admin.sla_escalations.*/tickets.show.escalate_button rows this plan adds — reverting this feature would take down the entire Swedish locale rather than just the new keys."
+      "detectability_proof": "database/migrations/014_seed_i18n_strings_sv.sql inserts 65 pre-existing Swedish strings (app.name, nav.*, auth.*, tickets.*, comments.*, admin.*, errors.*, etc.) unrelated to this feature. The plan's rollback step (line 373) runs `DELETE FROM i18n_strings WHERE locale = 'sv'`, which deletes every Swedish string in the table, not just the handful of admin.sla_escalations.*/tickets.show.escalate_button rows this plan adds — reverting this feature would take down the entire Swedish locale rather than just the new keys."
     }
   ]
 }
