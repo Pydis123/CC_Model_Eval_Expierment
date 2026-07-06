@@ -224,3 +224,44 @@ operator-harness effect. The claude CLI also auto-updated mid-v2.0
 - Safeguard routing is content-, account- and time-dependent and therefore a
   non-reproducibility source: two accounts may measure different interference
   rates for the same task bank.
+
+## Answer-key isolation: residual filesystem risk (2026-07-06)
+
+Phase 2's findings-scored tasks (101/102/103) are graded against a committed
+answer key in `tasks/ground-truth/`. Two access vectors were considered:
+
+- **git object database — CLOSED.** Runs execute in an isolated, non-linked
+  export (`git archive` into a fresh `git init` repo; see
+  `ExportWorktreeManager`), so the experiment refs and their history do not
+  exist in the run dir's ODB. A hostile probe confirmed `git show <ref>:path`,
+  `cat-file`, `log --all`, alternates and reflog all fail to recover the key.
+- **absolute filesystem path — RESIDUAL RISK, NOT prevented.** The dispatched
+  `claude` process runs as the same OS user with no chroot/container/mount
+  isolation, and the run dir lives under `/private/tmp` outside the repo. A
+  maximally-adversarial agent that runs `find /` or reads the key by its
+  absolute path (`/opt/.../tasks/ground-truth/...`) CAN reach it. The same
+  hostile probe demonstrated this vector succeeds.
+
+**Why this is accepted rather than sandboxed.** The realistic threat is a
+blind model performing an audit task: it is not told it is being scored, is
+not told an answer key exists, and has no path knowledge (the mock project's
+`CLAUDE.md` is scrubbed of experiment references and the run dir has no
+back-pointer to the repo). Such a model has neither motive nor route to run
+`find / -name '*ground-truth*'`. A kernel-enforced sandbox (restricted user /
+`sandbox-exec` / container) would close the vector but was judged
+disproportionate for a private calibration.
+
+**Compensating control — detect and discard.** Every run's full transcript
+(model tool calls, including bash) is scanned by `ContaminationDetector`,
+which flags any reference to the experiment repo's `tasks/` path or
+`tasks/ground-truth`, plus filesystem-escape patterns (`find /`, `find`/`grep`
+targeting host checkout roots). A flagged run is recorded with
+`dispatch_disposition = 'contaminated'`, excluded from the aggregated cells
+(like an `error` row), and re-dispatched toward the clean N. The detector is
+tuned to avoid false-flagging a run's own `/private/tmp` workspace. A
+determined obfuscator could still evade the escape regexes, but the path
+marker is a robust backstop (any route to the key surfaces its path in the
+transcript), and — as a further check — a run with anomalously perfect recall
+relative to its tier's other tasks is a manual analysis flag. This trades
+prevention for detection, which is appropriate because the evaluated models
+have no incentive to cheat and do not know they are scored.
