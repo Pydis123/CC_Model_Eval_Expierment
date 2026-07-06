@@ -57,7 +57,7 @@ class ExportWorktreeManager extends WorktreeManager
 
         $fixtures = $this->fixturesDir . '/' . $taskId;
         if (is_dir($fixtures)) {
-            $this->copyFixtures($fixtures, $path);
+            $this->copyFixtures($fixtures, $path . '/mock-project');
             if (is_file($fixtures . '/pr.patch')) {
                 $this->mustExec($path, ['git', 'apply', $fixtures . '/pr.patch']);
                 $this->mustExec($path, ['git', 'add', '-A']);

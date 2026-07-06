@@ -83,6 +83,33 @@ final class ExportWorktreeManagerTest extends TestCase
         $this->tearDownTempFs($tmpFs);
     }
 
+    public function testNonPatchFixtureLandsInsideMockProject(): void
+    {
+        $tmpFs = $this->createTempDirs();
+        mkdir($tmpFs['fixturesDir'] . '/104-test-fixture', 0777, true);
+        file_put_contents($tmpFs['fixturesDir'] . '/104-test-fixture/PLAN.md', "# Test Plan\n");
+
+        $executor = $this->recordingExecutor($commands);
+
+        $manager = new ExportWorktreeManager(
+            executor: $executor,
+            repoRoot: $tmpFs['repoRoot'],
+            worktreeBaseDir: $tmpFs['worktreeBaseDir'],
+            failedDir: $tmpFs['failedDir'],
+            fixturesDir: $tmpFs['fixturesDir'],
+        );
+
+        $path = $manager->resolveWorktreePath('r4');
+        mkdir($path . '/mock-project', 0777, true);
+
+        $manager->prepareExport('r4', 'phase2-audit-target', '104-test-fixture');
+
+        $this->assertFileExists($path . '/mock-project/PLAN.md', 'Fixture should be in mock-project/');
+        $this->assertFileDoesNotExist($path . '/PLAN.md', 'Fixture should NOT be at export root');
+
+        $this->tearDownTempFs($tmpFs);
+    }
+
     public function testCleanupOnFailureMovesToFailedDir(): void
     {
         $tmpFs = $this->createTempDirs();
