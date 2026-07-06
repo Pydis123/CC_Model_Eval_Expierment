@@ -72,9 +72,18 @@ $runQueue = new RunQueue($config);
 
 $processExecutor = new ProcessExecutor();
 
+// Dispatch runs with a sanitized env whose PATH excludes the claude binary
+// dir (so a model cannot spawn nested claude sessions); resolve the binary to
+// an ABSOLUTE path here so proc_open does not depend on the child PATH.
+$claudeBinary = getenv('HOME') . '/.local/bin/claude';
+if (!is_executable($claudeBinary)) {
+    $resolved = trim((string) shell_exec('command -v claude 2>/dev/null'));
+    $claudeBinary = $resolved !== '' ? $resolved : 'claude';
+}
+
 $judgeClient = $config->judgeModel !== null
     ? new JudgeClient(
-        new ProcessClaudeCli($processExecutor, new ClaudeCliResponseParser(), 'claude'),
+        new ProcessClaudeCli($processExecutor, new ClaudeCliResponseParser(), $claudeBinary),
         $config->judgeModel,
         sys_get_temp_dir(),
     )
@@ -123,7 +132,7 @@ $evaluator = new Evaluator($checkFactories);
 $claudeCli = new ProcessClaudeCli(
     $processExecutor,
     new ClaudeCliResponseParser(),
-    'claude',
+    $claudeBinary,
 );
 
 $runCoordinator = new RunCoordinator(
@@ -159,7 +168,7 @@ $crashDumper = new CrashDumper($repoRoot . '/results');
 $connectivity = new ConnectivityChecker();
 $offlineGate = new OfflineGate($connectivity, $progressLogger, $repoRoot . '/PAUSE', static function (int $s): void { sleep($s); });
 
-$claudeVersion = trim((string) shell_exec('claude --version 2>&1'));
+$claudeVersion = trim((string) shell_exec(escapeshellarg($claudeBinary) . ' --version 2>&1'));
 
 $contaminationDetector = new ContaminationDetector([$repoRoot . '/tasks', 'tasks/ground-truth']);
 
