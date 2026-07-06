@@ -38,12 +38,13 @@ final class StateInitCommandTest extends TestCase
         $exit = $command->run([]);
         $out = ob_get_clean();
 
+        $expected = count($this->config->tiers) * count($this->config->taskIds) * $this->config->nReplicates;
         $this->assertSame(0, $exit);
         $json = json_decode($out, true);
-        $this->assertSame(160, $json['runs_queued']);
+        $this->assertSame($expected, $json['runs_queued']);
 
         $state = json_decode(file_get_contents($this->tmpStatePath), true);
-        $this->assertCount(160, $state['remaining_runs']);
+        $this->assertCount($expected, $state['remaining_runs']);
     }
 
     public function testRefusesWhenAlreadyInitializedWithoutForce(): void

@@ -18,14 +18,15 @@ final class RunQueueTest extends TestCase
         $this->config = Config::fromFile(dirname(__DIR__, 3) . '/../experiment_config.json');
     }
 
-    public function testPlanGenerates160Runs(): void
+    public function testPlanGeneratesTiersTimesTasksTimesReplicatesRuns(): void
     {
         $runs = (new RunQueue($this->config))->plan(42);
 
-        $this->assertCount(160, $runs);
+        $expected = count($this->config->tiers) * count($this->config->taskIds) * $this->config->nReplicates;
+        $this->assertCount($expected, $runs);
     }
 
-    public function testEachTaskHasTwentyRuns(): void
+    public function testEachTaskHasTiersTimesReplicatesRuns(): void
     {
         $runs = (new RunQueue($this->config))->plan(42);
 
@@ -34,14 +35,23 @@ final class RunQueueTest extends TestCase
             $perTask[$run->taskId] = ($perTask[$run->taskId] ?? 0) + 1;
         }
 
+        $expected = count($this->config->tiers) * $this->config->nReplicates;
         foreach ($this->config->taskIds as $taskId) {
-            $this->assertSame(20, $perTask[$taskId], "Task {$taskId} should have 20 runs");
+            $this->assertSame($expected, $perTask[$taskId], "Task {$taskId} should have {$expected} runs");
         }
     }
 
-    public function testEachTaskHasAllFourTiersAndAllFiveNs(): void
+    public function testEachTaskHasEveryConfiguredTierAndReplicate(): void
     {
         $runs = (new RunQueue($this->config))->plan(42);
+
+        $expected = [];
+        foreach ($this->config->tiers as $tier) {
+            for ($n = 1; $n <= $this->config->nReplicates; $n++) {
+                $expected[] = $tier . '-' . $n;
+            }
+        }
+        sort($expected);
 
         $perTask = [];
         foreach ($runs as $run) {
@@ -50,12 +60,7 @@ final class RunQueueTest extends TestCase
 
         foreach ($perTask as $taskId => $combos) {
             sort($combos);
-            $this->assertSame([
-                'fable-1', 'fable-2', 'fable-3', 'fable-4', 'fable-5',
-                'haiku-1', 'haiku-2', 'haiku-3', 'haiku-4', 'haiku-5',
-                'opus-1', 'opus-2', 'opus-3', 'opus-4', 'opus-5',
-                'sonnet-1', 'sonnet-2', 'sonnet-3', 'sonnet-4', 'sonnet-5',
-            ], $combos, "Task {$taskId} missing combinations");
+            $this->assertSame($expected, $combos, "Task {$taskId} missing combinations");
         }
     }
 
