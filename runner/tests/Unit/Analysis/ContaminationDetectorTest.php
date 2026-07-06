@@ -205,4 +205,60 @@ EOT;
         $this->assertFalse($result['contaminated']);
         $this->assertEmpty($result['matches']);
     }
+
+    public function testDoesNotFlagOwnWorktreeUnderPrivateTmp(): void
+    {
+        $markers = [
+            '/opt/homebrew/var/www/cc/llm-dispatch-experiment/tasks',
+            'tasks/ground-truth',
+        ];
+        $detector = new ContaminationDetector($markers);
+
+        // The run workspace lives under /private/tmp on macOS and is legitimate.
+        // This is the critical regression guard against false positives.
+        $transcript = 'find /private/tmp/llm-disp-42/mock-project -name \'*.php\'';
+        $result = $detector->scan($transcript);
+
+        $this->assertFalse($result['contaminated']);
+        $this->assertEmpty($result['matches']);
+    }
+
+    public function testFlagsFindWithFlagsBeforePath(): void
+    {
+        $markers = [];
+        $detector = new ContaminationDetector($markers);
+
+        // find with flags like -H before the host directory path should be caught
+        $transcript = 'find -H /opt -name ground-truth';
+        $result = $detector->scan($transcript);
+
+        $this->assertTrue($result['contaminated']);
+        $this->assertContains('escape:find-hostdir', $result['matches']);
+    }
+
+    public function testFlagsCapitalRGrep(): void
+    {
+        $markers = [];
+        $detector = new ContaminationDetector($markers);
+
+        // grep with capital -R (recursive) should be caught, not just lowercase -r
+        $transcript = 'grep -R "sqli" /opt';
+        $result = $detector->scan($transcript);
+
+        $this->assertTrue($result['contaminated']);
+        $this->assertContains('escape:grep-host', $result['matches']);
+    }
+
+    public function testGrepWithinWorkspaceIsClean(): void
+    {
+        $markers = [];
+        $detector = new ContaminationDetector($markers);
+
+        // grep with recursive flag but targeting local directory (no host-dir path) is clean
+        $transcript = 'grep -rn "query(" src';
+        $result = $detector->scan($transcript);
+
+        $this->assertFalse($result['contaminated']);
+        $this->assertEmpty($result['matches']);
+    }
 }

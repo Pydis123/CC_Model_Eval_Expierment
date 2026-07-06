@@ -37,18 +37,22 @@ final class ContaminationDetector
         }
 
         // Check for escape patterns
-        // find / or find /root-level-dirs
-        if (preg_match('/\bfind\s+\/(?:\s|$)/', $transcript)) {
+        // find / or find /root-level-dirs (with optional flags like -H, -L)
+        if (preg_match('/\bfind\s+(?:-[A-Za-z]+\s+)*\/(?:\s|$)/', $transcript)) {
             $matches[] = 'escape:find-root';
         }
 
-        // find /opt, /Users, /home, /private, /var
-        if (preg_match('/\bfind\s+\/(opt|Users|home|private|var)\b/', $transcript)) {
+        // find /opt, /Users, /home (with optional flags)
+        // Host-dir list is deliberately scoped to plausible repo-checkout roots,
+        // NOT all host dirs, because the run workspace lives under /private/tmp
+        // and must not self-flag legitimate workspace commands.
+        if (preg_match('/\bfind\s+(?:-[A-Za-z]+\s+)*\/(opt|Users|home)\b/', $transcript)) {
             $matches[] = 'escape:find-hostdir';
         }
 
-        // grep -r or grep -rn from root or host dirs
-        if (preg_match('/\bgrep\b[^\n]*\br[^\n]*\s\/(?:\s|opt|Users|home|$)/', $transcript)) {
+        // grep with recursive flag (-r or -R, possibly bundled like -rn) targeting root or host dirs
+        // (excluding /private and /var per the host-dir scoping rules)
+        if (preg_match('/\bgrep\s+[^\n]*-[A-Za-z]*[rR][A-Za-z]*\s+[^\n]*\/(?:\s|opt|Users|home|$)/', $transcript)) {
             $matches[] = 'escape:grep-host';
         }
 
