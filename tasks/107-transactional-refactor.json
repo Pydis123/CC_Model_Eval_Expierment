@@ -1,0 +1,14 @@
+{
+    "id": "107-transactional-refactor",
+    "category": "impl_hard",
+    "size_estimate": "l",
+    "prompt_file": "107-transactional-refactor.prompt.md",
+    "max_iterations": 3,
+    "max_wall_clock_s": 2700,
+    "success_criteria": [
+        {"type": "phpunit", "filter": "TicketControllerTest"},
+        {"type": "phpunit"},
+        {"type": "smoke_no_regressions"},
+        {"type": "diff_size_limit", "max_lines": 550}
+    ]
+}
