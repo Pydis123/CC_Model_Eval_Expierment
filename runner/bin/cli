@@ -7,6 +7,7 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use LlmDispatch\Runner\Analysis\Aggregator;
 use LlmDispatch\Runner\Analysis\BootstrapSimulator;
+use LlmDispatch\Runner\Analysis\ContaminationDetector;
 use LlmDispatch\Runner\Cli\Application;
 use LlmDispatch\Runner\Cli\Command\EvaluateCommand;
 use LlmDispatch\Runner\Cli\Command\PinCheckPingCommand;
@@ -160,6 +161,8 @@ $offlineGate = new OfflineGate($connectivity, $progressLogger, $repoRoot . '/PAU
 
 $claudeVersion = trim((string) shell_exec('claude --version 2>&1'));
 
+$contaminationDetector = new ContaminationDetector([$repoRoot . '/tasks', 'tasks/ground-truth']);
+
 $runNextCommand = new RunNextCommand(
     stateManager: $stateManager,
     resultsLogger: $resultsLogger,
@@ -171,6 +174,7 @@ $runNextCommand = new RunNextCommand(
     claudeVersion: $claudeVersion,
     exportWorktreeManager: $exportWorktreeManager,
     judgeClient: $judgeClient,
+    contaminationDetector: $contaminationDetector,
 );
 
 $environment = [

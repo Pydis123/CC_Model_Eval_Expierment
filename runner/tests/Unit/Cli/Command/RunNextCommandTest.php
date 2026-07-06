@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace LlmDispatch\Runner\Tests\Unit\Cli\Command;
 
+use LlmDispatch\Runner\Analysis\ContaminationDetector;
 use LlmDispatch\Runner\Cli\Command\RunNextCommand;
 use LlmDispatch\Runner\Dispatch\ClaudeCli;
 use LlmDispatch\Runner\Dispatch\ClaudeCliResponse;
@@ -126,6 +127,58 @@ final class RunNextCommandTest extends TestCase
             stopReason: 'end_turn', costUsd: 0.01,
             rateLimit: new RateLimitInfo('allowed', null),
             rawStdout: '', rawStderr: '', exitCode: 0,
+        );
+    }
+
+    private function passingResponseWithTranscript(string $rawStdout): ClaudeCliResponse
+    {
+        return new ClaudeCliResponse(
+            isError: false,
+            resultText: 'ok',
+            modelIdReported: 'claude-haiku-4-5-20251001',
+            inputTokens: 100, outputTokens: 50, durationMs: 5000,
+            stopReason: 'end_turn', costUsd: 0.01,
+            rateLimit: new RateLimitInfo('allowed', null),
+            rawStdout: $rawStdout, rawStderr: '', exitCode: 0,
+        );
+    }
+
+    private function makeCommandWithContaminationDetector(StateManager $state, ClaudeCliResponse $response): RunNextCommand
+    {
+        $executor = $this->stubExecutor();
+
+        $stubPath = $this->worktreeBase . '/llm-disp-run-1';
+        if (!is_dir($stubPath . '/mock-project')) {
+            mkdir($stubPath . '/mock-project', 0777, true);
+        }
+
+        $coordinator = new RunCoordinator(
+            cli: $this->stubCli($response),
+            evaluator: $this->passingEvaluator(),
+            envelopeBuilder: new DispatchEnvelopeBuilder(),
+            failedChecksSummarizer: new FailedChecksSummarizer(),
+            rateLimitWaiter: new RateLimitWaiter(0),
+            sleeper: fn(int $s) => null,
+            now: fn() => 3_000_000_000,
+        );
+
+        $repoRoot = dirname(__DIR__, 5);
+
+        return new RunNextCommand(
+            stateManager: $state,
+            resultsLogger: new ResultsLogger($this->resultsPath),
+            taskPromptLoader: new TaskPromptLoader($this->tasksDir),
+            worktreeManager: new WorktreeManager(
+                $executor,
+                '/fake/repo',
+                $this->worktreeBase,
+                $this->worktreeBase . '/failed',
+                'scaffold_complete',
+            ),
+            coordinator: $coordinator,
+            allowedTools: ['Bash', 'Edit', 'Read', 'Write', 'Glob', 'Grep'],
+            now: fn() => '2026-04-23T14:00:00Z',
+            contaminationDetector: new ContaminationDetector([$repoRoot . '/tasks', 'tasks/ground-truth']),
         );
     }
 
@@ -510,6 +563,38 @@ final class RunNextCommandTest extends TestCase
 
         $row = json_decode(trim((string) file_get_contents($this->resultsPath)), true);
         $this->assertSame('refused_in_band', $row['dispatch_disposition']);
+    }
+
+    public function testFlagsContaminatedRunFromTranscript(): void
+    {
+        $state = $this->seedState();
+        $repoRoot = dirname(__DIR__, 5);
+        $response = $this->passingResponseWithTranscript(
+            'cat ' . $repoRoot . '/tasks/ground-truth/102-security-audit.json',
+        );
+
+        ob_start();
+        $exit = $this->makeCommandWithContaminationDetector($state, $response)->run([]);
+        ob_end_clean();
+
+        $this->assertSame(0, $exit);
+        $row = json_decode(trim((string) file_get_contents($this->resultsPath)), true);
+        $this->assertSame('contaminated', $row['dispatch_disposition']);
+        $this->assertNotEmpty($row['contamination_matches']);
+    }
+
+    public function testCleanTranscriptKeepsNormalDisposition(): void
+    {
+        $state = $this->seedState();
+        $response = $this->passingResponseWithTranscript('ls src; cat src/Foo.php');
+
+        ob_start();
+        $exit = $this->makeCommandWithContaminationDetector($state, $response)->run([]);
+        ob_end_clean();
+
+        $this->assertSame(0, $exit);
+        $row = json_decode(trim((string) file_get_contents($this->resultsPath)), true);
+        $this->assertSame('completed', $row['dispatch_disposition']);
     }
 }
 

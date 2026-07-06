@@ -10,6 +10,7 @@ final class DispatchDisposition
     public const REFUSED = 'refused_in_band';
     public const REROUTED = 'model_rerouted';
     public const ERROR = 'error';
+    public const CONTAMINATED = 'contaminated';
 
     private const REFUSAL_PATTERNS = [
         "/\bi\s+(?:can['']?t|cannot|can not)\s+(?:help|assist)(?:\s+you)?\s+with\b/i",

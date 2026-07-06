@@ -178,6 +178,22 @@ final class AggregatorTest extends TestCase
         (new Aggregator())->aggregate($this->tmpPath, $this->miniConfig());
     }
 
+    public function testExcludesContaminatedDispositionRows(): void
+    {
+        // Write a complete matrix, then add one run with dispatch_disposition="contaminated"
+        $this->writeComplete();
+
+        // Append a contaminated-disposition row for task-a-haiku-1
+        $contaminatedLine = $this->rowLine(['task_id' => 'task-a', 'model_tier' => 'haiku', 'n' => 1]);
+        $contaminatedData = json_decode($contaminatedLine, true, 512, JSON_THROW_ON_ERROR);
+        $contaminatedData['dispatch_disposition'] = 'contaminated';
+        file_put_contents($this->tmpPath, file_get_contents($this->tmpPath) . json_encode($contaminatedData, JSON_THROW_ON_ERROR) . "\n");
+
+        // After dedup, task-a-haiku will only have n=2 (1 run), which is < nReplicates (2)
+        $this->expectException(IncompleteResultsException::class);
+        (new Aggregator())->aggregate($this->tmpPath, $this->miniConfig());
+    }
+
     public function testErrorRowSupersededByRerunStillCounts(): void
     {
         // Build a complete matrix

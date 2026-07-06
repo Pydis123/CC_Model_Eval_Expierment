@@ -75,6 +75,7 @@ final class RunCoordinator
                     evaluation: null,
                     errorCategory: 'claude_cli_is_error',
                     resultText: $response->resultText,
+                    transcript: $response->rawStdout,
                 );
                 return new RunOutcome($iterations, 'error', 'claude_cli_is_error');
             }
@@ -93,6 +94,7 @@ final class RunCoordinator
                     evaluation: null,
                     errorCategory: 'wall_clock_exceeded',
                     resultText: $response->resultText,
+                    transcript: $response->rawStdout,
                 );
                 return new RunOutcome($iterations, 'error', 'wall_clock_exceeded');
             }
@@ -110,6 +112,7 @@ final class RunCoordinator
                 evaluation: $evaluation,
                 errorCategory: null,
                 resultText: $response->resultText,
+                transcript: $response->rawStdout,
             );
 
             if ($evaluation->outcome === 'passed') {

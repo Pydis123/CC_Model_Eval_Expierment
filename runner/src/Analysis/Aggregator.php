@@ -42,10 +42,10 @@ final class Aggregator
             fclose($handle);
         }
 
-        // Filter out rows with dispatch_disposition="error"
+        // Filter out rows with dispatch_disposition="error" or "contaminated"
         $byRunId = array_filter(
             $byRunId,
-            static fn(ResultsRow $row) => $row->dispatchDisposition !== 'error'
+            static fn(ResultsRow $row) => !in_array($row->dispatchDisposition, ['error', 'contaminated'], true)
         );
 
         // Second pass: group by task_id and model_tier

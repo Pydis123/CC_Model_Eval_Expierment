@@ -6,8 +6,10 @@ namespace LlmDispatch\Runner\Cli\Command;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use LlmDispatch\Runner\Analysis\ContaminationDetector;
 use LlmDispatch\Runner\Cli\CommandInterface;
 use LlmDispatch\Runner\Dispatch\DispatchDisposition;
+use LlmDispatch\Runner\Dispatch\IterationOutcome;
 use LlmDispatch\Runner\Dispatch\RunCoordinator;
 use LlmDispatch\Runner\Dispatch\RunOutcome;
 use LlmDispatch\Runner\Execution\TaskPromptLoader;
@@ -36,6 +38,7 @@ final class RunNextCommand implements CommandInterface
         private readonly string $claudeVersion = '',
         private readonly ?ExportWorktreeManager $exportWorktreeManager = null,
         private readonly ?JudgeClient $judgeClient = null,
+        private readonly ?ContaminationDetector $contaminationDetector = null,
     ) {}
 
     public function run(array $args): int
@@ -113,7 +116,10 @@ final class RunNextCommand implements CommandInterface
 
         $totalS = (new DateTimeImmutable($endIso))->getTimestamp() - (new DateTimeImmutable($startIso))->getTimestamp();
 
-        return [
+        $disposition = $this->classifyDisposition($modelId, $outcome);
+        $contamination = $this->scanContamination($outcome);
+
+        $row = [
             'run_id' => $run->runId,
             'task_id' => $run->taskId,
             'model_tier' => $run->modelTier,
@@ -131,14 +137,24 @@ final class RunNextCommand implements CommandInterface
             'timestamp_end' => $endIso,
             'evaluator_details' => $outcome->lastEvaluation()?->toArray() ?? ['outcome' => 'error', 'checks' => []],
             'metrics' => $outcome->lastEvaluation()?->metrics(),
-            'dispatch_disposition' => $this->classifyDisposition($modelId, $outcome),
+            'dispatch_disposition' => $disposition,
             'claude_cli_version' => $this->claudeVersion,
             'error_category' => $outcome->errorCategory,
         ];
+
+        if ($disposition === DispatchDisposition::CONTAMINATED) {
+            $row['contamination_matches'] = $contamination['matches'];
+        }
+
+        return $row;
     }
 
     private function classifyDisposition(string $modelId, RunOutcome $outcome): string
     {
+        if ($this->scanContamination($outcome)['contaminated']) {
+            return DispatchDisposition::CONTAMINATED;
+        }
+
         $disposition = DispatchDisposition::classify($modelId, $outcome);
         if ($disposition !== DispatchDisposition::COMPLETED || !$this->artifactMissing($outcome)) {
             return $disposition;
@@ -159,6 +175,23 @@ final class RunNextCommand implements CommandInterface
             return $disposition;
         }
         return ($verdict['verdict'] ?? '') === 'refusal' ? DispatchDisposition::REFUSED : $disposition;
+    }
+
+    /**
+     * @return array{contaminated: bool, matches: list<string>}
+     */
+    private function scanContamination(RunOutcome $outcome): array
+    {
+        if ($this->contaminationDetector === null) {
+            return ['contaminated' => false, 'matches' => []];
+        }
+
+        $transcript = implode("\n", array_map(
+            static fn(IterationOutcome $it): string => $it->transcript,
+            $outcome->iterations,
+        ));
+
+        return $this->contaminationDetector->scan($transcript);
     }
 
     private function artifactMissing(RunOutcome $outcome): bool
