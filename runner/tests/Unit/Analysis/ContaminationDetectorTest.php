@@ -22,6 +22,7 @@ final class ContaminationDetectorTest extends TestCase
 
         $this->assertTrue($result['contaminated']);
         $this->assertContains('/opt/homebrew/var/www/cc/llm-dispatch-experiment/tasks', $result['matches']);
+        $this->assertContains($transcript, $result['evidence']);
     }
 
     public function testFlagsRelativeGroundTruthFragment(): void
@@ -37,6 +38,7 @@ final class ContaminationDetectorTest extends TestCase
 
         $this->assertTrue($result['contaminated']);
         $this->assertContains('tasks/ground-truth', $result['matches']);
+        $this->assertContains($transcript, $result['evidence']);
     }
 
     public function testFlagsFindRootEscape(): void
@@ -49,6 +51,7 @@ final class ContaminationDetectorTest extends TestCase
 
         $this->assertTrue($result['contaminated']);
         $this->assertContains('escape:find-root', $result['matches']);
+        $this->assertContains($transcript, $result['evidence']);
     }
 
     public function testFlagsFindHostDirEscape(): void
@@ -61,6 +64,7 @@ final class ContaminationDetectorTest extends TestCase
 
         $this->assertTrue($result['contaminated']);
         $this->assertContains('escape:find-hostdir', $result['matches']);
+        $this->assertContains($transcript, $result['evidence']);
     }
 
     public function testCleanNormalAuditTranscript(): void
@@ -81,6 +85,7 @@ EOT;
 
         $this->assertFalse($result['contaminated']);
         $this->assertEmpty($result['matches']);
+        $this->assertEmpty($result['evidence']);
     }
 
     public function testEmptyTranscriptIsClean(): void
@@ -92,6 +97,7 @@ EOT;
 
         $this->assertFalse($result['contaminated']);
         $this->assertEmpty($result['matches']);
+        $this->assertEmpty($result['evidence']);
     }
 
     public function testMatchesDeduplicated(): void
@@ -110,6 +116,8 @@ EOT;
         // The marker should appear exactly once even though it's in the transcript multiple times
         $this->assertSame(1, count($result['matches']));
         $this->assertContains('tasks/ground-truth', $result['matches']);
+        // Each distinct offending line is captured as separate evidence.
+        $this->assertCount(3, $result['evidence']);
     }
 
     public function testFlagsFindUserDirEscape(): void
@@ -260,5 +268,38 @@ EOT;
 
         $this->assertFalse($result['contaminated']);
         $this->assertEmpty($result['matches']);
+    }
+
+    public function testEvidenceCapturesMatchingLines(): void
+    {
+        $markers = ['tasks/ground-truth'];
+        $detector = new ContaminationDetector($markers);
+
+        $cleanLine = 'ls -R src';
+        $offendingLine = 'cat /opt/homebrew/var/www/cc/llm-dispatch-experiment/tasks/ground-truth/102.json';
+        $transcript = $cleanLine . "\n" . $offendingLine;
+
+        $result = $detector->scan($transcript);
+
+        $this->assertTrue($result['contaminated']);
+        $this->assertContains($offendingLine, $result['evidence']);
+        $this->assertNotContains($cleanLine, $result['evidence']);
+    }
+
+    public function testEvidenceLinesAreTruncatedAndDeduplicated(): void
+    {
+        $markers = ['forbidden-marker'];
+        $detector = new ContaminationDetector($markers);
+
+        $longLine = 'cat forbidden-marker/' . str_repeat('x', 400) . '.json';
+        $transcript = $longLine . "\n" . $longLine;
+
+        $result = $detector->scan($transcript);
+
+        $this->assertTrue($result['contaminated']);
+        $this->assertCount(1, $result['evidence'], 'identical offending lines are deduplicated');
+        // Truncated to 300 chars, plus a trailing ellipsis marker.
+        $this->assertSame(301, mb_strlen($result['evidence'][0]));
+        $this->assertStringEndsWith('…', $result['evidence'][0]);
     }
 }

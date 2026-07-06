@@ -596,6 +596,91 @@ final class RunNextCommandTest extends TestCase
         $row = json_decode(trim((string) file_get_contents($this->resultsPath)), true);
         $this->assertSame('completed', $row['dispatch_disposition']);
     }
+
+    private function makeCommandWithContaminationDetectorAndDir(
+        StateManager $state,
+        ClaudeCliResponse $response,
+        string $contaminatedDir,
+    ): RunNextCommand {
+        $executor = $this->stubExecutor();
+
+        $stubPath = $this->worktreeBase . '/llm-disp-run-1';
+        if (!is_dir($stubPath . '/mock-project')) {
+            mkdir($stubPath . '/mock-project', 0777, true);
+        }
+
+        $coordinator = new RunCoordinator(
+            cli: $this->stubCli($response),
+            evaluator: $this->passingEvaluator(),
+            envelopeBuilder: new DispatchEnvelopeBuilder(),
+            failedChecksSummarizer: new FailedChecksSummarizer(),
+            rateLimitWaiter: new RateLimitWaiter(0),
+            sleeper: fn(int $s) => null,
+            now: fn() => 3_000_000_000,
+        );
+
+        $repoRoot = dirname(__DIR__, 5);
+
+        return new RunNextCommand(
+            stateManager: $state,
+            resultsLogger: new ResultsLogger($this->resultsPath),
+            taskPromptLoader: new TaskPromptLoader($this->tasksDir),
+            worktreeManager: new WorktreeManager(
+                $executor,
+                '/fake/repo',
+                $this->worktreeBase,
+                $this->worktreeBase . '/failed',
+                'scaffold_complete',
+            ),
+            coordinator: $coordinator,
+            allowedTools: ['Bash', 'Edit', 'Read', 'Write', 'Glob', 'Grep'],
+            now: fn() => '2026-04-23T14:00:00Z',
+            contaminationDetector: new ContaminationDetector([$repoRoot . '/tasks', 'tasks/ground-truth']),
+            contaminatedDir: $contaminatedDir,
+        );
+    }
+
+    public function testContaminatedRunPersistsTranscriptAndEvidence(): void
+    {
+        $state = $this->seedState();
+        $repoRoot = dirname(__DIR__, 5);
+        $offendingLine = 'cat ' . $repoRoot . '/tasks/ground-truth/102-security-audit.json';
+        $response = $this->passingResponseWithTranscript($offendingLine);
+
+        $contaminatedDir = $this->worktreeBase . '/contaminated';
+
+        ob_start();
+        $exit = $this->makeCommandWithContaminationDetectorAndDir($state, $response, $contaminatedDir)->run([]);
+        ob_end_clean();
+
+        $this->assertSame(0, $exit);
+        $row = json_decode(trim((string) file_get_contents($this->resultsPath)), true);
+        $this->assertSame('contaminated', $row['dispatch_disposition']);
+        $this->assertNotEmpty($row['contamination_evidence']);
+        $this->assertContains($offendingLine, $row['contamination_evidence']);
+
+        $logPath = $contaminatedDir . '/run-1.log';
+        $this->assertFileExists($logPath);
+        $this->assertStringContainsString($offendingLine, (string) file_get_contents($logPath));
+    }
+
+    public function testCleanRunNoTranscriptFile(): void
+    {
+        $state = $this->seedState();
+        $response = $this->passingResponseWithTranscript('ls src; cat src/Foo.php');
+
+        $contaminatedDir = $this->worktreeBase . '/contaminated-clean';
+
+        ob_start();
+        $exit = $this->makeCommandWithContaminationDetectorAndDir($state, $response, $contaminatedDir)->run([]);
+        ob_end_clean();
+
+        $this->assertSame(0, $exit);
+        $row = json_decode(trim((string) file_get_contents($this->resultsPath)), true);
+        $this->assertSame('completed', $row['dispatch_disposition']);
+        $this->assertArrayNotHasKey('contamination_evidence', $row);
+        $this->assertDirectoryDoesNotExist($contaminatedDir);
+    }
 }
 
 /**

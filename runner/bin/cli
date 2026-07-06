@@ -184,6 +184,7 @@ $runNextCommand = new RunNextCommand(
     exportWorktreeManager: $exportWorktreeManager,
     judgeClient: $judgeClient,
     contaminationDetector: $contaminationDetector,
+    contaminatedDir: $repoRoot . '/results/contaminated',
 );
 
 $environment = [

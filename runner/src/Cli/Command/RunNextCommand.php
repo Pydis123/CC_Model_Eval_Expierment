@@ -39,6 +39,7 @@ final class RunNextCommand implements CommandInterface
         private readonly ?ExportWorktreeManager $exportWorktreeManager = null,
         private readonly ?JudgeClient $judgeClient = null,
         private readonly ?ContaminationDetector $contaminationDetector = null,
+        private readonly string $contaminatedDir = '',
     ) {}
 
     public function run(array $args): int
@@ -82,11 +83,21 @@ final class RunNextCommand implements CommandInterface
 
         $runEndIso = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s\Z');
 
-        $this->resultsLogger->append($this->buildRow($claimed, $outcome, $modelId, $runStartIso, $runEndIso));
+        $contamination = $this->scanContamination($outcome);
+        $disposition = $this->classifyDisposition($modelId, $outcome, $contamination);
+
+        $this->resultsLogger->append(
+            $this->buildRow($claimed, $outcome, $modelId, $runStartIso, $runEndIso, $contamination, $disposition),
+        );
+
+        if ($disposition === DispatchDisposition::CONTAMINATED) {
+            $this->persistContaminatedTranscript($claimed->runId, $outcome);
+        }
 
         $this->stateManager->save($this->stateManager->load()->moveToCompleted($claimed->runId));
 
-        $manager->cleanup($claimed->runId, $worktreePath, $outcome->finalOutcome === 'passed');
+        $passed = $outcome->finalOutcome === 'passed' && $disposition !== DispatchDisposition::CONTAMINATED;
+        $manager->cleanup($claimed->runId, $worktreePath, $passed);
 
         if ($outcome->finalOutcome === 'error') {
             return 3;
@@ -94,11 +105,37 @@ final class RunNextCommand implements CommandInterface
         return 0;
     }
 
+    private function persistContaminatedTranscript(string $runId, RunOutcome $outcome): void
+    {
+        if ($this->contaminatedDir === '') {
+            return;
+        }
+
+        if (!is_dir($this->contaminatedDir)) {
+            mkdir($this->contaminatedDir, 0777, true);
+        }
+
+        $transcript = implode("\n", array_map(
+            static fn(IterationOutcome $it): string => $it->transcript,
+            $outcome->iterations,
+        ));
+
+        file_put_contents($this->contaminatedDir . '/' . $runId . '.log', $transcript);
+    }
+
     /**
+     * @param array{contaminated: bool, matches: list<string>, evidence: list<string>} $contamination
      * @return array<string, mixed>
      */
-    private function buildRow(Run $run, RunOutcome $outcome, string $modelId, string $startIso, string $endIso): array
-    {
+    private function buildRow(
+        Run $run,
+        RunOutcome $outcome,
+        string $modelId,
+        string $startIso,
+        string $endIso,
+        array $contamination,
+        string $disposition,
+    ): array {
         $iterations = [];
         foreach ($outcome->iterations as $it) {
             $iterations[] = [
@@ -115,9 +152,6 @@ final class RunNextCommand implements CommandInterface
         }
 
         $totalS = (new DateTimeImmutable($endIso))->getTimestamp() - (new DateTimeImmutable($startIso))->getTimestamp();
-
-        $contamination = $this->scanContamination($outcome);
-        $disposition = $this->classifyDisposition($modelId, $outcome, $contamination);
 
         $row = [
             'run_id' => $run->runId,
@@ -144,13 +178,14 @@ final class RunNextCommand implements CommandInterface
 
         if ($disposition === DispatchDisposition::CONTAMINATED) {
             $row['contamination_matches'] = $contamination['matches'];
+            $row['contamination_evidence'] = $contamination['evidence'];
         }
 
         return $row;
     }
 
     /**
-     * @param array{contaminated: bool, matches: list<string>} $contamination
+     * @param array{contaminated: bool, matches: list<string>, evidence: list<string>} $contamination
      */
     private function classifyDisposition(string $modelId, RunOutcome $outcome, array $contamination): string
     {
@@ -181,12 +216,12 @@ final class RunNextCommand implements CommandInterface
     }
 
     /**
-     * @return array{contaminated: bool, matches: list<string>}
+     * @return array{contaminated: bool, matches: list<string>, evidence: list<string>}
      */
     private function scanContamination(RunOutcome $outcome): array
     {
         if ($this->contaminationDetector === null) {
-            return ['contaminated' => false, 'matches' => []];
+            return ['contaminated' => false, 'matches' => [], 'evidence' => []];
         }
 
         $transcript = implode("\n", array_map(
