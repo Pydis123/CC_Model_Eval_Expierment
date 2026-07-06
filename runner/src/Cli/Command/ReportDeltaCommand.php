@@ -13,6 +13,9 @@ final class ReportDeltaCommand implements CommandInterface
         private readonly string $oldPath,
         private readonly string $newPath,
         private readonly string $outputPath,
+        private readonly string $oldLabel,
+        private readonly string $newLabel,
+        private readonly ?string $footnote = null,
     ) {}
 
     public function run(array $args): int
@@ -24,8 +27,8 @@ final class ReportDeltaCommand implements CommandInterface
             return 2;
         }
 
-        $md = "# Generational delta (v1 → v2)\n\n";
-        foreach (['sonnet', 'opus', 'haiku'] as $tier) {
+        $md = "# Generational delta ({$this->oldLabel} → {$this->newLabel})\n\n";
+        foreach (['sonnet', 'opus', 'haiku', 'fable'] as $tier) {
             $delta = GenerationalDelta::compute($old, $new, $tier);
             if ($delta === []) {
                 continue;
@@ -34,19 +37,24 @@ final class ReportDeltaCommand implements CommandInterface
             $md .= "| Task | Old tok | New tok | Δ% | Old pass | New pass |\n";
             $md .= "|---|--:|--:|--:|--:|--:|\n";
             foreach ($delta as $taskId => $d) {
+                $oldTokensStr = $d['old_tokens'] === null ? 'n/a' : number_format($d['old_tokens'], 0);
+                $deltaPctStr = $d['delta_pct'] === null ? 'n/a' : sprintf('%+.1f%%', $d['delta_pct']);
+                $oldPassStr = $d['old_pass'] === null ? 'n/a' : sprintf('%.0f%%', $d['old_pass'] * 100);
                 $md .= sprintf(
-                    "| %s | %s | %s | %+.1f%% | %.0f%% | %.0f%% |\n",
+                    "| %s | %s | %s | %s | %s | %.0f%% |\n",
                     $taskId,
-                    number_format($d['old_tokens'], 0),
+                    $oldTokensStr,
                     number_format($d['new_tokens'], 0),
-                    $d['delta_pct'],
-                    $d['old_pass'] * 100,
+                    $deltaPctStr,
+                    $oldPassStr,
                     $d['new_pass'] * 100,
                 );
             }
             $md .= "\n";
         }
-        $md .= "> Haiku is the environment-drift control (same model id in v1 and v2).\n";
+        if ($this->footnote !== null) {
+            $md .= "> {$this->footnote}\n";
+        }
 
         file_put_contents($this->outputPath, $md);
         echo "Wrote {$this->outputPath}\n";

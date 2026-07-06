@@ -9,7 +9,7 @@ final class GenerationalDelta
     /**
      * @param list<array<string, mixed>> $oldRows
      * @param list<array<string, mixed>> $newRows
-     * @return array<string, array{old_tokens: float, new_tokens: float, delta_pct: float, old_pass: float, new_pass: float}>
+     * @return array<string, array{old_tokens: float|null, new_tokens: float, delta_pct: float|null, old_pass: float|null, new_pass: float}>
      */
     public static function compute(array $oldRows, array $newRows, string $tier): array
     {
@@ -17,11 +17,18 @@ final class GenerationalDelta
         $new = self::byTask($newRows, $tier);
 
         $result = [];
-        foreach ($old as $taskId => $oldStats) {
-            if (!isset($new[$taskId])) {
+        foreach ($new as $taskId => $newStats) {
+            if (!isset($old[$taskId])) {
+                $result[$taskId] = [
+                    'old_tokens' => null,
+                    'new_tokens' => $newStats['tokens'],
+                    'delta_pct' => null,
+                    'old_pass' => null,
+                    'new_pass' => $newStats['pass'],
+                ];
                 continue;
             }
-            $newStats = $new[$taskId];
+            $oldStats = $old[$taskId];
             $deltaPct = $oldStats['tokens'] > 0.0
                 ? (($newStats['tokens'] - $oldStats['tokens']) / $oldStats['tokens']) * 100.0
                 : 0.0;

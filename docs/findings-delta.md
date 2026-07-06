@@ -1,4 +1,4 @@
-# Generational delta (v1 → v2)
+# Generational delta (v1 → v2.1)
 
 ## sonnet
 
@@ -39,4 +39,17 @@
 | 007-batch-close-rbac | 4,906 | 15,007 | +205.9% | 100% | 100% |
 | 008-comment-composer-alpine | 2,210 | 17,830 | +706.9% | 100% | 100% |
 
-> Haiku is the environment-drift control (same model id in v1 and v2).
+## fable
+
+| Task | Old tok | New tok | Δ% | Old pass | New pass |
+|---|--:|--:|--:|--:|--:|
+| 001-i18n-status-flik | n/a | 21,145 | n/a | n/a | 100% |
+| 002-crud-ticket-tag | n/a | 33,013 | n/a | n/a | 100% |
+| 003-n-plus-one-fix | n/a | 12,367 | n/a | n/a | 100% |
+| 004-sla-deadline-migration | n/a | 18,339 | n/a | n/a | 100% |
+| 005-state-service-refactor | n/a | 11,344 | n/a | n/a | 100% |
+| 006-intermittent-test-bugfix | n/a | 16,870 | n/a | n/a | 100% |
+| 007-batch-close-rbac | n/a | 24,851 | n/a | n/a | 100% |
+| 008-comment-composer-alpine | n/a | 23,940 | n/a | n/a | 100% |
+
+> Haiku is the environment-drift control (same model id in v1 and v2.1).

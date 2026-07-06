@@ -189,6 +189,9 @@ $registry = [
         oldPath: $repoRoot . '/results/results-v1-2026-04.jsonl',
         newPath: $resultsPath,
         outputPath: $repoRoot . '/docs/findings-delta.md',
+        oldLabel: 'v1',
+        newLabel: 'v2.1',
+        footnote: 'Haiku is the environment-drift control (same model id in v1 and v2.1).',
     ),
 ];
 

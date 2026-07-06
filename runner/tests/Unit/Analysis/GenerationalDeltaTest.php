@@ -29,6 +29,26 @@ final class GenerationalDeltaTest extends TestCase
         $this->assertEqualsWithDelta(1.0, $delta['001-x']['new_pass'], 0.01);
     }
 
+    public function testIncludesTasksPresentOnlyInNewRows(): void
+    {
+        $old = [
+            $this->row('001-x', 'sonnet', 'passed', 100),
+        ];
+        $new = [
+            $this->row('001-x', 'fable', 'passed', 100),
+            $this->row('001-x', 'fable', 'passed', 200),
+        ];
+
+        $delta = GenerationalDelta::compute($old, $new, 'fable');
+
+        $this->assertArrayHasKey('001-x', $delta);
+        $this->assertNull($delta['001-x']['old_tokens']);
+        $this->assertNull($delta['001-x']['delta_pct']);
+        $this->assertNull($delta['001-x']['old_pass']);
+        $this->assertEqualsWithDelta(150.0, $delta['001-x']['new_tokens'], 0.01);
+        $this->assertEqualsWithDelta(1.0, $delta['001-x']['new_pass'], 0.01);
+    }
+
     /** @return array<string, mixed> */
     private function row(string $taskId, string $tier, string $outcome, int $tokens): array
     {
