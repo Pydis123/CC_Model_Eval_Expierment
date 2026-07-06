@@ -131,7 +131,7 @@ $runCoordinator = new RunCoordinator(
     envelopeBuilder: new DispatchEnvelopeBuilder(),
     failedChecksSummarizer: new FailedChecksSummarizer(),
     rateLimitWaiter: new RateLimitWaiter(30),
-    sleeper: 'sleep',
+    sleeper: static function (int $s): void { sleep($s); },
     now: 'time',
 );
 
@@ -156,7 +156,7 @@ $errorCounter = new ConsecutiveErrorCounter(5);
 $crashDumper = new CrashDumper($repoRoot . '/results');
 
 $connectivity = new ConnectivityChecker();
-$offlineGate = new OfflineGate($connectivity, $progressLogger, $repoRoot . '/PAUSE', static fn (int $s) => sleep($s));
+$offlineGate = new OfflineGate($connectivity, $progressLogger, $repoRoot . '/PAUSE', static function (int $s): void { sleep($s); });
 
 $claudeVersion = trim((string) shell_exec('claude --version 2>&1'));
 
