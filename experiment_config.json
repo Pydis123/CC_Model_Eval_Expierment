@@ -16,6 +16,7 @@
         "103-code-review",
         "104-multi-tenancy",
         "105-webhook-delivery",
+        "106-bug-no-repro",
         "107-transactional-refactor",
         "108-query-budget-perf"
     ],

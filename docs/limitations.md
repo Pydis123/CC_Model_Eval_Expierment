@@ -292,3 +292,18 @@ cell, 106 was removed from `experiment_config.json` task_ids and its remaining
 queued runs dropped; Batch 1 reports on the other 7 tasks (101-105, 107-108).
 106 is under separate investigation (`.superpowers/sdd/investigation-106-report.md`)
 and can be re-added in a follow-up once the red/green mechanics are confirmed.
+
+## Task 106 re-added after regression-check fix (2026-07-07)
+
+The investigation confirmed the `red_exit=0` failures were a check bug, not
+model performance: `RegressionRedGreenCheck` symlinked the agent's whole
+`vendor/` into the baseline copy, and PHP resolves `__DIR__` through symlinks,
+so Composer's autoload glue and bin proxies loaded the agent's already-fixed
+`src/` during the RED phase. Fixed in commit `42fdcc1` (Composer glue —
+`composer/`, `bin/`, `autoload.php` — is now physically copied; package dirs
+stay symlinked). 106 was restored to `experiment_config.json` task_ids and its
+15 deterministic (tier, n) runs re-queued during a graceful pause of the
+Batch-1 runner. The 6 stale result rows from the broken check remain in
+`results.jsonl` (append-only) but are superseded at aggregation by the re-runs,
+which carry identical deterministic run_ids; the 6 stale entries were dropped
+from `state.json` completed_runs so state totals reflect the 120-run plan.
