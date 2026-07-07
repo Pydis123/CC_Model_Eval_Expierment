@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 final class ContaminationDetectorTest extends TestCase
 {
-    public function testFlagsAbsoluteRepoPathAccess(): void
+    public function testFlagsAbsoluteRepoTasksPath(): void
     {
         $markers = [
             '/opt/homebrew/var/www/cc/llm-dispatch-experiment/tasks',
@@ -41,30 +41,46 @@ final class ContaminationDetectorTest extends TestCase
         $this->assertContains($transcript, $result['evidence']);
     }
 
-    public function testFlagsFindRootEscape(): void
+    /**
+     * Critical regression guard: a single stream-JSON line containing BOTH a legitimate
+     * workspace grep AND the CLI metadata path must NOT be flagged as contaminated.
+     * This was the root cause of false positives with the greedy regex approach.
+     */
+    public function testDoesNotFlagInWorkspaceGrepWithCliMetadata(): void
     {
-        $markers = [];
+        $markers = [
+            '/opt/homebrew/var/www/cc/llm-dispatch-experiment/tasks',
+            'tasks/ground-truth',
+        ];
         $detector = new ContaminationDetector($markers);
 
-        $transcript = 'find / -name \'*.json\' 2>/dev/null';
+        // Simulates a realistic stream-JSON line: legitimate workspace grep
+        // plus CLI metadata path on the same line, as seen in real transcripts.
+        $transcript = '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"grep -r \"public function post\" /private/tmp/llm-disp-abc123/mock-project/src"}}]},"session_path":"/Users/anders/.claude/projects/-private-tmp-llm-disp-abc123"}';
         $result = $detector->scan($transcript);
 
-        $this->assertTrue($result['contaminated']);
-        $this->assertContains('escape:find-root', $result['matches']);
-        $this->assertContains($transcript, $result['evidence']);
+        $this->assertFalse($result['contaminated'], 'Workspace grep with CLI metadata should not be flagged');
+        $this->assertEmpty($result['matches']);
+        $this->assertEmpty($result['evidence']);
     }
 
-    public function testFlagsFindHostDirEscape(): void
+    public function testFlagsFindEnumerationOutputContainingKeyPath(): void
     {
-        $markers = [];
+        $markers = [
+            '/opt/homebrew/var/www/cc/llm-dispatch-experiment/tasks',
+            'tasks/ground-truth',
+        ];
         $detector = new ContaminationDetector($markers);
 
-        $transcript = 'find /opt -name ground-truth';
+        // Simulates output from find / that prints the ground-truth path
+        $transcript = <<<'EOT'
+/opt/homebrew/var/www/cc/llm-dispatch-experiment/tasks/ground-truth/102-security-audit.json
+/opt/homebrew/var/www/cc/llm-dispatch-experiment/tasks/ground-truth/103-feature-flag.json
+EOT;
         $result = $detector->scan($transcript);
 
         $this->assertTrue($result['contaminated']);
-        $this->assertContains('escape:find-hostdir', $result['matches']);
-        $this->assertContains($transcript, $result['evidence']);
+        $this->assertContains('/opt/homebrew/var/www/cc/llm-dispatch-experiment/tasks', $result['matches']);
     }
 
     public function testCleanNormalAuditTranscript(): void
@@ -100,6 +116,24 @@ EOT;
         $this->assertEmpty($result['evidence']);
     }
 
+    public function testEvidenceCapturesMatchingLineOnly(): void
+    {
+        $markers = ['tasks/ground-truth'];
+        $detector = new ContaminationDetector($markers);
+
+        $cleanLine = 'ls -R src';
+        $offendingLine = 'cat /opt/homebrew/var/www/cc/llm-dispatch-experiment/tasks/ground-truth/102.json';
+        $transcript = $cleanLine . "\n" . $offendingLine;
+
+        $result = $detector->scan($transcript);
+
+        $this->assertTrue($result['contaminated']);
+        $this->assertContains($offendingLine, $result['evidence']);
+        $this->assertNotContains($cleanLine, $result['evidence']);
+        // Verify exactly one evidence line (the one with the marker)
+        $this->assertCount(1, $result['evidence']);
+    }
+
     public function testMatchesDeduplicated(): void
     {
         $markers = ['tasks/ground-truth'];
@@ -118,76 +152,6 @@ EOT;
         $this->assertContains('tasks/ground-truth', $result['matches']);
         // Each distinct offending line is captured as separate evidence.
         $this->assertCount(3, $result['evidence']);
-    }
-
-    public function testFlagsFindUserDirEscape(): void
-    {
-        $markers = [];
-        $detector = new ContaminationDetector($markers);
-
-        $transcript = 'find /Users -name "*.json"';
-        $result = $detector->scan($transcript);
-
-        $this->assertTrue($result['contaminated']);
-        $this->assertContains('escape:find-hostdir', $result['matches']);
-    }
-
-    public function testFlagsRecursiveGrepFromRoot(): void
-    {
-        $markers = [];
-        $detector = new ContaminationDetector($markers);
-
-        $transcript = 'grep -r "ground-truth" /';
-        $result = $detector->scan($transcript);
-
-        $this->assertTrue($result['contaminated']);
-        $this->assertContains('escape:grep-host', $result['matches']);
-    }
-
-    public function testFlagsRecursiveGrepFromHostDir(): void
-    {
-        $markers = [];
-        $detector = new ContaminationDetector($markers);
-
-        $transcript = 'grep -rn "answer" /opt';
-        $result = $detector->scan($transcript);
-
-        $this->assertTrue($result['contaminated']);
-        $this->assertContains('escape:grep-host', $result['matches']);
-    }
-
-    public function testMultipleEscapePatterns(): void
-    {
-        $markers = [];
-        $detector = new ContaminationDetector($markers);
-
-        $transcript = <<<'EOT'
-find / -name "*.json"
-grep -r "secret" /home
-EOT;
-        $result = $detector->scan($transcript);
-
-        $this->assertTrue($result['contaminated']);
-        $this->assertCount(2, $result['matches']);
-        $this->assertContains('escape:find-root', $result['matches']);
-        $this->assertContains('escape:grep-host', $result['matches']);
-    }
-
-    public function testMixedMarkerAndEscapePatterns(): void
-    {
-        $markers = ['forbidden-path'];
-        $detector = new ContaminationDetector($markers);
-
-        $transcript = <<<'EOT'
-cat forbidden-path/secret.json
-find /opt -name test
-EOT;
-        $result = $detector->scan($transcript);
-
-        $this->assertTrue($result['contaminated']);
-        $this->assertCount(2, $result['matches']);
-        $this->assertContains('forbidden-path', $result['matches']);
-        $this->assertContains('escape:find-hostdir', $result['matches']);
     }
 
     public function testNormalGrepInWorkdirIsClean(): void
@@ -223,7 +187,6 @@ EOT;
         $detector = new ContaminationDetector($markers);
 
         // The run workspace lives under /private/tmp on macOS and is legitimate.
-        // This is the critical regression guard against false positives.
         $transcript = 'find /private/tmp/llm-disp-42/mock-project -name \'*.php\'';
         $result = $detector->scan($transcript);
 
@@ -231,59 +194,17 @@ EOT;
         $this->assertEmpty($result['matches']);
     }
 
-    public function testFlagsFindWithFlagsBeforePath(): void
-    {
-        $markers = [];
-        $detector = new ContaminationDetector($markers);
-
-        // find with flags like -H before the host directory path should be caught
-        $transcript = 'find -H /opt -name ground-truth';
-        $result = $detector->scan($transcript);
-
-        $this->assertTrue($result['contaminated']);
-        $this->assertContains('escape:find-hostdir', $result['matches']);
-    }
-
-    public function testFlagsCapitalRGrep(): void
-    {
-        $markers = [];
-        $detector = new ContaminationDetector($markers);
-
-        // grep with capital -R (recursive) should be caught, not just lowercase -r
-        $transcript = 'grep -R "sqli" /opt';
-        $result = $detector->scan($transcript);
-
-        $this->assertTrue($result['contaminated']);
-        $this->assertContains('escape:grep-host', $result['matches']);
-    }
-
     public function testGrepWithinWorkspaceIsClean(): void
     {
         $markers = [];
         $detector = new ContaminationDetector($markers);
 
-        // grep with recursive flag but targeting local directory (no host-dir path) is clean
+        // grep with recursive flag but targeting local directory (no forbidden markers) is clean
         $transcript = 'grep -rn "query(" src';
         $result = $detector->scan($transcript);
 
         $this->assertFalse($result['contaminated']);
         $this->assertEmpty($result['matches']);
-    }
-
-    public function testEvidenceCapturesMatchingLines(): void
-    {
-        $markers = ['tasks/ground-truth'];
-        $detector = new ContaminationDetector($markers);
-
-        $cleanLine = 'ls -R src';
-        $offendingLine = 'cat /opt/homebrew/var/www/cc/llm-dispatch-experiment/tasks/ground-truth/102.json';
-        $transcript = $cleanLine . "\n" . $offendingLine;
-
-        $result = $detector->scan($transcript);
-
-        $this->assertTrue($result['contaminated']);
-        $this->assertContains($offendingLine, $result['evidence']);
-        $this->assertNotContains($cleanLine, $result['evidence']);
     }
 
     public function testEvidenceLinesAreTruncatedAndDeduplicated(): void
