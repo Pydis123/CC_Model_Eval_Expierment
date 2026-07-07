@@ -67,3 +67,4 @@ results/runner-crash-*.json
 /results/results.jsonl
 /results/contaminated/
 /results/run-all-phase2.log
+/results/net-keepalive.pid

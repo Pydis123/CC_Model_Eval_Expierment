@@ -279,3 +279,16 @@ transcript), and — as a further check — a run with anomalously perfect recal
 relative to its tier's other tasks is a manual analysis flag. This trades
 prevention for detection, which is appropriate because the evaluated models
 have no incentive to cheat and do not know they are scored.
+
+## Task 106 excluded from the Phase 2 Batch-1 report (2026-07-07)
+
+All 6 completed runs of `106-bug-no-repro` failed the `regression_red_green`
+check identically (`red_exit=0`): the models' regression tests pass on the
+buggy baseline rather than reproducing the reopened-ticket SLA bug. The models
+diagnosed the root cause correctly and their smoke tests passed, so this is a
+systematic check/task issue (or a genuinely hard no-repro regression-test
+task), not model performance. To avoid spending ration on a non-informative
+cell, 106 was removed from `experiment_config.json` task_ids and its remaining
+queued runs dropped; Batch 1 reports on the other 7 tasks (101-105, 107-108).
+106 is under separate investigation (`.superpowers/sdd/investigation-106-report.md`)
+and can be re-added in a follow-up once the red/green mechanics are confirmed.
