@@ -143,10 +143,45 @@ final class RegressionRedGreenCheck implements CheckInterface
         $vendorSource = $worktreePath . '/mock-project/vendor';
         $vendorDest = $rrgDir . '/mock-project/vendor';
         if (is_dir($vendorSource) && !is_link($vendorDest) && !file_exists($vendorDest)) {
-            symlink($vendorSource, $vendorDest);
+            mkdir($vendorDest, 0777, true);
+            // Composer's autoload glue (composer/, autoload.php) and bin proxies
+            // compute paths from __DIR__, which resolves through symlinks to the
+            // agent's real tree; they must physically live under the baseline
+            // copy. Package dirs are safe to symlink.
+            foreach (scandir($vendorSource) ?: [] as $entry) {
+                if ($entry === '.' || $entry === '..') {
+                    continue;
+                }
+                $source = $vendorSource . '/' . $entry;
+                $dest = $vendorDest . '/' . $entry;
+                if ($entry === 'composer' || $entry === 'bin') {
+                    $this->copyRecursive($source, $dest);
+                } elseif ($entry === 'autoload.php') {
+                    copy($source, $dest);
+                } else {
+                    symlink($source, $dest);
+                }
+            }
         }
 
         return null;
+    }
+
+    private function copyRecursive(string $source, string $dest): void
+    {
+        if (is_dir($source)) {
+            if (!is_dir($dest)) {
+                mkdir($dest, 0777, true);
+            }
+            foreach (scandir($source) ?: [] as $entry) {
+                if ($entry === '.' || $entry === '..') {
+                    continue;
+                }
+                $this->copyRecursive($source . '/' . $entry, $dest . '/' . $entry);
+            }
+            return;
+        }
+        copy($source, $dest);
     }
 
     private function removeRecursive(string $target): void
