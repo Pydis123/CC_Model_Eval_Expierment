@@ -58,3 +58,12 @@ Thumbs.db
 worktrees/failed/
 results/runner.log
 results/runner-crash-*.json
+
+# Live campaign runtime state — mutated continuously by run-all; must NOT be
+# git-tracked or a stray git reset/stash/checkout (incl. by a subagent) reverts
+# the running campaign. Final data is archived as a versioned snapshot at the
+# campaign boundary (e.g. results-v2.1-2026-07.jsonl).
+/state.json
+/results/results.jsonl
+/results/contaminated/
+/results/run-all-phase2.log
