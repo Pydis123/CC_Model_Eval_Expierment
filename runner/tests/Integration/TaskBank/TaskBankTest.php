@@ -18,6 +18,12 @@ final class TaskBankTest extends TestCase
         'bugfix_root_cause',
         'route_rbac',
         'frontend_alpine',
+        'plan_review',
+        'security_audit',
+        'code_review',
+        'architecture_decision',
+        'bugfix_no_repro',
+        'impl_hard',
     ];
 
     private const KNOWN_CHECK_TYPES = [
@@ -28,6 +34,9 @@ final class TaskBankTest extends TestCase
         'file_exists',
         'grep_not_present',
         'diff_size_limit',
+        'findings_score',
+        'rubric_score',
+        'regression_red_green',
     ];
 
     private const KNOWN_SIZES = ['xs', 's', 'm', 'l'];
