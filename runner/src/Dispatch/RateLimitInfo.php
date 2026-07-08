@@ -13,6 +13,8 @@ final class RateLimitInfo
 
     public function isBlocked(): bool
     {
-        return $this->status !== 'allowed';
+        // The CLI reports 'allowed_warning' when usage approaches a limit;
+        // requests still succeed, so only a genuinely rejecting status blocks.
+        return $this->status !== 'allowed' && $this->status !== 'allowed_warning';
     }
 }

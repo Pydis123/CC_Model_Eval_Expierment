@@ -141,7 +141,10 @@ $runCoordinator = new RunCoordinator(
     envelopeBuilder: new DispatchEnvelopeBuilder(),
     failedChecksSummarizer: new FailedChecksSummarizer(),
     rateLimitWaiter: new RateLimitWaiter(30),
-    sleeper: static function (int $s): void { sleep($s); },
+    sleeper: static function (int $s): void {
+        fwrite(STDERR, '[' . gmdate('Y-m-d\TH:i:s\Z') . "] rate-limit wait: sleeping {$s}s\n");
+        sleep($s);
+    },
     now: 'time',
 );
 

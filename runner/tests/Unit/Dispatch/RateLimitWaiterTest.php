@@ -46,6 +46,16 @@ final class RateLimitWaiterTest extends TestCase
         $this->assertSame(0, $seconds);
     }
 
+    public function testAllowedWarningIsNotBlockedAndReturnsZero(): void
+    {
+        $waiter = new RateLimitWaiter(bufferSeconds: 30);
+
+        $info = new RateLimitInfo(status: 'allowed_warning', resetsAt: 2_000_035_000);
+
+        $this->assertFalse($info->isBlocked());
+        $this->assertSame(0, $waiter->computeSleepSeconds($info, now: 2_000_000_000));
+    }
+
     public function testBlockedNullResetsAtFallsBackToBuffer(): void
     {
         $waiter = new RateLimitWaiter(bufferSeconds: 30);
