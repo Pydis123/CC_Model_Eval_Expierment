@@ -1145,7 +1145,7 @@
         "php_version": "8.4.19",
         "claude_version": "2.1.200 (Claude Code)",
         "experiment_commit_sha": "72a9ddce9722c082e0d169d19ca924b66f3cf239",
-        "hostname": "Anderss-MacBook-Pro.local",
+        "hostname": "REDACTED",
         "timezone": "Europe/Stockholm"
     }
 }

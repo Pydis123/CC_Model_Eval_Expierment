@@ -14,7 +14,7 @@ namespace LlmDispatch\Runner\Analysis;
  * 1. Greedy problem: The escape regexes used [^\n]* which, on stream-JSON transcript lines
  *    containing both a legitimate workspace command AND CLI metadata, would match across
  *    the JSON boundary (e.g., a line with both "grep -r pattern /private/tmp/.../src" and
- *    the CLI's "/Users/anders/.claude/..." metadata would falsely match escape:grep-host).
+ *    the CLI's "/Users/USERNAME/.claude/..." metadata would falsely match escape:grep-host).
  *
  * 2. Sufficient condition: A genuine answer-key access ALWAYS puts the forbidden path
  *    into the transcript—either via the command itself or in find/ls output. The forbidden

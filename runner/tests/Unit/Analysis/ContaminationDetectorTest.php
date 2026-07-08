@@ -56,7 +56,7 @@ final class ContaminationDetectorTest extends TestCase
 
         // Simulates a realistic stream-JSON line: legitimate workspace grep
         // plus CLI metadata path on the same line, as seen in real transcripts.
-        $transcript = '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"grep -r \"public function post\" /private/tmp/llm-disp-abc123/mock-project/src"}}]},"session_path":"/Users/anders/.claude/projects/-private-tmp-llm-disp-abc123"}';
+        $transcript = '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"grep -r \"public function post\" /private/tmp/llm-disp-abc123/mock-project/src"}}]},"session_path":"/Users/USERNAME/.claude/projects/-private-tmp-llm-disp-abc123"}';
         $result = $detector->scan($transcript);
 
         $this->assertFalse($result['contaminated'], 'Workspace grep with CLI metadata should not be flagged');
