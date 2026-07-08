@@ -2,123 +2,207 @@
 
 ## TL;DR
 
-- **72 dispatches** — 8 coding tasks × 3 model tiers × 3 replicates.
-- **Pass rate:** Haiku 88%, Sonnet 96%, Opus 100%. Opus costs 2–4× the
-  tokens and is 2–7× slower than Haiku.
-- **Haiku is sufficient** for 5 of 8 task categories. Opus is required
-  for 1 of 8 (cross-call-site reasoning, e.g. N+1). 2 of 8 are gray-zone.
-- **Optimal strategy:** 3-tier escalation Haiku → Sonnet → Opus is ~35%
-  cheaper than all-Opus with the same 100% final pass rate.
-- **Biggest finding:** prompt specificity is a larger cost lever than
-  tier choice.
+- **Two task banks, four model tiers** (Haiku, Sonnet, Opus, Fable), N=5
+  replicates each.
+- **Well-specified implementation is a solved problem — full stop.** 8
+  implementation tasks × 4 tiers × 5 runs, and every tier went **5/5 on
+  every task**. Tier choice there is a cost decision, not a quality one.
+  Haiku is ~40% cheaper than Sonnet/Opus for an identical result.
+- **Review and hard reasoning is where it gets interesting.** A second
+  bank of 8 review/analysis tasks actually splits the tiers apart —
+  this is the part worth reading.
+- Haiku nails mechanical review (seeded security-defect finding 5/5, PR
+  code review 5/5) but **fails reasoning-heavy review**: plan/spec
+  review 2/5, query-budget/N+1 analysis 2/5.
+- Sonnet is the workhorse: 5/5 on 7 of 8 review tasks, including both
+  tasks Haiku failed.
+- Opus is the only flawless tier (40/40, zero failures) — but it was
+  **never the sole passer**. No task in this experiment required Opus.
+- Fable has no use case here: it matches Sonnet on cost and quality,
+  and its dual-use safety filters **silently reroute security-adjacent
+  work away from the model** — 100% of security-audit dispatches never
+  ran at all.
+- **Optimal strategy:** escalate Haiku → Sonnet → Opus on failure. ~35%
+  cheaper than defaulting to Opus for everything, same end result.
+- **Biggest lever:** how specific your prompt is beats which tier you
+  pick.
 
 ---
 
-I ran 72 controlled coding tasks against Claude's three model tiers
-(Haiku, Sonnet, Opus) to answer one practical question: **when is it
-worth paying for the more expensive model?**
-
-The result is more interesting than I expected. Short version below.
+I run a controlled experiment dispatching coding and review tasks to
+Claude's model tiers to answer one practical question: **when is it
+worth paying for the more expensive model?** This round adds a second
+task bank — review and reasoning work — on top of the implementation
+bank from the last round, plus a fourth tier (Fable). The result is a
+much sharper picture than before.
 
 ## Setup
 
-- 8 realistic coding tasks in a PHP project (CRUD, refactor, bugfix,
-  migration, i18n, RBAC route, Alpine frontend, N+1 query fix)
-- Each task run 3× on each tier = **72 total dispatches**
-- Mechanical evaluation: tests pass, query budget holds, lint clean,
-  expected files exist
-- Pinned model IDs to catch silent upgrades during the run
-- 3 iterations per dispatch max; if iteration 3 fails, the run fails
+**Bank 1 — implementation** (8 tasks: CRUD, refactor, bugfix,
+migration, i18n, RBAC route, Alpine frontend component, N+1 query fix).
+Each task run 5× on each of 4 tiers. Evaluated mechanically: tests
+pass, query budget holds, expected files exist, diff stays within
+bounds.
 
-## Results
+**Bank 2 — review & hard reasoning** (8 tasks: adversarial plan
+review, seeded-security-defect finding, PR code review, query-budget/
+N+1 reasoning, multi-tenancy architecture decision, webhook-delivery
+architecture decision, a bug with no repro steps, a transactional
+refactor). Each task run 5× on each of 4 tiers. Evaluated three ways
+depending on task shape: mechanical checks (tests, query-count budget,
+a red/green regression gate for the no-repro bug), findings-vs-ground-
+truth precision/recall for the two audit-style tasks, and rubric
+scoring against an anchored 0/1/2 scale (judged by Opus, which is
+pinned and not one of the tiers under test) for the two architecture
+decisions.
 
-| Tier | Pass rate | Tokens (relative to Haiku) | Time (relative to Haiku) |
-|---|:---:|:---:|:---:|
-| **Haiku**  | 21/24 (88%)  | 1× | 1× |
-| **Sonnet** | 23/24 (96%)  | 1.2–1.6× | 1.5–2× |
-| **Opus**   | 24/24 (100%) | 2–4× | 2–7× |
+Pinned exact model IDs throughout to avoid silent upgrades mid-run.
+Max 2 same-tier retries before escalating.
 
-Haiku clears most tasks but **fails systematically on two categories**:
-N+1 optimization (1/3 pass) and multi-file CRUD (2/3 pass). Sonnet
-improves marginally. Opus clears everything — at 2–4× the tokens and
-2–7× the wall-clock.
+## Results — where it gets interesting
 
-## The interesting finding
+Bank 1 was a ceiling: nothing to show but "100% × 4 tiers." Bank 2 is
+the payoff.
 
-On 5 of 8 task categories, Haiku is simply the right choice: it gets
-them on the first try, costs 50–70% less than Opus, and is 3–7× faster.
-Defaulting to Opus "to be safe" is paying 2–4× for capability you don't
-use.
+| Task | Haiku | Sonnet | Opus | Fable |
+|---|:---:|:---:|:---:|:---:|
+| Plan review (adversarial) | **2/5** | 5/5 | 5/5 | 5/5 |
+| Security audit (seeded defects) | 5/5 | 5/5 | 5/5 | rerouted (N=0) |
+| PR code review | 5/5 | 3/5 | 5/5 | 4/4* |
+| Multi-tenancy architecture decision | 5/5 | 5/5 | 5/5 | 5/5 |
+| Webhook-delivery architecture decision | 5/5 | 5/5 | 5/5 | 5/5 |
+| Bug with no repro | 5/5 | 5/5 | 5/5 | 5/5 |
+| Transactional refactor | 5/5 | 5/5 | 5/5 | 5/5 |
+| Query-budget / N+1 reasoning | **2/5** | 5/5 | 5/5 | 3/3* |
 
-On 1 of 8 (N+1 optimization), Haiku is structurally insufficient — the
-task is about reasoning across a query budget spread through the code,
-and the smaller tiers lack the systemic view. This is Opus territory.
+\* Fable didn't reach full N=5 on these two — see Limitations.
 
-On 2 of 8 (multi-file CRUD, bugfix-with-unclear-repro), the work falls
-into a gray zone where iteration matters and Sonnet can be the
-economically winning choice.
+Read the two bolded rows first: **Haiku fails exactly the tasks that
+require holding a lot of reasoning together at once** — auditing a
+plan against its own stated assumptions, and tracing a query budget
+across call sites. Everything else, including finding seeded security
+bugs and reviewing a PR diff, Haiku handles just as well as the bigger
+models.
+
+Sonnet only dips once — code review, 3/5 — and otherwise matches Opus
+exactly.
+
+Opus is the only tier with zero failures across the whole bank. But
+look at the table again: on 7 of the 8 tasks, Sonnet matched it. There
+was never a task where Opus was the *only* model that could do the
+job.
+
+Fable tracks Sonnet everywhere it actually ran — no capability
+advantage anywhere — and its dual-use safety classifiers **silently
+rerouted every single security-audit dispatch** (0 usable
+observations) plus 20% of code-review dispatches. It never refused
+outright; the request just never reached the model as asked. Hard
+rule: **never route security-audit, security-review, or adversarial
+code review to Fable.**
+
+## The two-bank story
+
+1. **Implementation is solved.** If the task is a sequence of explicit
+   edits against a named pattern — i18n, RBAC routes, migrations with
+   a backfill plan, frontend components, bugfixes with a working
+   repro — every tier gets it right, every time. Picking Opus for this
+   is paying 2–4× more tokens for a correctness guarantee you already
+   have with Haiku.
+2. **Review and reasoning is where the tiers actually differ**, and
+   the split isn't "small model bad, big model good" — it's sharper
+   than that. Haiku is genuinely excellent at *mechanical* review
+   (spotting seeded defects, reviewing a diff) and genuinely bad at
+   *reasoning-heavy* review (auditing a plan's own logic, tracing a
+   budget across the codebase). Know which kind of review you're
+   asking for.
+3. **Opus's real value is reliability without task-specific knowledge**
+   — the blind-safe default when you don't know enough about the task
+   to pick a cheaper tier confidently. It is not, on this evidence, a
+   correctness requirement for any of these categories.
 
 ## Practical takeaway
 
-Use the cheapest tier that has a reasonable chance of passing. Escalate
-on failure — retrying the same tier more than twice is wasted spend.
-For varied workloads, **Haiku → Sonnet → Opus** as a 3-tier escalation
-is cheapest in expectation (~35% under all-Opus, same 0% final fail
-rate).
+Pick the cheapest tier with a reasonable chance of passing. Escalate
+on failure — Haiku → Sonnet → Opus — never "just to be safe." That
+escalation chain comes out **~35% cheaper than routing everything to
+Opus**, for the same end-state pass rate. Haiku → Opus, skipping
+Sonnet, is within 5–10% of that and is a simpler mental model if your
+task mix doesn't need the middle rung.
 
-The biggest cost lever isn't tier choice — it's **prompt engineering**.
-A 50-word tightening of a task brief can move work from "needs Opus" to
-"Haiku is fine," saving multiple dollars per dispatch.
+The biggest cost lever still isn't tier choice — it's **how specific
+your prompt is**. A ~50-word tightening that names the pattern, points
+at the existing code to mirror, and specifies the test can turn a
+"needs Opus" task into a "Haiku is fine" task. That's a bigger win
+than any tier upgrade.
 
 ## How to configure CLAUDE.md to leverage this
 
-To put the findings into practice in your own projects — paste the
-following block into `CLAUDE.md` (the project's, or your user-global
-`~/.claude/CLAUDE.md`):
-
 ```markdown
-## Model selection for coding tasks
+## Model selection
 
 Pick the cheapest tier that has a reasonable chance of solving the
-task. Escalate on failure rather than retrying the same tier more
-than twice.
+task. Escalate on failure, never "just to be safe." Max 2 same-tier
+retries before escalating.
 
-- **Haiku** — boilerplate, i18n, migrations with explicit plans,
-  route + RBAC, bugfixes with reproductions, frontend wiring,
-  documented refactors.
-- **Sonnet** — multi-file CRUD, work that requires reading more of
-  the codebase than the task description names. The middle ground.
-- **Opus** — query-budget reasoning (N+1, transactions),
-  architecture, cross-system debugging, security review. Reserve
-  for tasks where it is genuinely needed.
+- **Haiku** — default for well-specified implementation work
+  (i18n, migrations with an explicit backfill plan, RBAC routes,
+  frontend components, bugfixes with a working repro, single-file
+  refactors with a named pattern). Also strong on mechanical review —
+  seeded-defect finding, PR code review. Skip Haiku for reasoning-heavy
+  review (plan/spec review, query-budget/N+1 analysis) — go straight
+  to Sonnet.
+- **Sonnet** — the workhorse for review and analysis, and the
+  escalation tier for implementation. Handles plan review and
+  query-budget reasoning that Haiku can't.
+- **Opus** — top escalation rung and blind-safe default for
+  high-stakes correctness when you can't confidently pick a cheaper
+  tier. Not "just to be safe" by default — reserve it for cases where
+  the cost of being wrong is high.
+- **Fable** — no established use case; matches Sonnet on cost and
+  quality with no advantage. Never route security-audit,
+  security-review, or adversarial code review to it — its safety
+  filters silently reroute those requests away from the model.
 ```
-
-For fuller snippets (cost-bounded projects, PM dispatch policy,
-prompt engineering tips) — see `docs/applying-findings.md` in the
-repo.
 
 ## Limitations
 
-N=3 per cell is too few replicates for proper confidence intervals.
-The mock project is small and has planted anti-patterns. The evaluator
-measures mechanical correctness, not code quality or maintainability.
-Findings apply to single, well-specified tasks — not multi-session work
-or open-ended exploration.
+N=5 per cell is still a small sample — trust patterns that repeat
+across tasks more than any single cell. The mock project is synthetic,
+with planted patterns and anti-patterns; real codebases are messier.
+The evaluator is mechanical (tests, query budgets, findings-vs-ground-
+truth, rubric scoring) — it measures correctness, not taste or
+long-term maintainability. Each task has one frozen prompt; no
+adversarial-prompt robustness was tested.
+
+One honest deviation: Fable didn't reach full N=5 on three Bank 2
+cells. On the security-audit task, all 5 dispatches were silently
+rerouted by Fable's own safety filters — that's not missing data, it
+*is* the measurement (a re-run would only reconfirm the block). On
+code review, 4 of 5 completed cleanly (1 rerouted) and all 4 passed.
+On query-budget reasoning, a usage cap capped it at 3 clean runs, all
+of which passed. None of this changes any conclusion above — Fable was
+never the sole passer on anything and tracked Sonnet everywhere it
+did run, so the tier-separation story is carried entirely by the
+fully-sampled Haiku/Sonnet/Opus columns.
+
+Categories still genuinely unmeasured: security review as human
+judgment (distinct from seeded-defect *finding*, which Haiku and
+Sonnet both nail), architecture decisions beyond the two rubric tasks
+here, cross-system debugging, multi-service transaction reasoning at
+scale, and PM/orchestration work. Opus's value in those categories is
+reasoned, not measured — don't overclaim it.
 
 ## Resources
 
 - Raw data: `results/results.jsonl`
-- Generated report: `docs/findings.md`
-- Per-task analysis: `docs/conclusions.md`
-- Practical application + CLAUDE.md snippets: `docs/applying-findings.md`
-- Cheat sheet: `docs/tier-picker.md`
+- Public summary: `README.md`
+- Implementation-bank report: `docs/archive/findings-v2.1.md`
 - Cost calculator for your own workload:
   `php runner/bin/cost-calculator.php --help`
 
-The entire experiment is deterministically reproducible. Repo:
-[link to repo]
+The entire experiment is deterministically reproducible.
 
 ---
 
-*This is one experiment with limited scope. Use it as an updated mental
-model, not as ground truth.*
+*This is one experiment with limited scope. Use it as an updated
+mental model, not as ground truth.*

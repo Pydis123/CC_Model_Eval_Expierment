@@ -1,171 +1,240 @@
 # Conclusions — Model–task fit
 
-This document is an analytical layer on top of `findings.md`. The numbers
-are there; what follows is *what they mean* for choosing a model tier.
+This document is an analytical layer on top of the raw results. The
+numbers live in `README.md` (public summary) and
+`docs/archive/findings-v2.1.md` (implementation-bank report); per-cell
+Phase 2 numbers are hand-aggregated from `results/results.jsonl`. What
+follows is *what the numbers mean* for choosing a model tier.
 
 All claims here are bound by the constraints in `limitations.md` — most
-importantly `N=3` per cell and the synthetic mock-project. Treat the
+importantly `N=5` per cell and the synthetic mock-project. Treat the
 recommendations as **strong defaults**, not hard rules.
+
+## The central reframe: two banks, two different stories
+
+Earlier versions of this document drew conclusions from a single
+implementation bank at N=3. There are now **two independently-run
+banks at N=5**, and nearly every tier-fit claim below depends on which
+one a task belongs to: **Bank 1 (implementation, tasks 001–008) is a
+ceiling** — every tier passed every task — while **Bank 2 (review &
+hard reasoning, tasks 101–108) is where tiers actually separate**. Read
+the per-task tables with that split in mind rather than looking for one
+universal ranking.
 
 ## TL;DR
 
-1. **Haiku is the right default** for the majority of well-scoped coding
-   tasks. It clears 5 of 8 task types at full pass-rate and at 50–70%
-   lower token cost than Opus.
-2. **Opus is the safety tier**, not the daily driver. It hit 24/24 passes
-   but at 2–4× the tokens and 2–7× the wall-clock of Haiku on tasks
-   where Haiku already passes. Reserve it for tasks Haiku/Sonnet are
-   structurally bad at — typically anything requiring whole-system
-   reasoning.
-3. **Sonnet is rarely the optimal choice in this dataset.** It is almost
-   never the cheapest *and* highest-passing tier on a single task. It
-   shows up as a viable middle ground but loses to Haiku where Haiku
-   suffices, and to Opus where Haiku breaks.
-4. **For tiered escalation, the 3-tier chain (Haiku → Sonnet → Opus) is
-   cheapest in expectation for a varied workload.** Sonnet does catch a
-   useful share of Haiku's misses on the harder task categories. For
-   workloads dominated by tasks where Haiku is reliable (trivial,
-   migration, RBAC, frontend, simple bugfix), the Sonnet step adds cost
-   without proportional benefit and Haiku → Opus is fine.
+1. **Well-specified implementation is solved across all tiers.** Bank 1
+   is a ceiling — pick the cheapest tier that can execute the plan.
+   Haiku's whole-bank mean token spend is ~40% below Sonnet/Opus for an
+   identical outcome (Haiku ~97k vs Sonnet ~156k vs Opus ~163k vs Fable
+   ~162k, summed across all 8 tasks).
+2. **Review and hard reasoning is where tiers actually separate** —
+   that is the entire point of Bank 2, and it's where the interesting
+   decisions live now.
+3. **Haiku** is the default for implementation and also nails
+   *mechanical* review (seeded-security-defect finding 5/5, PR code
+   review 5/5) — but it fails *reasoning-heavy* review: plan/spec
+   review 2/5 and query-budget/N+1 analysis 2/5. For those two
+   categories, skip straight to Sonnet. Haiku follows prompts literally
+   but does not read the codebase proactively — name the patterns
+   explicitly in the prompt.
+4. **Sonnet is the review/analysis workhorse.** 5/5 on 7 of 8 Bank 2
+   tasks, including both categories Haiku failed. It dips only on code
+   review (3/5 — escalate on doubt). On implementation it never beats
+   Haiku's pass rate (ceiling) and costs ~60% more tokens there, but is
+   the correct default escalation tier out of Haiku on both banks.
+5. **Opus passed every Bank 2 cell (40/40, zero failures)** but was
+   **never the sole passer** — Sonnet matched it on 7 of 8 tasks at
+   roughly 15% fewer tokens. No measured task in either bank required
+   Opus. Its demonstrated value is reliability *without* task-specific
+   knowledge: the blind-safe default and top escalation rung, not a
+   correctness requirement. The old "query-budget/N+1 → Opus only" rule
+   is retired — Sonnet went 5/5 on that task too.
+6. **Fable has no dispatch case.** It matches Sonnet on both cost and
+   quality everywhere it ran cleanly, with no measured advantage. Its
+   dual-use safeguards also **silently reroute security-adjacent
+   dispatches**: 100% rerouted on the security-audit task (zero usable
+   observations), 20% on code review. **Hard rule: never route
+   security-audit, security-review, or adversarial code review to
+   Fable.** Sonnet dominates it on every axis that matters for dispatch
+   (equal cost, equal quality, no reroute risk).
 
 ## Per-task-type recommendation
 
-Each row below names a task category from the task bank, the structural
-property that drives tier choice, the recommended primary tier, and a
-fallback if the primary fails. "Primary" means: dispatch here first.
-"Fallback" means: if evaluator rejects, escalate here.
+"Primary" means: dispatch here first. "Fallback" means: if the
+evaluator rejects, escalate here. For Bank 1, every tier passes every
+task — "Primary" reflects the cheapest tier for an identical result,
+not a correctness bet.
 
-| Category (example task) | Structural property | Primary | Fallback |
+### Bank 1 — implementation (ceiling)
+
+| Category (task) | Structural property | Primary | Fallback |
 |---|---|---:|---:|
-| Trivial i18n / locale (001) | One-line schema, repetitive, plan spells out exactly what to write | **Haiku** | Sonnet |
-| CRUD addition (002) | Multiple files, model + repo + route + view + tests | **Sonnet** | Opus |
-| Query optimization / N+1 (003) | Requires reasoning across ORM call sites and one query budget | **Opus** | — |
-| Migration + backfill (004) | Mechanical SQL with a backfill path, plan is explicit | **Haiku** | Sonnet |
-| Service-extract refactor (005) | Whole-class restructure, state machine to be moved | **Haiku** | Sonnet |
-| Bugfix root-cause (006) | Reproduce intermittent failure, identify cause, write regression test | **Haiku** | Opus |
-| Route + RBAC (007) | Add a route, wire authorization, return correct status codes | **Haiku** | Sonnet |
-| Frontend Alpine.js component (008) | Composer with submit handler + state | **Haiku** | Sonnet |
+| i18n / locale (001) | One-line schema, repetitive, plan spells out exactly what to write | **Haiku** | Sonnet |
+| CRUD addition — ticket tags (002) | Multiple files, model + repo + route + view + tests | **Haiku** | Sonnet |
+| N+1 query fix (003) | ORM call-site fix against an explicit plan | **Haiku** | Sonnet |
+| Migration + backfill, SLA deadline (004) | Mechanical SQL with an explicit backfill path | **Haiku** | Sonnet |
+| State-service refactor (005) | Whole-class restructure, explicit target shape | **Haiku** | Sonnet |
+| Intermittent-test bugfix (006) | Reproduce failure, identify cause, write regression test — plan gives the repro | **Haiku** | Sonnet |
+| RBAC route, batch close (007) | Add a route, wire authorization, correct status codes | **Haiku** | Sonnet |
+| Alpine.js frontend component (008) | Composer with submit handler + state | **Haiku** | Sonnet |
 
-The single category where Haiku is *not* the right primary in this dataset
-is **query optimization (N+1)**, where Haiku passed only 1/3 attempts
-(33%). Sonnet did better at 2/3 (67%) but still left a one-in-three risk.
-Only Opus hit 3/3.
+Every row above passed 5/5 on every tier. There is no per-task tier-fit
+signal left in Bank 1 to differentiate primaries — the fallback exists
+only as an escalation reflex if a *specific* dispatch fails for
+non-tier reasons (bad prompt, flaky environment), never because Haiku
+is structurally weak on the task type.
+
+### Bank 2 — review & hard reasoning (tiers separate)
+
+| Category (task) | Haiku | Sonnet | Opus | Fable | Primary | Fallback |
+|---|---:|---:|---:|---:|---:|---:|
+| Plan review, adversarial (101) | 2/5 | 5/5 | 5/5 | 5/5 | **Sonnet** | Opus |
+| Security audit, seeded defects (102) | 5/5 | 5/5 | 5/5 | N=0 (100% rerouted) | **Haiku** | Sonnet — never Fable |
+| Code review, PR diff (103) | 5/5 | 3/5 | 5/5 | 4/4 (20% rerouted) | **Haiku** | Opus (skip Sonnet — it dips) |
+| Multi-tenancy, architecture decision (104) | 5/5 | 5/5 | 5/5 | 5/5 | **Haiku** | Sonnet |
+| Webhook delivery, architecture decision (105) | 5/5 | 5/5 | 5/5 | 5/5 | **Haiku** | Sonnet |
+| Bug with no repro (106) | 5/5 | 5/5 | 5/5 | 5/5 | **Haiku** | Sonnet |
+| Transactional refactor (107) | 5/5 | 5/5 | 5/5 | 5/5 | **Haiku** | Sonnet |
+| Query-budget / N+1 perf reasoning (108) | 2/5 | 5/5 | 5/5 | 3/3 | **Sonnet** | Opus |
+
+The two rows where Haiku is *not* the right primary — 101 (plan
+review) and 108 (query-budget reasoning) — are exactly the two
+categories flagged in the TL;DR as reasoning-heavy. Everywhere else in
+Bank 2, Haiku matches the top tiers on a mechanical-finding or
+mechanical-verification task. Fable never appears as a primary or sole
+fallback: it tracks Sonnet where it ran cleanly and carries the reroute
+risk described above, so it earns no dispatch case even on tasks where
+its clean-run numbers look fine.
 
 ## Where the data is decisive — and where it isn't
 
 ### Decisive findings (pattern is robust within the dataset)
 
-- **Trivial / mechanical tasks favor Haiku heavily.** Tasks 001, 004, 007,
-  008 all show Haiku passing on a single iteration with token usage 50–60%
-  below Opus. The wall-clock advantage is even larger (3–7×). For tasks
-  where the plan can be spelled out in advance, paying for a higher tier
-  is paying for capability you don't need.
-- **Opus is consistently the slowest tier in wall-clock**, even on tasks
-  it nails on iteration 1. Token usage and time are correlated — more
-  internal "thinking" per token. If end-to-end latency matters more than
-  raw token cost, Opus is *more* expensive than its sticker price implies.
-- **N+1 query reasoning breaks the smaller tiers.** Task 003 is the only
-  task category where Haiku is structurally unreliable. The pattern in
-  iterations is telling: Haiku had one run that passed in 1 iteration and
-  two that maxed at 3 iterations and failed. Same pattern for Sonnet.
-  This is "hit or miss" — when the tier sees the right pattern, it solves
-  it fast; when it doesn't, more retries don't help. That is a tier-fit
-  problem, not a retry budget problem.
+- **Bank 1's ceiling is total.** 40/40 on every tier means tier choice
+  in implementation work is a pure cost decision.
+- **Bank 2 separates on reasoning depth, not task domain.** Haiku's two
+  failures (101, 108) both require synthesizing information beyond
+  what's locally visible in a diff or file; its five clean passes
+  (102–107) show it handles well-specified *finding* or *verification*
+  work just fine — it's open-ended synthesis that breaks it.
+- **Opus's perfect record never bought it exclusivity.** 40/40 with
+  zero failures, but Sonnet matched it on 7 of 8 Bank 2 tasks at lower
+  cost — evidence for Opus as the reliable top rung, not as a tier any
+  specific task requires.
+- **Fable's safeguard interference is a measured liability, not a
+  theoretical one.** 100% reroute on security-audit and 20% on code
+  review are hard numbers from actual dispatch attempts.
 
 ### Indecisive findings (could go either way)
 
-- **Sonnet's place in the hierarchy.** Sonnet is token-cheapest on tasks
-  001, 003, 004 — but on 001 and 004 the difference vs Haiku is small
-  enough that Haiku's wall-clock advantage swamps it. On 003, Sonnet's
-  win is real but still leaves a 33% failure rate. With more tasks in the
-  bank we'd see whether Sonnet has a true sweet spot or is always the
-  "second best at everything" tier in this dispatch pattern.
-- **Refactor task (005)** is the only task where Opus is *cheapest* in
-  tokens. The margin is tiny (3% under Sonnet, 3% under Haiku), and the
-  iteration counts suggest Opus picks the right approach immediately
-  while Haiku/Sonnet try a less-fit approach first and have to redo. With
-  larger refactors than this one, that effect could grow — but we don't
-  have data on larger refactors.
+- **Sonnet's 3/5 on code review (103)** is the one dip in an otherwise
+  clean record — real enough to escalate on doubt, but whether it's a
+  structural weakness or noise at N=5 isn't resolved here.
+- **Fable's true capability on security-audit (102) is unmeasurable by
+  construction.** All 5 dispatches were rerouted before producing
+  usable output (N=0) — that's not missing data, it *is* the
+  measurement. Its narrower cells on 103 (N=4) and 108 (N=3) don't
+  change any conclusion — Fable was never the sole passer anywhere it
+  ran, and never beats Sonnet on the dispatch decision even where it
+  cleared cleanly.
+- **Architecture-decision tasks (104, 105) are graded by an Opus judge,
+  and Opus is also one of the tiers under test** — both pinned to the
+  same model ID. A same-model grading bias on rubric tasks where Opus
+  participates is not something this dataset can rule out.
 
-## What iteration count tells us
+## What the N=5 replicate structure tells us
 
-`iterations_used` (1, 2, or 3 in this experiment, capped at 3 by Policy A)
-is a useful signal beyond the binary pass/fail.
+The current banks score pass/fail across five independent dispatches
+per cell rather than tracking iteration counts within a single capped
+run (the old Policy A/B framing with `max_iterations ≤ 3` no longer
+describes how these two banks are scored). The signal that survives is
+simpler: a cell's pass count out of 5 *is* the tier-fit measurement.
 
-- **iter=1**: tier got it right first try. This is the cheap regime.
-- **iter=2**: tier needed the failed-checks feedback to correct course.
-  Almost always cheaper than escalating to a higher tier, *but* it
-  doubles wall-clock.
-- **iter=3** ending in fail: this is the wasteful regime. Three full
-  dispatches' worth of tokens and time, no result. This pattern is
-  strongest on Haiku-task-002 (3,2,3) and on the failing Haiku/Sonnet
-  runs of task-003 (1,3,3). When the tier is structurally a poor fit,
-  retries don't rescue it — they amplify the loss.
+- **5/5** is a clean pass — no ambiguity about tier fit for that task.
+- **2/5** (Haiku on 101 and 108) is not "occasionally unlucky" — with
+  five independent attempts, a task that a tier gets right less than
+  half the time is a genuine capability gap, not sampling noise.
+- Read against the escalation policy: **max 2 attempts on the same
+  tier per task before escalating** — a tier that hasn't passed by the
+  second same-tier attempt is close to a coin flip on the third, and
+  should escalate rather than retry a third time. Cells like 101 and
+  108 are exactly what "structurally a poor fit" looks like at the
+  pass-count level: retries within a tier don't rescue it, escalating
+  to the next tier does (Sonnet clears both at 5/5).
 
-**Practical rule:** if a tier hits iteration 2 on a task category, that
-category is on the boundary of its competence. Hitting iteration 3 means
-the task is past its competence and the next dispatch should escalate,
-not retry.
+## The economics of escalation
 
-## The economics of Policy A vs Policy B
+The escalation chain **Haiku → Sonnet → Opus, escalating only on
+failure**, is cheapest in expectation for a varied workload — roughly
+**35% under an all-Opus baseline**. Skipping Sonnet (**Haiku → Opus**)
+lands within **~5–10%** of the three-tier chain and is a simpler mental
+model; which one fits depends on how much of the workload looks like
+Bank 2's reasoning-heavy tasks (where Sonnet earns its slot by catching
+Haiku's misses) versus Bank 1-style implementation work.
 
-Numbers from `findings.md`:
+**Bank 1 makes this escalation math trivial.** With every tier passing
+every implementation task, the "escalate on failure" branch almost
+never fires there — the only lever left is picking the cheapest tier
+up front (Haiku).
 
-- **Policy A, all-Opus baseline:** sum of Opus mean tokens across the 8
-  tasks ≈ 167,000 tokens. Pass rate 24/24.
-- **Policy A, all-Haiku baseline:** sum of Haiku mean tokens ≈ 83,000
-  tokens. Pass rate 21/24 (3 failures across two task categories).
-- **Policy B simulated (Haiku → Sonnet → Opus):** mean 107,000 tokens
-  per experiment run, 0% probability of all three tiers failing.
-
-Policy B sits between the two Policy A baselines, as expected. Compared
-to all-Opus, it saves ~36% in expected tokens at the cost of variance
-(95% CI 58k–185k). Compared to all-Haiku, it adds ~30% to expected
-tokens but eliminates the 12% raw failure rate.
-
-A **Haiku → Opus** Policy B (skipping Sonnet) is ~7% more expensive in
-expectation for a uniform workload mix. Sonnet earns its slot mainly on
-the harder task categories (002, 003) where it catches a non-trivial
-share of Haiku's misses. For workloads with few hard tasks, Haiku → Opus
-is essentially equivalent and gives a cleaner mental model.
+**The interesting escalation economics live entirely in Bank 2.** Two
+of eight tasks (101, 108) need the Haiku → Sonnet step to avoid a
+roughly 60% failure rate at the first tier; the other six clear at
+Haiku and would pay Sonnet's ~60%+ token premium for nothing. A
+workload-aware policy — Haiku default, Sonnet-first only for tasks
+resembling plan review or cross-cutting performance reasoning — beats a
+uniform three-tier chain applied blindly to every review task.
 
 ## What this dataset cannot conclude
 
-- **Real-codebase tasks vs mock-project tasks.** The mock project is
-  small, has planted anti-patterns at a known density, and has a
-  predictable test surface. Real codebases vary wildly. Findings here
-  generalize cautiously.
-- **Multi-session work.** Every task here was bounded by `max_iterations
-  ≤ 3` and `max_wall_clock_s ≤ 900`. Anything that would need an hour-long
-  session, multiple plan/execute/review loops, or cross-PR coordination
-  is outside the data.
-- **Code quality.** The evaluator is mechanical — it checks tests pass,
-  query counts hold, files exist, lints clean. None of that catches
-  ugly-but-passing code, security issues, or architectural mistakes that
-  pass the gates. Tier choice may have a quality dimension this
-  experiment does not measure.
-- **Prompt sensitivity.** Each task has one frozen prompt. We don't know
-  whether a slightly different phrasing would shift Haiku's failure rate
-  on tasks 002/003 to zero or to two-thirds.
-- **Tier behavior under adversarial conditions.** Distractor instructions,
-  partial information, ambiguous specs — none of these are tested.
-  Findings reflect "task description is honest and complete."
+- **Security review as human judgment.** The seeded-defect *finding*
+  task (102) is measured (Haiku/Sonnet both clear it) — but open-ended
+  security review as a judgment call, distinct from spotting planted
+  defects against a known list, remains unmeasured.
+- **Architecture decisions beyond the two rubric tasks (104, 105).**
+  Both hit ceiling, but that's two data points in one direction — it
+  says nothing about architecture work with more genuine ambiguity.
+- **Cross-system debugging and multi-service transaction reasoning at
+  scale.** Task 107 touches this territory but at a scope small enough
+  to hit ceiling.
+- **PM / orchestration work, multi-session work, cross-repo work.**
+  Every task in both banks is a single bounded dispatch.
+- **Prompt sensitivity and adversarial robustness.** Each task has one
+  frozen prompt. We don't know whether different phrasing would shift
+  Haiku's 2/5 on 101 or 108 toward 5/5 or toward 0/5.
+- **Code and decision quality beyond the evaluator's rubric.** The
+  mechanical, findings-scored, and rubric-scored evaluators (the last
+  an Opus judge against an anchored 0/1/2 scale) don't fully stand in
+  for a human reviewer's judgment on elegance, architectural
+  defensibility, or security reasoning that doesn't reduce to a
+  checklist.
+- **N=5 is still small.** Trust cross-task patterns over any single
+  cell's exact count.
 
 ## The one strong qualitative claim
 
-The cleanest cross-task signal in the data is this:
+The cleanest cross-task signal in the data, now sharper with two banks
+instead of one:
 
-> Higher tier doesn't mean better outcome — it means **more tolerance
-> for ambiguity in the task description** and **better reasoning across
-> non-local code**.
+> **Prompt specificity is a bigger lever on outcome than tier choice.**
+> Higher tiers don't win by being smarter in the abstract — they win
+> on tasks where the work requires synthesizing information the prompt
+> didn't hand over explicitly.
 
-Tasks where the plan is explicit and the work is local (i18n, migration,
-RBAC, frontend, refactor, bugfix-with-repro) are *Haiku territory*.
-Tasks where the work crosses ORM/query boundaries or requires the tier
-to discover the right structure (N+1, complex CRUD with cross-cutting
-concerns) are where higher tiers earn their cost.
+Bank 1 is the clean demonstration: when a task's plan is an explicit
+sequence of edits, tier stops mattering at all — Haiku matches Opus
+100% of the time. Bank 2 shows the same mechanism from the other side:
+Haiku's two failures (101, 108) require reasoning beyond what's locally
+visible — cross-cutting adversarial review, a query-budget analysis
+spanning ORM call sites — while its five clean passes (102–107) are
+still locally scoped and checkable against explicit criteria, however
+serious the ask.
 
-When you write the dispatch prompt, the choice of tier is downstream of
-how completely the prompt specifies the work. A prompt-engineering
-investment can shift a task from "needs Opus" to "Haiku is fine." That
-is the practical lever this experiment surfaces.
+The practical lever is the one this project has argued from the start:
+a prompt that names the pattern, points at the specific files in play,
+and specifies what "done" looks like can move a task from "needs
+Sonnet or Opus" to "Haiku is fine" — cheaper than paying a tier
+premium on every dispatch of that category. Bank 2's two Haiku
+failures are the sharpest test of that claim yet, and it remains
+untested: the frozen-prompt limitation above is exactly why.
