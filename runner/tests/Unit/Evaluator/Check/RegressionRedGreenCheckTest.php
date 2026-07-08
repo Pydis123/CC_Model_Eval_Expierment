@@ -160,6 +160,10 @@ final class RegressionRedGreenCheckTest extends TestCase
                     $this->assertFalse(is_link($cwd . '/vendor/bin'));
                     $this->assertTrue(is_file($cwd . '/vendor/bin/phpunit'));
                     $this->assertFalse(is_link($cwd . '/vendor/bin/phpunit'));
+                    $this->assertTrue(
+                        is_executable($cwd . '/vendor/bin/phpunit'),
+                        'copied bin proxy must keep its executable bit',
+                    );
                     // Package dirs should still be symlinked to the agent's real tree
                     $this->assertTrue(is_link($cwd . '/vendor/psr'));
                     $this->assertSame(
@@ -216,6 +220,7 @@ final class RegressionRedGreenCheckTest extends TestCase
             $dir . '/mock-project/vendor/bin/phpunit',
             "<?php\n// phpunit stub\n",
         );
+        chmod($dir . '/mock-project/vendor/bin/phpunit', 0755);
         file_put_contents(
             $dir . '/mock-project/vendor/psr/log/LoggerInterface.php',
             "<?php\ninterface LoggerInterface {}\n",

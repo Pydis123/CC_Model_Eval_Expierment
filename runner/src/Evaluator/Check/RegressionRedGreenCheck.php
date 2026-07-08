@@ -182,6 +182,8 @@ final class RegressionRedGreenCheck implements CheckInterface
             return;
         }
         copy($source, $dest);
+        // copy() does not preserve the executable bit; bin proxies must stay runnable.
+        chmod($dest, fileperms($source) & 0777);
     }
 
     private function removeRecursive(string $target): void
