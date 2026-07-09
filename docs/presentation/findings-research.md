@@ -1,6 +1,5 @@
 # Tier-fit in subagent dispatch: a controlled experiment on Claude Haiku, Sonnet, Opus, and Fable across implementation and review tasks
 
-**Author:** Anders Hydén
 **Date:** April 2026 (data recalibrated July 2026 — see Deviations, §5)
 **Repo:** llm-dispatch-experiment (commit at run completion)
 
