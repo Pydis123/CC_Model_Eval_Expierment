@@ -30,16 +30,20 @@ else
   fail "claude CLI not found at $CLAUDE_BIN"
 fi
 
-# 3. Model pinning: all four tiers pinned to sane-looking ids
+# 3. Model pinning: every tier the config plans for is pinned to a sane id
 PIN_STATUS=$(php -r '
-  $s = json_decode(@file_get_contents("state.json"), true);
-  foreach (["haiku", "sonnet", "opus", "fable"] as $tier) {
+  $statePath = getenv("LLM_DISPATCH_STATE_PATH") ?: "state.json";
+  $s = json_decode(@file_get_contents($statePath), true);
+  $c = json_decode(@file_get_contents("experiment_config.json"), true);
+  $tiers = $c["tiers"] ?? [];
+  if ($tiers === []) { echo "no-tiers-in-config"; exit; }
+  foreach ($tiers as $tier) {
     $id = $s["pinned_models"][$tier] ?? "";
     if (!preg_match("/^claude-[a-z0-9.-]+$/", $id)) { echo "bad:$tier"; exit; }
   }
   echo "ok";')
 if [ "$PIN_STATUS" = "ok" ]; then
-  ok "pinned_models: all four tiers pinned"
+  ok "pinned_models: every config tier pinned"
 else
   fail "pinned_models invalid ($PIN_STATUS) — run state pin-models"
 fi
