@@ -33,8 +33,9 @@ fi
 # 3. Model pinning: every tier the config plans for is pinned to a sane id
 PIN_STATUS=$(php -r '
   $statePath = getenv("LLM_DISPATCH_STATE_PATH") ?: "state.json";
+  $configPath = getenv("LLM_DISPATCH_CONFIG_PATH") ?: "experiment_config.json";
   $s = json_decode(@file_get_contents($statePath), true);
-  $c = json_decode(@file_get_contents("experiment_config.json"), true);
+  $c = json_decode(@file_get_contents($configPath), true);
   $tiers = $c["tiers"] ?? [];
   if ($tiers === []) { echo "no-tiers-in-config"; exit; }
   foreach ($tiers as $tier) {

@@ -64,8 +64,9 @@ $repoRoot = dirname(__DIR__, 2);
 
 $statePath = getenv('LLM_DISPATCH_STATE_PATH') ?: $repoRoot . '/state.json';
 $resultsPath = getenv('LLM_DISPATCH_RESULTS_PATH') ?: $repoRoot . '/results/results.jsonl';
+$configPath = getenv('LLM_DISPATCH_CONFIG_PATH') ?: $repoRoot . '/experiment_config.json';
 
-$config = Config::fromFile($repoRoot . '/experiment_config.json');
+$config = Config::fromFile($configPath);
 $stateManager = new StateManager($statePath);
 $resultsLogger = new ResultsLogger($resultsPath);
 $runQueue = new RunQueue($config);
