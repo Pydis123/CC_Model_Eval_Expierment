@@ -1,0 +1,27 @@
+{
+    "schema_version": 1,
+    "experiment_name": "llm-dispatch-v3-102escalation",
+    "plan_seed": 42,
+    "n_replicates": 10,
+    "max_iterations_per_run": 3,
+    "max_wall_clock_seconds": 1800,
+    "tiers": [
+        "opus5"
+    ],
+    "task_ids": [
+        "102-security-audit"
+    ],
+    "judge_model": "claude-opus-4-8",
+    "pinned_models": {
+        "opus5": null
+    },
+    "policy": "retry-only",
+    "db": {
+        "host": "127.0.0.1",
+        "port": 3307,
+        "database": "ticket_system",
+        "user": "ticket_app",
+        "password": "ticket_app_pw"
+    },
+    "comment": "Pre-registered rule-2 escalation: the v3 bank flagged 1/5 model_rerouted on 102 (Opus 5's opus-4-8 safety handoff on the real security-audit task). N=10 measures how often the handoff fires on 102 and whether it ever drops recall below the pass threshold. Separate results file keeps the canonical N=5 bank cell clean."
+}
