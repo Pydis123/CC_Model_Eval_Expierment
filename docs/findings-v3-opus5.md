@@ -22,16 +22,28 @@ evaluator itself does not drift between the Phase 2 baseline and this campaign.
 Opus 5 on the four discriminating tasks, N=5, vs the archived Phase 2 Opus 4.8
 baseline:
 
-| Task | Opus 5 (v3) | Opus 4.8 (Phase 2) | tokens/run Δ |
+| Task | Opus 5 (v3) | Opus 4.8 (Phase 2) | output tok/run Δ |
 |---|---|---|---|
-| 101 plan-review | **5/5**, recall 1.00 | 5/5, recall 1.00 | +0% |
-| 102 security-audit | **5/5**, recall 0.75–0.83 (1/5 handoff-flag) | 5/5, recall 0.80 | +13% |
-| 103 code-review | **5/5**, recall 0.90 | 5/5, recall 0.80 | +10% |
-| 108 query-budget/N+1 | **5/5** | 5/5 | **−27%** |
+| 101 plan-review | **5/5**, recall 1.00 | 5/5, recall 1.00 | +23% |
+| 102 security-audit | **5/5**, recall 0.75–0.83 (1/5 handoff-flag) | 5/5, recall 0.80 | +52% ⚠️ confounded |
+| 103 code-review | **5/5**, recall 0.90 | 5/5, recall 0.80 | +53% |
+| 108 query-budget/N+1 | **5/5** | 5/5 | −19% |
 
 **Opus 5 matches Opus 4.8's ceiling: 20/20, every cell 5/5.** No regression on
-any cell. Quality is equal-or-slightly-better (103 recall 0.90 vs 0.80), and on
-the hardest reasoning task (108) Opus 5 used **27% fewer tokens** (38k vs 52k).
+any cell. Quality is equal-or-slightly-better (103 recall 0.90 vs 0.80).
+
+**On tokens, the honest read is "roughly flat, not cheaper."** Output tokens are
+the only cache-independent metric (the runner records non-cache tokens only, so
+`input` is mostly cache noise). Across the three clean tasks the net is **+2%**
+(72.1k → 73.4k) — redistributed, not saved: Opus 5 is more verbose on light
+review (101 +23%, 103 +53%) and more efficient on the one heavy-reasoning task
+(108 −19%). Caveats: **102 is excluded** from token claims (the opus-4-8 handoff
+authors part of the output); the 108 gain is **directionally solid but fuzzy in
+magnitude** (N=5 variance is large — 4.8 spanned 31k–72k — and the Haiku same-id
+drift control drifted +12% on 108, vs −1% on 101); and it is unknown whether
+reasoning/thinking tokens are counted identically across the CLI-version gap. A
+prior "−27% on 108" framing (total in+out) was accurate but selective — it named
+the one winning cell and omitted that Opus 5 used *more* on the others.
 
 ### Environment-drift control (makes the comparison valid)
 
