@@ -26,7 +26,7 @@ require __DIR__ . '/../vendor/autoload.php';
 use LlmDispatch\Runner\Dispatch\DispatchDisposition;
 
 $repoRoot = dirname(__DIR__, 2);
-$outPath = getenv('SAFEGUARD_PROBE_OUT') ?: $repoRoot . '/results/safeguard-probe-v4-2026-10.jsonl';
+$outPath = getenv('SAFEGUARD_PROBE_OUT') ?: $repoRoot . '/results/safeguard-probe-v4-tokens-2026-10.jsonl';
 $reps = (int) (getenv('SAFEGUARD_PROBE_REPS') ?: 5);
 
 $claudeBinary = getenv('HOME') . '/.local/bin/claude';
@@ -92,6 +92,16 @@ foreach ($models as $tier => $modelId) {
                 : [];
             $resultText = is_array($decoded) ? (string) ($decoded['result'] ?? '') : '';
 
+            $modelOutputTokens = [];
+            if (is_array($decoded) && isset($decoded['modelUsage'])) {
+                foreach ((array) $decoded['modelUsage'] as $mid => $mu) {
+                    $modelOutputTokens[$mid] = [
+                        'output' => (int) ($mu['outputTokens'] ?? 0),
+                        'thinking' => (int) ($mu['thinkingTokens'] ?? 0),
+                    ];
+                }
+            }
+
             $rerouted = $reportedModels !== [] && !in_array($modelId, $reportedModels, true);
             $refused = DispatchDisposition::looksLikeRefusal($resultText);
             $disposition = $exitCode !== 0
@@ -99,10 +109,11 @@ foreach ($models as $tier => $modelId) {
                 : ($rerouted ? 'model_rerouted' : ($refused ? 'refused_in_band' : 'completed'));
 
             $row = [
-                'probe' => 'safeguard-v4',
+                'probe' => 'safeguard-v4-tokens',
                 'tier' => $tier,
                 'requested_model' => $modelId,
                 'reported_models' => $reportedModels,
+                'model_output_tokens' => $modelOutputTokens,
                 'variant' => $variantId,
                 'rep' => $rep,
                 'disposition' => $disposition,
