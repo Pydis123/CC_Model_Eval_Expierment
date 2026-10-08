@@ -79,6 +79,17 @@ field (`completed` / `model_rerouted` / `refused_in_band` / `error`) plus
 `reported_models` (a second model id = completion-preserving handoff, not a
 reroute-to-nothing).
 
+**Outcome (2026-10-08), full write-up in `docs/findings-v4-probe.md`:** the
+positive control (Fable 5) rerouted 0/20 — the v3 reroute-to-nothing signature
+is gone, so the pre-registered **insensitivity gate tripped** and the probe can
+no longer answer "is there a safeguard" (that moves to the 102 bank cell). A
+token-enriched re-run (`model_output_tokens` field,
+`results/safeguard-probe-v4-tokens-2026-10.jsonl`) showed the new behavior is a
+**complete, single-hop substitution** on offensive-framed prompts: the
+requested model writes 0 tokens and a fixed auxiliary authors 100% (Opus 4.8
+for the Fable/Opus family, Sonnet 5 for Sonnet 5.5); defensive prompts are
+self-authored. Only Sonnet 5.5 also refuses in-band (2–4/20, noisy).
+
 > To re-run or extend: `SAFEGUARD_PROBE_REPS=N DISABLE_AUTOUPDATER=1 php
 > runner/bin/safeguard-probe`. `SAFEGUARD_PROBE_OUT` overrides the output path.
 > On a machine without the vendored autoloader, generate it offline (deps are

@@ -307,3 +307,26 @@ Batch-1 runner. The 6 stale result rows from the broken check remain in
 `results.jsonl` (append-only) but are superseded at aggregation by the re-runs,
 which carry identical deterministic run_ids; the 6 stale entries were dropped
 from `state.json` completed_runs so state totals reflect the 120-run plan.
+
+## v4 safeguard probe: positive control went insensitive (2026-10-08)
+
+The standalone safeguard probe's validity rests on its positive control. In v3
+the control (Fable 5, `claude-fable-5`) rerouted 16/20 offensive-framed
+dispatches to nothing, proving the probe could detect a reroute. In the v4
+re-run the same model id rerouted **0/20**, and so did every other model
+(0/80 in each of two runs). The pre-registered insensitivity gate is therefore
+**tripped**: the probe can no longer read "no reroute" as "no safeguard",
+because it failed to detect the safeguard in the very model that defined it.
+
+The reroute-to-nothing behavior appears to have been replaced platform-wide by
+a complete in-request substitution: on offensive framings the requested model
+writes 0 output and 0 thinking tokens and a fixed auxiliary (Opus 4.8 for the
+Fable/Opus family, Sonnet 5 for Sonnet 5.5) authors 100%; on defensive framings
+the requested model writes it all. This is a single hop, not a chain (max 2
+models per dispatch). Consequence for the experiment: the safeguard question is
+no longer answerable by the routing probe and must be read from the real 102
+security-audit bank cell (defensively framed), with the new per-model token
+field capturing authorship there. Full detail and exact numbers in
+`docs/findings-v4-probe.md`. Data: `results/safeguard-probe-v4-2026-10.jsonl`
+(schema-less) and `results/safeguard-probe-v4-tokens-2026-10.jsonl`
+(token-enriched).
