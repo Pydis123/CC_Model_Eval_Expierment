@@ -5,150 +5,150 @@
         "haiku55": "claude-haiku-5-5",
         "haiku55high": "claude-haiku-5-5"
     },
-    "next_run_idx": 0,
-    "completed_runs": [],
-    "remaining_runs": [
+    "next_run_idx": 20,
+    "completed_runs": [
         {
             "run_id": "1639fea7dba6",
             "task_id": "101-plan-review",
             "model_tier": "haiku55",
             "n": 2,
-            "claimed_at": null
+            "claimed_at": "2026-10-27T14:00:37Z"
         },
         {
             "run_id": "8d03282d19bb",
             "task_id": "101-plan-review",
             "model_tier": "haiku55high",
             "n": 2,
-            "claimed_at": null
+            "claimed_at": "2026-10-27T14:07:41Z"
         },
         {
             "run_id": "cd1f769f2437",
             "task_id": "101-plan-review",
             "model_tier": "haiku55",
             "n": 1,
-            "claimed_at": null
+            "claimed_at": "2026-10-27T14:14:49Z"
         },
         {
             "run_id": "461d0dbda61a",
             "task_id": "101-plan-review",
             "model_tier": "haiku55high",
             "n": 4,
-            "claimed_at": null
+            "claimed_at": "2026-10-27T14:23:17Z"
         },
         {
             "run_id": "d3333b2558a0",
             "task_id": "101-plan-review",
             "model_tier": "haiku55high",
             "n": 3,
-            "claimed_at": null
+            "claimed_at": "2026-10-27T14:33:44Z"
         },
         {
             "run_id": "c4134892ccee",
             "task_id": "101-plan-review",
             "model_tier": "haiku55",
             "n": 3,
-            "claimed_at": null
+            "claimed_at": "2026-10-27T14:42:20Z"
         },
         {
             "run_id": "1564c9dca7f8",
             "task_id": "101-plan-review",
             "model_tier": "haiku55high",
             "n": 1,
-            "claimed_at": null
+            "claimed_at": "2026-10-27T14:47:51Z"
         },
         {
             "run_id": "3879e82929f9",
             "task_id": "101-plan-review",
             "model_tier": "haiku55high",
             "n": 5,
-            "claimed_at": null
+            "claimed_at": "2026-10-27T14:59:04Z"
         },
         {
             "run_id": "1e18004a2500",
             "task_id": "101-plan-review",
             "model_tier": "haiku55",
             "n": 4,
-            "claimed_at": null
+            "claimed_at": "2026-10-27T15:06:52Z"
         },
         {
             "run_id": "dc5cbe53ab12",
             "task_id": "101-plan-review",
             "model_tier": "haiku55",
             "n": 5,
-            "claimed_at": null
+            "claimed_at": "2026-10-27T15:13:08Z"
         },
         {
             "run_id": "fdcb1a3809ad",
             "task_id": "108-query-budget-perf",
             "model_tier": "haiku55high",
             "n": 5,
-            "claimed_at": null
+            "claimed_at": "2026-10-27T15:19:55Z"
         },
         {
             "run_id": "8bae8444b426",
             "task_id": "108-query-budget-perf",
             "model_tier": "haiku55",
             "n": 1,
-            "claimed_at": null
+            "claimed_at": "2026-10-27T15:24:07Z"
         },
         {
             "run_id": "8252548ab128",
             "task_id": "108-query-budget-perf",
             "model_tier": "haiku55",
             "n": 3,
-            "claimed_at": null
+            "claimed_at": "2026-10-27T15:27:14Z"
         },
         {
             "run_id": "1fe2d1f824a4",
             "task_id": "108-query-budget-perf",
             "model_tier": "haiku55high",
             "n": 1,
-            "claimed_at": null
+            "claimed_at": "2026-10-27T15:31:17Z"
         },
         {
             "run_id": "e7f135a289dd",
             "task_id": "108-query-budget-perf",
             "model_tier": "haiku55",
             "n": 5,
-            "claimed_at": null
+            "claimed_at": "2026-10-27T15:35:20Z"
         },
         {
             "run_id": "dfb5f2e4067f",
             "task_id": "108-query-budget-perf",
             "model_tier": "haiku55high",
             "n": 2,
-            "claimed_at": null
+            "claimed_at": "2026-10-27T15:38:11Z"
         },
         {
             "run_id": "b1945e4bd8d3",
             "task_id": "108-query-budget-perf",
             "model_tier": "haiku55",
             "n": 2,
-            "claimed_at": null
+            "claimed_at": "2026-10-27T15:41:41Z"
         },
         {
             "run_id": "b1ae1129e856",
             "task_id": "108-query-budget-perf",
             "model_tier": "haiku55high",
             "n": 4,
-            "claimed_at": null
+            "claimed_at": "2026-10-27T15:45:17Z"
         },
         {
             "run_id": "5502685fbef2",
             "task_id": "108-query-budget-perf",
             "model_tier": "haiku55",
             "n": 4,
-            "claimed_at": null
+            "claimed_at": "2026-10-27T15:48:25Z"
         },
         {
             "run_id": "9331cb5945d4",
             "task_id": "108-query-budget-perf",
             "model_tier": "haiku55high",
             "n": 3,
-            "claimed_at": null
+            "claimed_at": "2026-10-27T15:51:14Z"
         }
     ],
+    "remaining_runs": [],
     "current_session_tokens_est": 0,
     "current_session_started_at": null
 }
