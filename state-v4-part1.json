@@ -1,0 +1,409 @@
+{
+    "schema_version": 1,
+    "experiment_started_at": null,
+    "pinned_models": {
+        "haiku55": "claude-haiku-5-5",
+        "haiku45": "claude-haiku-4-5-20251001",
+        "sonnet55": "claude-sonnet-5-5",
+        "opus55": "claude-opus-5-5",
+        "fable51": "claude-fable-5-1"
+    },
+    "next_run_idx": 0,
+    "completed_runs": [],
+    "remaining_runs": [
+        {
+            "run_id": "f89447974405",
+            "task_id": "101-plan-review",
+            "model_tier": "sonnet55",
+            "n": 1,
+            "claimed_at": null
+        },
+        {
+            "run_id": "26913119d856",
+            "task_id": "101-plan-review",
+            "model_tier": "opus55",
+            "n": 4,
+            "claimed_at": null
+        },
+        {
+            "run_id": "99ac0b719755",
+            "task_id": "101-plan-review",
+            "model_tier": "opus55",
+            "n": 1,
+            "claimed_at": null
+        },
+        {
+            "run_id": "6a2abed6a15b",
+            "task_id": "101-plan-review",
+            "model_tier": "fable51",
+            "n": 1,
+            "claimed_at": null
+        },
+        {
+            "run_id": "8348675d1154",
+            "task_id": "101-plan-review",
+            "model_tier": "sonnet55",
+            "n": 3,
+            "claimed_at": null
+        },
+        {
+            "run_id": "bf057fcbdccc",
+            "task_id": "101-plan-review",
+            "model_tier": "haiku45",
+            "n": 3,
+            "claimed_at": null
+        },
+        {
+            "run_id": "7dfc5c7b2b9b",
+            "task_id": "101-plan-review",
+            "model_tier": "fable51",
+            "n": 4,
+            "claimed_at": null
+        },
+        {
+            "run_id": "33f694c99957",
+            "task_id": "101-plan-review",
+            "model_tier": "fable51",
+            "n": 2,
+            "claimed_at": null
+        },
+        {
+            "run_id": "11b81e9b6af6",
+            "task_id": "101-plan-review",
+            "model_tier": "sonnet55",
+            "n": 2,
+            "claimed_at": null
+        },
+        {
+            "run_id": "ef888b991f55",
+            "task_id": "101-plan-review",
+            "model_tier": "haiku45",
+            "n": 1,
+            "claimed_at": null
+        },
+        {
+            "run_id": "76757c5d9eef",
+            "task_id": "101-plan-review",
+            "model_tier": "sonnet55",
+            "n": 4,
+            "claimed_at": null
+        },
+        {
+            "run_id": "5ec2520d572b",
+            "task_id": "101-plan-review",
+            "model_tier": "opus55",
+            "n": 2,
+            "claimed_at": null
+        },
+        {
+            "run_id": "e0fae0696b90",
+            "task_id": "101-plan-review",
+            "model_tier": "sonnet55",
+            "n": 5,
+            "claimed_at": null
+        },
+        {
+            "run_id": "de431173424e",
+            "task_id": "101-plan-review",
+            "model_tier": "haiku45",
+            "n": 2,
+            "claimed_at": null
+        },
+        {
+            "run_id": "c68db038f112",
+            "task_id": "101-plan-review",
+            "model_tier": "fable51",
+            "n": 3,
+            "claimed_at": null
+        },
+        {
+            "run_id": "63c339d6d2b6",
+            "task_id": "101-plan-review",
+            "model_tier": "opus55",
+            "n": 3,
+            "claimed_at": null
+        },
+        {
+            "run_id": "9fe08534849f",
+            "task_id": "101-plan-review",
+            "model_tier": "opus55",
+            "n": 5,
+            "claimed_at": null
+        },
+        {
+            "run_id": "519d5bbec47a",
+            "task_id": "101-plan-review",
+            "model_tier": "fable51",
+            "n": 5,
+            "claimed_at": null
+        },
+        {
+            "run_id": "56cd4a71be8d",
+            "task_id": "103-code-review",
+            "model_tier": "opus55",
+            "n": 3,
+            "claimed_at": null
+        },
+        {
+            "run_id": "23434a8fe923",
+            "task_id": "103-code-review",
+            "model_tier": "opus55",
+            "n": 2,
+            "claimed_at": null
+        },
+        {
+            "run_id": "16bdb7777d61",
+            "task_id": "103-code-review",
+            "model_tier": "opus55",
+            "n": 4,
+            "claimed_at": null
+        },
+        {
+            "run_id": "ded580c1c2c4",
+            "task_id": "103-code-review",
+            "model_tier": "fable51",
+            "n": 4,
+            "claimed_at": null
+        },
+        {
+            "run_id": "077247258ed5",
+            "task_id": "103-code-review",
+            "model_tier": "sonnet55",
+            "n": 2,
+            "claimed_at": null
+        },
+        {
+            "run_id": "054ce28c3cba",
+            "task_id": "103-code-review",
+            "model_tier": "fable51",
+            "n": 2,
+            "claimed_at": null
+        },
+        {
+            "run_id": "927f1daa6d91",
+            "task_id": "103-code-review",
+            "model_tier": "opus55",
+            "n": 1,
+            "claimed_at": null
+        },
+        {
+            "run_id": "00c77dfe2a94",
+            "task_id": "103-code-review",
+            "model_tier": "haiku55",
+            "n": 2,
+            "claimed_at": null
+        },
+        {
+            "run_id": "0b8e658ba929",
+            "task_id": "103-code-review",
+            "model_tier": "haiku55",
+            "n": 5,
+            "claimed_at": null
+        },
+        {
+            "run_id": "7ad6016aeb29",
+            "task_id": "103-code-review",
+            "model_tier": "sonnet55",
+            "n": 5,
+            "claimed_at": null
+        },
+        {
+            "run_id": "cc458142e62c",
+            "task_id": "103-code-review",
+            "model_tier": "sonnet55",
+            "n": 3,
+            "claimed_at": null
+        },
+        {
+            "run_id": "325f3deb0912",
+            "task_id": "103-code-review",
+            "model_tier": "haiku55",
+            "n": 1,
+            "claimed_at": null
+        },
+        {
+            "run_id": "5257132c4048",
+            "task_id": "103-code-review",
+            "model_tier": "fable51",
+            "n": 5,
+            "claimed_at": null
+        },
+        {
+            "run_id": "3abf0a388b4a",
+            "task_id": "103-code-review",
+            "model_tier": "opus55",
+            "n": 5,
+            "claimed_at": null
+        },
+        {
+            "run_id": "dd4bcfe86c8c",
+            "task_id": "103-code-review",
+            "model_tier": "sonnet55",
+            "n": 1,
+            "claimed_at": null
+        },
+        {
+            "run_id": "7147f17a7457",
+            "task_id": "103-code-review",
+            "model_tier": "sonnet55",
+            "n": 4,
+            "claimed_at": null
+        },
+        {
+            "run_id": "3b587ba27081",
+            "task_id": "103-code-review",
+            "model_tier": "fable51",
+            "n": 1,
+            "claimed_at": null
+        },
+        {
+            "run_id": "af20a67bb29e",
+            "task_id": "103-code-review",
+            "model_tier": "haiku55",
+            "n": 4,
+            "claimed_at": null
+        },
+        {
+            "run_id": "74fbe79b04bf",
+            "task_id": "103-code-review",
+            "model_tier": "fable51",
+            "n": 3,
+            "claimed_at": null
+        },
+        {
+            "run_id": "3e29da0f4061",
+            "task_id": "103-code-review",
+            "model_tier": "haiku55",
+            "n": 3,
+            "claimed_at": null
+        },
+        {
+            "run_id": "7580a6e4debd",
+            "task_id": "108-query-budget-perf",
+            "model_tier": "sonnet55",
+            "n": 2,
+            "claimed_at": null
+        },
+        {
+            "run_id": "a530dcc80da2",
+            "task_id": "108-query-budget-perf",
+            "model_tier": "opus55",
+            "n": 2,
+            "claimed_at": null
+        },
+        {
+            "run_id": "d88ca27ba798",
+            "task_id": "108-query-budget-perf",
+            "model_tier": "opus55",
+            "n": 4,
+            "claimed_at": null
+        },
+        {
+            "run_id": "6303e6a0754d",
+            "task_id": "108-query-budget-perf",
+            "model_tier": "fable51",
+            "n": 5,
+            "claimed_at": null
+        },
+        {
+            "run_id": "0636aa085691",
+            "task_id": "108-query-budget-perf",
+            "model_tier": "fable51",
+            "n": 1,
+            "claimed_at": null
+        },
+        {
+            "run_id": "17e9c1d4c12e",
+            "task_id": "108-query-budget-perf",
+            "model_tier": "fable51",
+            "n": 3,
+            "claimed_at": null
+        },
+        {
+            "run_id": "7fde5be15f06",
+            "task_id": "108-query-budget-perf",
+            "model_tier": "fable51",
+            "n": 4,
+            "claimed_at": null
+        },
+        {
+            "run_id": "ccea3892b96a",
+            "task_id": "108-query-budget-perf",
+            "model_tier": "sonnet55",
+            "n": 4,
+            "claimed_at": null
+        },
+        {
+            "run_id": "cd4b08017594",
+            "task_id": "108-query-budget-perf",
+            "model_tier": "opus55",
+            "n": 1,
+            "claimed_at": null
+        },
+        {
+            "run_id": "5e69f9cf38c1",
+            "task_id": "108-query-budget-perf",
+            "model_tier": "sonnet55",
+            "n": 1,
+            "claimed_at": null
+        },
+        {
+            "run_id": "0a369d74080c",
+            "task_id": "108-query-budget-perf",
+            "model_tier": "opus55",
+            "n": 3,
+            "claimed_at": null
+        },
+        {
+            "run_id": "175ae7a53cec",
+            "task_id": "108-query-budget-perf",
+            "model_tier": "haiku45",
+            "n": 2,
+            "claimed_at": null
+        },
+        {
+            "run_id": "30456b9ca70e",
+            "task_id": "108-query-budget-perf",
+            "model_tier": "fable51",
+            "n": 2,
+            "claimed_at": null
+        },
+        {
+            "run_id": "c9a2485802a6",
+            "task_id": "108-query-budget-perf",
+            "model_tier": "haiku45",
+            "n": 1,
+            "claimed_at": null
+        },
+        {
+            "run_id": "1422b0ae3fb2",
+            "task_id": "108-query-budget-perf",
+            "model_tier": "sonnet55",
+            "n": 5,
+            "claimed_at": null
+        },
+        {
+            "run_id": "db314ef53858",
+            "task_id": "108-query-budget-perf",
+            "model_tier": "opus55",
+            "n": 5,
+            "claimed_at": null
+        },
+        {
+            "run_id": "03a8f3b52c03",
+            "task_id": "108-query-budget-perf",
+            "model_tier": "sonnet55",
+            "n": 3,
+            "claimed_at": null
+        },
+        {
+            "run_id": "b749f2c0d1d0",
+            "task_id": "108-query-budget-perf",
+            "model_tier": "haiku45",
+            "n": 3,
+            "claimed_at": null
+        }
+    ],
+    "current_session_tokens_est": 0,
+    "current_session_started_at": null
+}

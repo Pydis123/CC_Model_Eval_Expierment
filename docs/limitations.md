@@ -335,3 +335,20 @@ Two methodology changes start here:
 No same-id Haiku 4.5 drift control was run with this slice (last one:
 v3, 2026-07-24); a straight Haiku 4.5 vs 5.5 comparison carries that
 three-month environment gap.
+
+## v4 part 1: non-security cells on the new lineup (2026-10-27)
+
+`experiment_config-v4-part1.json` / `state-v4-part1.json` /
+`results/results-v4-part1-2026-10.jsonl`: 101, 103 and 108 on
+`claude-sonnet-5-5`, `claude-opus-5-5` and `claude-fable-5-1` (N=5), plus
+`claude-haiku-5-5` on 103 and a same-id `claude-haiku-4-5-20251001` drift
+control on 101/108 (N=3, no `effort` entry so it runs at the CLI default as
+in Phase 2/v3). Effort is pinned to each model's documented API default
+(Sonnet 5.5 and Fable 5.1 `high`, Opus 5.5 and Haiku 5.5 `medium`).
+
+The planner builds the full tier x task product (75 runs); the queue was
+filtered by hand right after `state init` to the 56 planned runs, keeping
+the seeded interleaved order. 102 (security audit) and the safeguard probe
+are split into part 2: the orchestrating session on Opus 5.5 was repeatedly
+blocked by that model's own safeguards when handling them, so part 2 is
+launched by the operator outside an assistant session.
