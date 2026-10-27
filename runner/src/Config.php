@@ -11,6 +11,7 @@ final class Config
      * @param list<string> $taskIds
      * @param array<string, string|null> $pinnedModels
      * @param array<string, mixed> $db
+     * @param array<string, string> $effort tier => --effort level; tiers left out run at the CLI default
      */
     public function __construct(
         public readonly int $schemaVersion,
@@ -25,6 +26,7 @@ final class Config
         public readonly string $policy,
         public readonly array $db,
         public readonly ?string $judgeModel = null,
+        public readonly array $effort = [],
     ) {}
 
     public static function fromFile(string $path): self
@@ -54,6 +56,7 @@ final class Config
             policy: (string) $data['policy'],
             db: (array) $data['db'],
             judgeModel: isset($data['judge_model']) ? (string) $data['judge_model'] : null,
+            effort: (array) ($data['effort'] ?? []),
         );
     }
 }

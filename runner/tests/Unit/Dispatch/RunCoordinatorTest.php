@@ -89,7 +89,7 @@ final class RunCoordinatorTest extends TestCase
             private int $index = 0;
             /** @param list<ClaudeCliResponse> $responses */
             public function __construct(private readonly array $responses) {}
-            public function dispatch(string $prompt, string $modelId, string $cwd, array $allowedTools): ClaudeCliResponse
+            public function dispatch(string $prompt, string $modelId, string $cwd, array $allowedTools, ?string $effort = null): ClaudeCliResponse
             {
                 $r = $this->responses[$this->index] ?? end($this->responses);
                 $this->index++;
@@ -109,7 +109,7 @@ final class RunCoordinatorTest extends TestCase
             private int $index = 0;
             /** @param list<ClaudeCliResponse> $responses */
             public function __construct(private readonly array $responses, private ?string &$capturedCwd) {}
-            public function dispatch(string $prompt, string $modelId, string $cwd, array $allowedTools): ClaudeCliResponse
+            public function dispatch(string $prompt, string $modelId, string $cwd, array $allowedTools, ?string $effort = null): ClaudeCliResponse
             {
                 $this->capturedCwd ??= $cwd;
                 $r = $this->responses[$this->index] ?? end($this->responses);
@@ -318,6 +318,32 @@ final class RunCoordinatorTest extends TestCase
      * Previously RunNextCommand passed the inner path to execute(), causing Evaluator
      * checks to double-append /mock-project and crash.
      */
+    public function testForwardsEffortToCli(): void
+    {
+        $cli = new class($this->stubResponse()) implements ClaudeCli {
+            public ?string $capturedEffort = null;
+            public function __construct(private readonly ClaudeCliResponse $r) {}
+            public function dispatch(string $prompt, string $modelId, string $cwd, array $allowedTools, ?string $effort = null): ClaudeCliResponse
+            {
+                $this->capturedEffort = $effort;
+                return $this->r;
+            }
+        };
+
+        $this->makeCoordinator($cli, $this->makeEvaluator($this->passingEval()))->execute(
+            rawPrompt: 'do it',
+            taskDef: ['success_criteria' => []],
+            worktreePath: '/tmp/wt',
+            modelId: 'm',
+            allowedTools: ['Bash'],
+            maxIterations: 1,
+            maxWallClockS: 1800,
+            effort: 'high',
+        );
+
+        $this->assertSame('high', $cli->capturedEffort);
+    }
+
     public function testCliReceivesInnerPathAndEvaluatorReceivesOuterPath(): void
     {
         $capturedCliCwd = null;

@@ -103,7 +103,7 @@ final class RunNextCommandTest extends TestCase
             /** @param list<string> $texts */
             public function __construct(private array $texts) {}
 
-            public function dispatch(string $prompt, string $modelId, string $cwd, array $allowedTools): ClaudeCliResponse
+            public function dispatch(string $prompt, string $modelId, string $cwd, array $allowedTools, ?string $effort = null): ClaudeCliResponse
             {
                 $text = $this->texts[$this->calls] ?? '';
                 $this->calls++;
@@ -196,7 +196,7 @@ final class RunNextCommandTest extends TestCase
     {
         return new class($r) implements ClaudeCli {
             public function __construct(private readonly ClaudeCliResponse $r) {}
-            public function dispatch(string $prompt, string $modelId, string $cwd, array $allowedTools): ClaudeCliResponse
+            public function dispatch(string $prompt, string $modelId, string $cwd, array $allowedTools, ?string $effort = null): ClaudeCliResponse
             { return $this->r; }
         };
     }
@@ -220,7 +220,8 @@ final class RunNextCommandTest extends TestCase
         };
     }
 
-    private function makeCommand(StateManager $state, string $claudeVersion = ''): RunNextCommand
+    /** @param array<string, string> $effortByTier */
+    private function makeCommand(StateManager $state, string $claudeVersion = '', array $effortByTier = []): RunNextCommand
     {
         $executor = $this->stubExecutor();
 
@@ -255,6 +256,7 @@ final class RunNextCommandTest extends TestCase
             allowedTools: ['Bash', 'Edit', 'Read', 'Write', 'Glob', 'Grep'],
             now: fn() => '2026-04-23T14:00:00Z',
             claudeVersion: $claudeVersion,
+            effortByTier: $effortByTier,
         );
     }
 
@@ -378,6 +380,16 @@ final class RunNextCommandTest extends TestCase
         $row = json_decode(trim((string) file_get_contents($this->resultsPath)), true);
         $this->assertSame('1.2.3 (Claude Code)', $row['claude_cli_version']);
         $this->assertSame('completed', $row['dispatch_disposition']);
+    }
+
+    public function testRowRecordsEffortConfiguredForTier(): void
+    {
+        $state = $this->seedState();
+        ob_start();
+        $this->makeCommand($state, '', ['haiku' => 'high'])->run([]);
+        ob_end_clean();
+        $row = json_decode(trim((string) file_get_contents($this->resultsPath)), true);
+        $this->assertSame('high', $row['effort']);
     }
 
     public function testExitOneWhenQueueEmpty(): void

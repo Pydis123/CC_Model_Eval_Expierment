@@ -189,6 +189,7 @@ $runNextCommand = new RunNextCommand(
     judgeClient: $judgeClient,
     contaminationDetector: $contaminationDetector,
     contaminatedDir: $repoRoot . '/results/contaminated',
+    effortByTier: $config->effort,
 );
 
 $environment = [

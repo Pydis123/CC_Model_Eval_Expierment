@@ -14,5 +14,6 @@ interface ClaudeCli
         string $modelId,
         string $cwd,
         array $allowedTools,
+        ?string $effort = null,
     ): ClaudeCliResponse;
 }

@@ -19,6 +19,7 @@ final class ProcessClaudeCli implements ClaudeCli
         string $modelId,
         string $cwd,
         array $allowedTools,
+        ?string $effort = null,
     ): ClaudeCliResponse {
         $command = [
             $this->claudeBinary,
@@ -30,6 +31,9 @@ final class ProcessClaudeCli implements ClaudeCli
             '--allowedTools', implode(',', $allowedTools),
             '--setting-sources', 'project',
         ];
+        if ($effort !== null) {
+            array_push($command, '--effort', $effort);
+        }
 
         $env = $this->buildEnvironment();
         $result = $this->executor->exec($cwd, $command, $env);

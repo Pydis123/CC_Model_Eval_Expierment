@@ -24,8 +24,9 @@ use RuntimeException;
 final class RunNextCommand implements CommandInterface
 {
     /**
-     * @param list<string>      $allowedTools
-     * @param callable(): string $now   returns ISO8601 UTC
+     * @param list<string>          $allowedTools
+     * @param callable(): string     $now          returns ISO8601 UTC
+     * @param array<string, string>  $effortByTier tier => --effort level; unset tiers use the CLI default
      */
     public function __construct(
         private readonly StateManager $stateManager,
@@ -40,6 +41,7 @@ final class RunNextCommand implements CommandInterface
         private readonly ?JudgeClient $judgeClient = null,
         private readonly ?ContaminationDetector $contaminationDetector = null,
         private readonly string $contaminatedDir = '',
+        private readonly array $effortByTier = [],
     ) {}
 
     public function run(array $args): int
@@ -58,6 +60,8 @@ final class RunNextCommand implements CommandInterface
             fwrite(STDERR, "No pinned model for tier: {$claimed->modelTier}\n");
             return 4;
         }
+
+        $effort = $this->effortByTier[$claimed->modelTier] ?? null;
 
         $task = $this->taskPromptLoader->load($claimed->taskId);
 
@@ -79,6 +83,7 @@ final class RunNextCommand implements CommandInterface
             allowedTools: $this->allowedTools,
             maxIterations: $task->maxIterations,
             maxWallClockS: $task->maxWallClockS,
+            effort: $effort,
         );
 
         $runEndIso = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s\Z');
@@ -87,7 +92,7 @@ final class RunNextCommand implements CommandInterface
         $disposition = $this->classifyDisposition($modelId, $outcome, $contamination);
 
         $this->resultsLogger->append(
-            $this->buildRow($claimed, $outcome, $modelId, $runStartIso, $runEndIso, $contamination, $disposition),
+            $this->buildRow($claimed, $outcome, $modelId, $effort, $runStartIso, $runEndIso, $contamination, $disposition),
         );
 
         if ($disposition === DispatchDisposition::CONTAMINATED) {
@@ -131,6 +136,7 @@ final class RunNextCommand implements CommandInterface
         Run $run,
         RunOutcome $outcome,
         string $modelId,
+        ?string $effort,
         string $startIso,
         string $endIso,
         array $contamination,
@@ -158,6 +164,7 @@ final class RunNextCommand implements CommandInterface
             'task_id' => $run->taskId,
             'model_tier' => $run->modelTier,
             'model_id' => $modelId,
+            'effort' => $effort,
             'n' => $run->n,
             'outcome' => $outcome->finalOutcome === 'error' ? 'failed' : $outcome->finalOutcome,
             'iterations_used' => $outcome->iterationsUsed(),

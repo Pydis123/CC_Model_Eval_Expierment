@@ -72,6 +72,18 @@ final class ConfigTest extends TestCase
         $this->assertNull(Config::fromFile($path)->judgeModel);
     }
 
+    public function testReadsEffortPerTierWhenPresent(): void
+    {
+        $path = $this->writeTempConfig(['effort' => ['haiku' => 'high']]);
+        $this->assertSame(['haiku' => 'high'], Config::fromFile($path)->effort);
+    }
+
+    public function testEffortDefaultsToEmpty(): void
+    {
+        $path = $this->writeTempConfig([]);
+        $this->assertSame([], Config::fromFile($path)->effort);
+    }
+
     /** @param array<string, mixed> $overrides */
     private function writeTempConfig(array $overrides): string
     {

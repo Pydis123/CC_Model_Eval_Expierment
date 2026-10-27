@@ -36,6 +36,7 @@ final class RunCoordinator
         array $allowedTools,
         int $maxIterations,
         int $maxWallClockS,
+        ?string $effort = null,
     ): RunOutcome {
         $iterations = [];
         $priorFailed = null;
@@ -46,7 +47,7 @@ final class RunCoordinator
         for ($i = 1; $i <= $maxIterations; $i++) {
             $prompt = $this->envelopeBuilder->build($rawPrompt, $priorFailed);
 
-            [$response, $rateLimitIterations] = $this->dispatchWithRateLimitRetries($prompt, $modelId, $subagentCwd, $allowedTools);
+            [$response, $rateLimitIterations] = $this->dispatchWithRateLimitRetries($prompt, $modelId, $subagentCwd, $allowedTools, $effort);
 
             if ($response === null) {
                 $iterations[] = new IterationOutcome(
@@ -134,9 +135,10 @@ final class RunCoordinator
         string $modelId,
         string $worktreePath,
         array $allowedTools,
+        ?string $effort,
     ): array {
         for ($attempt = 0; $attempt <= self::MAX_RATE_LIMIT_RETRIES_PER_ITERATION; $attempt++) {
-            $response = $this->cli->dispatch($prompt, $modelId, $worktreePath, $allowedTools);
+            $response = $this->cli->dispatch($prompt, $modelId, $worktreePath, $allowedTools, $effort);
 
             if (!$response->rateLimit->isBlocked()) {
                 return [$response, $attempt];

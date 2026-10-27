@@ -165,7 +165,7 @@ final class RubricScoreCheckTest extends TestCase
             /** @param list<string> $texts */
             public function __construct(private array $texts) {}
 
-            public function dispatch(string $prompt, string $modelId, string $cwd, array $allowedTools): ClaudeCliResponse
+            public function dispatch(string $prompt, string $modelId, string $cwd, array $allowedTools, ?string $effort = null): ClaudeCliResponse
             {
                 $this->prompts[] = $prompt;
                 $text = $this->texts[$this->calls] ?? '';

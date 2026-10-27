@@ -67,6 +67,49 @@ final class ProcessClaudeCliTest extends TestCase
         $this->assertContains('Bash,Edit,Read,Write,Glob,Grep', $capturedCommand);
     }
 
+    public function testPassesEffortFlagWhenGiven(): void
+    {
+        $command = $this->dispatchAndCaptureCommand('high');
+
+        $index = array_search('--effort', $command, true);
+        $this->assertSame('high', $command[$index + 1]);
+    }
+
+    public function testOmitsEffortFlagByDefault(): void
+    {
+        $this->assertNotContains('--effort', $this->dispatchAndCaptureCommand(null));
+    }
+
+    /** @return list<string> */
+    private function dispatchAndCaptureCommand(?string $effort): array
+    {
+        $capturedCommand = [];
+        $executor = new class($capturedCommand) extends ProcessExecutor {
+            /** @param list<string> $capturedCommand */
+            public function __construct(private array &$capturedCommand) {}
+            public function exec(string $cwd, array $command, ?array $env = null): ProcessResult
+            {
+                $this->capturedCommand = $command;
+                return new ProcessResult(0, json_encode([
+                    'type' => 'result', 'subtype' => 'success', 'is_error' => false,
+                    'result' => 'ok', 'stop_reason' => 'end_turn', 'duration_ms' => 10,
+                    'usage' => ['input_tokens' => 1, 'output_tokens' => 1],
+                    'modelUsage' => ['claude-haiku-5-5' => []], 'total_cost_usd' => 0.0,
+                ]) . "\n", '', 0);
+            }
+        };
+
+        (new ProcessClaudeCli($executor, new ClaudeCliResponseParser(), 'claude'))->dispatch(
+            prompt: 'hello',
+            modelId: 'claude-haiku-5-5',
+            cwd: '/tmp/worktree',
+            allowedTools: ['Bash'],
+            effort: $effort,
+        );
+
+        return $capturedCommand;
+    }
+
     public function testParsesResponseFromStdout(): void
     {
         $executor = new class extends ProcessExecutor {
