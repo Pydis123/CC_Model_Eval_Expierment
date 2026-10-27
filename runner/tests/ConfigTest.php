@@ -9,14 +9,12 @@ use PHPUnit\Framework\TestCase;
 
 final class ConfigTest extends TestCase
 {
-    private const FIXTURE_PATH = __DIR__ . '/../../experiment_config.json';
-
     public function testLoadsExperimentConfigFromFile(): void
     {
-        $config = Config::fromFile(self::FIXTURE_PATH);
+        $config = Config::fromFile($this->writeTempConfig([]));
 
         $this->assertSame(1, $config->schemaVersion);
-        $this->assertSame('llm-dispatch-v2.1-isolated', $config->experimentName);
+        $this->assertSame('t', $config->experimentName);
         $this->assertSame(42, $config->planSeed);
         $this->assertSame(5, $config->nReplicates);
         $this->assertSame(3, $config->maxIterationsPerRun);
@@ -25,18 +23,14 @@ final class ConfigTest extends TestCase
 
     public function testExposesTierList(): void
     {
-        $config = Config::fromFile(self::FIXTURE_PATH);
-
-        $this->assertSame(['haiku', 'sonnet', 'opus', 'fable'], $config->tiers);
+        $path = $this->writeTempConfig(['tiers' => ['haiku', 'sonnet']]);
+        $this->assertSame(['haiku', 'sonnet'], Config::fromFile($path)->tiers);
     }
 
     public function testExposesTaskIdList(): void
     {
-        $config = Config::fromFile(self::FIXTURE_PATH);
-
-        $this->assertCount(8, $config->taskIds);
-        $this->assertContains('001-i18n-status-flik', $config->taskIds);
-        $this->assertContains('008-comment-composer-alpine', $config->taskIds);
+        $path = $this->writeTempConfig(['task_ids' => ['101-a', '108-b']]);
+        $this->assertSame(['101-a', '108-b'], Config::fromFile($path)->taskIds);
     }
 
     public function testThrowsOnMissingFile(): void
