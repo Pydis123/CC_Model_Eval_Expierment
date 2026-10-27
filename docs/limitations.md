@@ -307,3 +307,31 @@ Batch-1 runner. The 6 stale result rows from the broken check remain in
 `results.jsonl` (append-only) but are superseded at aggregation by the re-runs,
 which carry identical deterministic run_ids; the 6 stale entries were dropped
 from `state.json` completed_runs so state totals reflect the 120-run plan.
+
+## v4 first slice: Haiku 5.5 with pinned effort (2026-10-27)
+
+All four measured tiers were superseded in Sep-Oct 2026 (Haiku/Sonnet/Opus
+5.5, Fable 5.1). The first v4 slice runs `claude-haiku-5-5` on 101 and 108,
+the two cells where Haiku 4.5 scored 2/5, under its own config/state/results
+files (`experiment_config-v4-haiku55.json`, `state-v4-haiku55.json`,
+`results/results-v4-haiku55-2026-10.jsonl`); `experiment_config.json` and
+`state.json` are untouched.
+
+Two methodology changes start here:
+
+- **Effort is pinned per tier** (`--effort`, commit `7c75591`). Every
+  earlier row ran at whatever the CLI defaulted to, which was never logged
+  (rows have no `effort` field). The baseline arm `haiku55` pins the
+  documented API default (`medium`); `haiku55high` runs `high` to test
+  whether raising effort is a cheaper fix than escalating to Sonnet.
+- **Cost comparison moves to `cost_usd`.** Haiku 5.5's tokenizer emits
+  ~30% more tokens than Haiku 4.5 for the same text, so token counts no
+  longer compare across models. The CLI's `total_cost_usd` was checked
+  against the published price table on 2026-10-27 (CLI 2.1.311) and
+  matched to the micro-dollar on both Haiku 5.5 price tiers, including the
+  per-request >100k-token tier and 1h cache writes. Output tokens remain
+  the within-model, cache-independent metric.
+
+No same-id Haiku 4.5 drift control was run with this slice (last one:
+v3, 2026-07-24); a straight Haiku 4.5 vs 5.5 comparison carries that
+three-month environment gap.
