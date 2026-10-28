@@ -7,150 +7,150 @@
         "opus55": "claude-opus-5-5",
         "fable51": "claude-fable-5-1"
     },
-    "next_run_idx": 0,
-    "completed_runs": [],
-    "remaining_runs": [
+    "next_run_idx": 20,
+    "completed_runs": [
         {
             "run_id": "18374d65ec32",
             "task_id": "102-security-audit",
             "model_tier": "haiku55",
             "n": 1,
-            "claimed_at": null
+            "claimed_at": "2026-10-28T16:07:14Z"
         },
         {
             "run_id": "6d27c53a45c2",
             "task_id": "102-security-audit",
             "model_tier": "sonnet55",
             "n": 2,
-            "claimed_at": null
+            "claimed_at": "2026-10-28T16:11:19Z"
         },
         {
             "run_id": "11ae53067c5e",
             "task_id": "102-security-audit",
             "model_tier": "fable51",
             "n": 3,
-            "claimed_at": null
+            "claimed_at": "2026-10-28T16:13:52Z"
         },
         {
             "run_id": "ca10364ed342",
             "task_id": "102-security-audit",
             "model_tier": "fable51",
             "n": 1,
-            "claimed_at": null
+            "claimed_at": "2026-10-28T16:17:41Z"
         },
         {
             "run_id": "aedeff20d8b7",
             "task_id": "102-security-audit",
             "model_tier": "haiku55",
             "n": 3,
-            "claimed_at": null
+            "claimed_at": "2026-10-28T16:22:38Z"
         },
         {
             "run_id": "5b475b52b576",
             "task_id": "102-security-audit",
             "model_tier": "fable51",
             "n": 4,
-            "claimed_at": null
+            "claimed_at": "2026-10-28T16:26:05Z"
         },
         {
             "run_id": "19990f79444a",
             "task_id": "102-security-audit",
             "model_tier": "fable51",
             "n": 2,
-            "claimed_at": null
+            "claimed_at": "2026-10-28T16:30:45Z"
         },
         {
             "run_id": "db8453028598",
             "task_id": "102-security-audit",
             "model_tier": "opus55",
             "n": 2,
-            "claimed_at": null
+            "claimed_at": "2026-10-28T16:34:23Z"
         },
         {
             "run_id": "8fbf32b43e88",
             "task_id": "102-security-audit",
             "model_tier": "sonnet55",
             "n": 1,
-            "claimed_at": null
+            "claimed_at": "2026-10-28T16:36:52Z"
         },
         {
             "run_id": "de2e2e2391f4",
             "task_id": "102-security-audit",
             "model_tier": "haiku55",
             "n": 5,
-            "claimed_at": null
+            "claimed_at": "2026-10-28T16:39:36Z"
         },
         {
             "run_id": "1b3563458dd0",
             "task_id": "102-security-audit",
             "model_tier": "haiku55",
             "n": 4,
-            "claimed_at": null
+            "claimed_at": "2026-10-28T16:42:42Z"
         },
         {
             "run_id": "fddcc8911d38",
             "task_id": "102-security-audit",
             "model_tier": "fable51",
             "n": 5,
-            "claimed_at": null
+            "claimed_at": "2026-10-28T16:45:18Z"
         },
         {
             "run_id": "f6e30cff2673",
             "task_id": "102-security-audit",
             "model_tier": "opus55",
             "n": 1,
-            "claimed_at": null
+            "claimed_at": "2026-10-28T16:48:45Z"
         },
         {
             "run_id": "548e7f9994d6",
             "task_id": "102-security-audit",
             "model_tier": "opus55",
             "n": 4,
-            "claimed_at": null
+            "claimed_at": "2026-10-28T16:51:12Z"
         },
         {
             "run_id": "6bf1de6be936",
             "task_id": "102-security-audit",
             "model_tier": "sonnet55",
             "n": 4,
-            "claimed_at": null
+            "claimed_at": "2026-10-28T16:53:26Z"
         },
         {
             "run_id": "6fd82ba4b64c",
             "task_id": "102-security-audit",
             "model_tier": "haiku55",
             "n": 2,
-            "claimed_at": null
+            "claimed_at": "2026-10-28T16:56:13Z"
         },
         {
             "run_id": "34982c027430",
             "task_id": "102-security-audit",
             "model_tier": "sonnet55",
             "n": 5,
-            "claimed_at": null
+            "claimed_at": "2026-10-28T16:59:14Z"
         },
         {
             "run_id": "8c7eb8a8dd60",
             "task_id": "102-security-audit",
             "model_tier": "opus55",
             "n": 3,
-            "claimed_at": null
+            "claimed_at": "2026-10-28T17:01:27Z"
         },
         {
             "run_id": "cb42d86ed722",
             "task_id": "102-security-audit",
             "model_tier": "sonnet55",
             "n": 3,
-            "claimed_at": null
+            "claimed_at": "2026-10-28T17:04:12Z"
         },
         {
             "run_id": "1a934f0be098",
             "task_id": "102-security-audit",
             "model_tier": "opus55",
             "n": 5,
-            "claimed_at": null
+            "claimed_at": "2026-10-28T17:06:49Z"
         }
     ],
+    "remaining_runs": [],
     "current_session_tokens_est": 0,
     "current_session_started_at": null
 }
