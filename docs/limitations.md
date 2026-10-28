@@ -352,3 +352,27 @@ the seeded interleaved order. 102 (security audit) and the safeguard probe
 are split into part 2: the orchestrating session on Opus 5.5 was repeatedly
 blocked by that model's own safeguards when handling them, so part 2 is
 launched by the operator outside an assistant session.
+
+## v4 part 2: the security cell on the new lineup (2026-10-28)
+
+`experiment_config-v4-part2.json` / `state-v4-part2.json` /
+`results/results-v4-part2-2026-10.jsonl`: 102 (security audit) on
+`claude-haiku-5-5`, `claude-sonnet-5-5`, `claude-opus-5-5` and
+`claude-fable-5-1` (N=5), same effort pinning as part 1 (Sonnet 5.5 and
+Fable 5.1 `high`, Opus 5.5 and Haiku 5.5 `medium`). The planner builds the
+full tier x task product, which here is exactly the 20 planned runs
+(4 tiers x 1 task x N=5), so no queue filtering was applied. The safeguard
+probe (`runner/bin/safeguard-probe`) is run separately and writes its own
+results file.
+
+Operator-launch caveat, and itself a finding: the config and state for this
+part were prepared from a Claude Code session, but only by copying part 1's
+config structure mechanically. The assistant did not open task 102's prompt
+or the probe script, because doing so twice tripped a safety classifier
+(2026-10-27 an API `[cyber]` safeguard on an Opus 5.5 session, 2026-10-28 a
+response-level classifier on an Opus 4.8 session reading the v3 findings doc
+that quotes the probe's offensive framing). `run-all` and the probe are
+therefore started by the operator in a plain terminal, not from an assistant
+session. This means the orchestrating model's own safeguards are a confound
+for the very cell meant to measure safeguard behaviour; the split keeps the
+measured subagent dispatches clean of it.

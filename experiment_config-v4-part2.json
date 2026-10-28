@@ -1,0 +1,39 @@
+{
+    "schema_version": 1,
+    "experiment_name": "llm-dispatch-v4-part2",
+    "plan_seed": 42,
+    "n_replicates": 5,
+    "max_iterations_per_run": 3,
+    "max_wall_clock_seconds": 1800,
+    "tiers": [
+        "haiku55",
+        "sonnet55",
+        "opus55",
+        "fable51"
+    ],
+    "task_ids": [
+        "102-security-audit"
+    ],
+    "judge_model": "claude-opus-4-8",
+    "pinned_models": {
+        "haiku55": null,
+        "sonnet55": null,
+        "opus55": null,
+        "fable51": null
+    },
+    "policy": "retry-only",
+    "db": {
+        "host": "127.0.0.1",
+        "port": 3307,
+        "database": "ticket_system",
+        "user": "ticket_app",
+        "password": "ticket_app_pw"
+    },
+    "comment": "v4 part 2: the security cell (102) on the Sep-Oct 2026 lineup, split out from part 1 because the orchestrating Opus 5.5 session was blocked by its own safeguards on this content (see docs/limitations.md). Effort pinned to each model's documented API default (Sonnet 5.5 and Fable 5.1 high, Opus 5.5 and Haiku 5.5 medium). Four tiers x one task x N=5 = 20 runs, no queue filtering. The safeguard probe (runner/bin/safeguard-probe) is run separately and writes its own results file.",
+    "effort": {
+        "haiku55": "medium",
+        "sonnet55": "high",
+        "opus55": "medium",
+        "fable51": "high"
+    }
+}
