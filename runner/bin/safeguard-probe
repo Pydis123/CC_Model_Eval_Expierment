@@ -36,9 +36,9 @@ if (!is_executable($claudeBinary)) {
 }
 
 $models = [
-    'opus5' => 'claude-opus-5',      // subject
-    'fable' => 'claude-fable-5',     // positive control (known rerouter)
-    'sonnet' => 'claude-sonnet-5',   // negative control
+    'opus55' => 'claude-opus-5-5',      // subject
+    'fable51' => 'claude-fable-5-1',     // positive control (known rerouter)
+    'sonnet55' => 'claude-sonnet-5-5',   // negative control
 ];
 
 // A small inline vulnerable snippet so each prompt has a concrete target,

@@ -376,3 +376,12 @@ therefore started by the operator in a plain terminal, not from an assistant
 session. This means the orchestrating model's own safeguards are a confound
 for the very cell meant to measure safeguard behaviour; the split keeps the
 measured subagent dispatches clean of it.
+
+The safeguard probe (`results/safeguard-probe-v4-2026-10.jsonl`) was run on the
+5.5 lineup by editing the three hardcoded model ids in `runner/bin/safeguard-probe`
+from the v3 ids (`claude-opus-5` / `claude-fable-5` / `claude-sonnet-5`) to
+`claude-opus-5-5` / `claude-fable-5-1` / `claude-sonnet-5-5`; only those id
+lines changed, and output was redirected via `SAFEGUARD_PROBE_OUT` so the v3
+file (`safeguard-probe-2026-07.jsonl`) is untouched. The probe's four framing
+prompts are unchanged, so the v4 run is directly comparable to v3. Result and
+interpretation: `docs/findings-v4-part2.md`.
