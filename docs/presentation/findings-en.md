@@ -1,31 +1,33 @@
 # Which Claude model should you use for what? — An experiment
 
-## TL;DR
+> **Updated Oct 2026 (v4).** The experiment has been re-run on the current
+> lineup (Haiku 5.5 / Sonnet 5.5 / Opus 5.5 / Fable 5.1). The conclusions have
+> moved — see [What changed in v4](#what-changed-in-v4-oct-2026). The detailed
+> tables in the body show the earlier round (Phase 2, Claude-5), which v4 now
+> beats on pass rate.
 
-- **Two task banks, four model tiers** (Haiku, Sonnet, Opus, Fable), N=5
-  replicates each.
-- **Well-specified implementation is a solved problem — full stop.** 8
-  implementation tasks × 4 tiers × 5 runs, and every tier went **5/5 on
-  every task**. Tier choice there is a cost decision, not a quality one.
-  Haiku is ~40% cheaper than Sonnet/Opus for an identical result.
-- **Review and hard reasoning is where it gets interesting.** A second
-  bank of 8 review/analysis tasks actually splits the tiers apart —
-  this is the part worth reading.
-- Haiku nails mechanical review (seeded security-defect finding 5/5, PR
-  code review 5/5) but **fails reasoning-heavy review**: plan/spec
-  review 2/5, query-budget/N+1 analysis 2/5.
-- Sonnet is the workhorse: 5/5 on 7 of 8 review tasks, including both
-  tasks Haiku failed.
-- Opus is the only flawless tier (40/40, zero failures) — but it was
-  **never the sole passer**. No task in this experiment required Opus.
-- Fable has no use case here: it matches Sonnet on cost and quality,
-  and its dual-use safety filters **silently reroute security-adjacent
-  work away from the model** — 100% of security-audit dispatches never
-  ran at all.
+## TL;DR (current, v4)
+
+- **Two task banks, four model tiers**, N=5 replicates each.
+- **Well-specified implementation is a solved problem — full stop.** Every
+  tier went **5/5 on every task**. Tier choice there is a cost decision, not a
+  quality one.
+- **The review bank separated the tiers when first run — not anymore.** On the
+  Claude-5 lineup, Haiku failed the reasoning-heavy tasks (2/5). On the 5.5
+  lineup **all four tiers pass every discriminating cell (80/80).** Haiku 5.5
+  closes exactly the gaps Haiku 4.5 had, at the lowest cost of any tier.
+- **Cost is the only real differentiator now.** Haiku 5.5 is the floor by
+  13–45×; Sonnet 5.5 and Opus 5.5 run 60–85% cheaper than their predecessors.
+- **The safeguard behaviour flipped.** In v3, Opus was the one tier with no
+  safeguard interference; in v4 **the whole 5.5 generation hard-blocks
+  offensive framings** (its own API error), Opus included. Legitimate
+  defensive audits still run.
+- **Fable still has no use case:** most expensive, no quality gain, and it
+  reroutes/blocks security work. Hard rule stays: never route security work to
+  Fable.
 - **Optimal strategy:** escalate Haiku → Sonnet → Opus on failure. ~35%
-  cheaper than defaulting to Opus for everything, same end result.
-- **Biggest lever:** how specific your prompt is beats which tier you
-  pick.
+  cheaper than defaulting to Opus for everything.
+- **Biggest lever:** how specific your prompt is beats which tier you pick.
 
 ---
 
@@ -35,6 +37,25 @@ worth paying for the more expensive model?** This round adds a second
 task bank — review and reasoning work — on top of the implementation
 bank from the last round, plus a fourth tier (Fable). The result is a
 much sharper picture than before.
+
+## What changed in v4 (Oct 2026)
+
+The experiment has run five times, from an early three-tier pilot to a full
+refresh on the current lineup. How the picture moved:
+
+| Round | Date | Lineup | Scope | Headline |
+|---|---|---|---|---|
+| **v1** | 2026-04 | Haiku 4.5 / Sonnet 5 / Opus 4.8 (3 tiers) | both banks, N=3 | Early pilot; validated the harness. Archived. |
+| **v2.1** | 2026-07-06 | + Fable 5 (4 tiers) | implementation, N=5 | **Ceiling** — all 5/5. Tier = cost. |
+| **Phase 2** | 2026-07-08 | same 4 tiers | review, N=5 | **Tiers separate.** Haiku fails plan/query-budget (2/5); Opus only flawless tier; Fable reroutes security 100%. |
+| **v3** | 2026-07-24 | Opus `4.8 → 5` | 4 cells + probe | Opus 5 a clean drop-in (20/20). Probe: Opus 5 **0/20** rerouted, Fable 5 16/20, Sonnet 5 refused 4/20. |
+| **v4** | 2026-10-27/28 | **whole lineup → 5.5** | 4 cells + probe | **New ceiling (80/80).** Haiku 5.5 passes the cells 4.5 failed, cheapest. Probe **flipped**: whole 5.5 gen hard-blocks offensive framings — Opus included. |
+
+**The core of v4:** the tasks that once separated the models no longer do — the
+models caught up to the test. What's left to choose on is cost (Haiku 5.5 wins
+big) and safeguard behaviour (the whole generation now blocks offensive
+framings but lets defensive audits through). Details in
+`docs/findings-v4-part1.md` and `docs/findings-v4-part2.md`.
 
 ## Setup
 
@@ -59,10 +80,11 @@ decisions.
 Pinned exact model IDs throughout to avoid silent upgrades mid-run.
 Max 2 same-tier retries before escalating.
 
-## Results — where it gets interesting
+## Results — where it got interesting (Phase 2, Claude-5 lineup)
 
 Bank 1 was a ceiling: nothing to show but "100% × 4 tiers." Bank 2 is
-the payoff.
+the payoff — this is the round where the tiers first separated (Haiku 4.5 /
+Sonnet 5 / Opus 4.8 / Fable 5).
 
 | Task | Haiku | Sonnet | Opus | Fable |
 |---|:---:|:---:|:---:|:---:|
@@ -100,6 +122,30 @@ outright; the request just never reached the model as asked. Hard
 rule: **never route security-audit, security-review, or adversarial
 code review to Fable.**
 
+## The same bank on the 5.5 lineup (v4)
+
+Re-run on the current lineup across the four cells that discriminated above.
+Pass · mean recall (where scored) · mean list-price cost per run:
+
+| Task | Haiku 5.5 | Sonnet 5.5 | Opus 5.5 | Fable 5.1 |
+|---|---|---|---|---|
+| Plan review | 5/5 · 0.95 · $0.07 | 5/5 · 0.98 · $0.36 | 5/5 · 1.00 · $0.67 | 5/5 · 1.00 · $2.46 |
+| Security audit | 5/5 · 0.85 · $0.05 | 5/5 · 0.77 · $0.34 | 5/5 · 0.88 · $0.63 | 5/5 · 0.78 · $2.24\* |
+| PR code review | 5/5 · 0.88 · $0.02 | 5/5 · 0.80 · $0.20 | 5/5 · 0.88 · $0.35 | 5/5 · 0.90 · $1.41 |
+| Query-budget | 5/5 · $0.04 | 5/5 · $0.47 | 5/5 · $0.71 | 5/5 · $3.45 |
+
+\* Fable 5.1 silently rerouted 1 of 5 security-audit dispatches to
+`claude-opus-4-8` (still returned a usable, passing result).
+
+Every cell is now 5/5. Haiku 5.5 passes plan review and query-budget — the two
+Haiku 4.5 failed — and solved query-budget on the first iteration every time.
+Recall is close (Opus 5.5 top on the security audit at 0.88, Haiku 5.5 second
+at 0.85); precision ≈1.0. **The safeguard probe inverted v3:** all three
+probed models complete the defensive framing but hard-block the offensive ones
+(exploit-explain, PoC, offensive tool) with their own API safeguard error —
+where Opus 5 in v3 completed all of them. Full write-up:
+`docs/findings-v4-part2.md`.
+
 ## The two-bank story
 
 1. **Implementation is solved.** If the task is a sequence of explicit
@@ -110,11 +156,12 @@ code review to Fable.**
    have with Haiku.
 2. **Review and reasoning is where the tiers actually differ**, and
    the split isn't "small model bad, big model good" — it's sharper
-   than that. Haiku is genuinely excellent at *mechanical* review
+   than that. Haiku 4.5 was genuinely excellent at *mechanical* review
    (spotting seeded defects, reviewing a diff) and genuinely bad at
    *reasoning-heavy* review (auditing a plan's own logic, tracing a
-   budget across the codebase). Know which kind of review you're
-   asking for.
+   budget across the codebase). **On the 5.5 lineup that gap closed** —
+   Haiku 5.5 passes both — but the distinction is still the right way to
+   think about *why* a cheaper model might struggle on a given review.
 3. **Opus's real value is reliability without task-specific knowledge**
    — the blind-safe default when you don't know enough about the task
    to pick a cheaper tier confidently. It is not, on this evidence, a
@@ -144,24 +191,24 @@ Pick the cheapest tier that has a reasonable chance of solving the
 task. Escalate on failure, never "just to be safe." Max 2 same-tier
 retries before escalating.
 
-- **Haiku** — default for well-specified implementation work
-  (i18n, migrations with an explicit backfill plan, RBAC routes,
-  frontend components, bugfixes with a working repro, single-file
-  refactors with a named pattern). Also strong on mechanical review —
-  seeded-defect finding, PR code review. Skip Haiku for reasoning-heavy
-  review (plan/spec review, query-budget/N+1 analysis) — go straight
-  to Sonnet.
-- **Sonnet** — the workhorse for review and analysis, and the
-  escalation tier for implementation. Handles plan review and
-  query-budget reasoning that Haiku can't.
-- **Opus** — top escalation rung and blind-safe default for
-  high-stakes correctness when you can't confidently pick a cheaper
-  tier. Not "just to be safe" by default — reserve it for cases where
-  the cost of being wrong is high.
-- **Fable** — no established use case; matches Sonnet on cost and
-  quality with no advantage. Never route security-audit,
-  security-review, or adversarial code review to it — its safety
-  filters silently reroute those requests away from the model.
+- **Haiku** (`claude-haiku-5-5`) — default for well-specified
+  implementation work (i18n, migrations with a backfill plan, RBAC
+  routes, frontend components, bugfixes with a working repro). On 5.5 it
+  also passes the reasoning-heavy review Haiku 4.5 failed (plan/spec
+  review, query-budget), at the lowest cost — a reasonable first try for
+  review too. Still name the pattern explicitly; compare tiers in $, not
+  tokens (new tokenizer emits ~30% more tokens).
+- **Sonnet** (`claude-sonnet-5-5`) — the workhorse for review, and the
+  implementation escalation tier. Its exclusive territory shrank once
+  Haiku 5.5 took over plan review and query-budget.
+- **Opus** (`claude-opus-5-5`) — top escalation rung and blind-safe
+  default for high-stakes correctness. Note: Opus 5.5 is NOT
+  safeguard-free on security anymore — it hard-blocks offensive framings
+  like the rest of the generation; defensive audits still run.
+- **Fable** (`claude-fable-5-1`) — no established use case; most
+  expensive, no quality gain. Never route security-audit,
+  security-review, or adversarial code review to it — silent reroute
+  plus overt safeguard blocks.
 ```
 
 ## Limitations
@@ -194,8 +241,9 @@ reasoned, not measured — don't overclaim it.
 
 ## Resources
 
-- Raw data: `results/results.jsonl`
+- Raw data: `results/*.jsonl`
 - Public summary: `README.md`
+- Current findings (v4): `docs/findings-v4-part1.md`, `docs/findings-v4-part2.md`
 - Implementation-bank report: `docs/archive/findings-v2.1.md`
 - Cost calculator for your own workload:
   `php runner/bin/cost-calculator.php --help`

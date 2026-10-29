@@ -1,11 +1,18 @@
 # Tier-fit in subagent dispatch: a controlled experiment on Claude Haiku, Sonnet, Opus, and Fable across implementation and review tasks
 
-**Date:** April 2026 (data recalibrated July 2026 — see Deviations, §5)
+**Date:** April 2026 (data recalibrated July 2026; lineup refreshed to the 5.5
+generation October 2026 — see the Update below and Deviations, §5)
 **Repo:** llm-dispatch-experiment (commit at run completion)
 
 ---
 
 ## TL;DR
+
+> This TL;DR and the numbered sections report the original rounds (Claude-5
+> lineup). The [Update](#update--v3-jul-2026-and-v4-oct-2026-recalibrations)
+> below supersedes several of these points on the current 5.5 lineup — most
+> notably "Haiku fails reasoning-heavy review" (a Haiku-4.5 result; Haiku 5.5
+> passes those cells) and the Opus safeguard claim.
 
 - Two task banks, N=5 replicates, 4 pinned Claude tiers (Haiku, Sonnet,
   Opus, Fable) plus a pinned Opus judge for rubric-scored tasks.
@@ -28,6 +35,61 @@
   is a simpler mental model.
 - Prompt specificity remains the dominant cost lever — bigger than
   tier choice.
+
+---
+
+## Update — v3 (Jul 2026) and v4 (Oct 2026) recalibrations
+
+The numbered sections below report the original rounds on the Claude-5 lineup
+(Haiku 4.5 / Sonnet 5 / Opus 4.8 / Fable 5). Two later rounds re-measured the
+discriminating cells on newer models; their headline results change the
+conclusions and are summarised here.
+
+| Round | Date | Lineup | Scope (N=5) | Headline |
+|---|---|---|---|---|
+| v1 | 2026-04 | Haiku 4.5 / Sonnet 5 / Opus 4.8 (3-tier) | both banks, N=3 | Pilot; harness validated. |
+| v2.1 | 2026-07-06 | + Fable 5 | implementation | Ceiling — all 5/5. |
+| Phase 2 | 2026-07-08 | same | review | Tiers separate (§§3.3, 4.2). |
+| v3 | 2026-07-24 | Opus `4.8 → 5` | 4 discriminating cells + probe | Opus 5 clean drop-in, 20/20; tokens ~flat. Probe: Opus 5 0/20 rerouted, Fable 5 16/20, Sonnet 5 refused 4/20. |
+| v4 | 2026-10-27/28 | whole lineup → 5.5 | 4 discriminating cells + probe | New ceiling, 80/80; see below. Probe inverts v3. |
+
+**v4 pass · mean recall (where scored) · mean list-price cost/run:**
+
+| Cell | Haiku 5.5 | Sonnet 5.5 | Opus 5.5 | Fable 5.1 |
+|---|---|---|---|---|
+| 101 plan-review | 5/5 · 0.95 · $0.07 | 5/5 · 0.98 · $0.36 | 5/5 · 1.00 · $0.67 | 5/5 · 1.00 · $2.46 |
+| 102 security-audit | 5/5 · 0.85 · $0.05 | 5/5 · 0.77 · $0.34 | 5/5 · 0.88 · $0.63 | 5/5 · 0.78 · $2.24¹ |
+| 103 code-review | 5/5 · 0.88 · $0.02 | 5/5 · 0.80 · $0.20 | 5/5 · 0.88 · $0.35 | 5/5 · 0.90 · $1.41 |
+| 108 query-budget | 5/5 · $0.04 | 5/5 · $0.47 | 5/5 · $0.71 | 5/5 · $3.45 |
+
+¹ Fable 5.1 silently rerouted 1/5 security-audit dispatches to
+`claude-opus-4-8` (still passed).
+
+Three conclusions move:
+
+1. **The review bank is now a ceiling too.** All four tiers pass every
+   discriminating cell (80/80). Haiku 5.5 passes 101 and 108 — the cells Haiku
+   4.5 failed 2/5 — and was the only tier to solve 108 on iteration 1 every
+   time. The §4.2 claim "Haiku fails reasoning-heavy review" is a Haiku-4.5
+   result and does not hold for 5.5.
+2. **Cost separates the tiers where pass rate no longer does.** Haiku 5.5 is
+   the floor by 13–45×; Sonnet 5.5 and Opus 5.5 are 60–85% cheaper than their
+   v3 predecessors. (Token counts are not compared across generations: the 5.5
+   tokenizer emits ~30% more tokens per text, so cost is in USD.)
+3. **The safeguard result inverts (§4.5 revised).** A 60-dispatch probe (Opus
+   5.5 / Fable 5.1 / Sonnet 5.5 × 4 escalating framings × 5) shows all three
+   completing the defensive-audit framing 5/5 and **hard-blocking** the
+   exploit-explain, PoC and offensive-tool framings 5/5 via each model's own
+   API safeguard (exit-1 error, not a reroute, not an in-band refusal). In v3
+   Opus 5 completed all 20; on the 5.5 lineup the block is generation-wide,
+   Opus 5.5 included. Opus is therefore no longer the "no-safeguard" blind-safe
+   tier for security dispatch. Real defensive audits still complete (102 is
+   20/20). A related orchestration-layer effect: preparing/running the v4
+   security cell from an assistant session was itself blocked by these
+   safeguards, so part 2 was run by the operator in a plain terminal.
+
+Primary sources: `docs/findings-v4-part1.md`, `docs/findings-v4-part2.md`,
+`docs/findings-v3-opus5.md`.
 
 ---
 

@@ -59,3 +59,28 @@ docs/                    # methodology, findings, limitations
 - **Never commit `worktrees/`** — gitignored.
 - **Do not modify `experiment_config.json` or `state.json` mid-experiment** without documenting why in `docs/limitations.md`.
 - **Mock-project's `CLAUDE.md` is off-limits from a "help the subagent" perspective** — never add hints there that bias results.
+
+## Keep the public docs in sync with the results
+
+Whenever a run changes a headline — a new calibration round, a new lineup, a
+pass-rate or safeguard result that moves a conclusion — update the public-facing
+docs in the **same session**, not "later". Treat this as part of finishing the
+run, the way tests are part of finishing code. The docs that must not go stale:
+
+- `README.md` — the repo front page. Keep the status section, the
+  **cross-version change table** (one row per round: date · lineup · scope ·
+  headline), the model-tier IDs, the results tables, the pinned-model IDs in
+  the reproduce block, and the documentation-map currency column all current.
+- `docs/presentation/findings-sv.md`, `findings-en.md`, `findings-research.md`
+  — the forwardable summaries (sv/en popular + the formal paper). Update the
+  TL;DR, the per-round change table, and the copyable "configure CLAUDE.md"
+  block. For the research paper, add a dated addendum rather than rewriting the
+  numbered sections, and note which numbered claims it supersedes.
+- The user's global model-selection guidance when the dispatch advice itself
+  changes (ask before editing files outside this repo).
+
+Rule of thumb: if a new finding contradicts a sentence already written in any
+of the above, the fix is not optional and is not a tracker item — correct it
+now, and frame the superseded round as historical rather than deleting it.
+Per-round detail lives in `docs/findings-*.md`; the public docs summarise and
+must point at the current one.

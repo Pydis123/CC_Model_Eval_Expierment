@@ -10,29 +10,30 @@ when do you actually need to pay for a stronger model?*
 
 ## Current status
 
-The experiment has been recalibrated for the Claude 5 model landscape (Haiku
-4.5 / Sonnet 5 / Opus 4.8 / Fable 5). **Two task banks have now been run to
-completion:**
+The experiment has now run through **five calibration rounds**, from an early
+three-tier pilot to a full refresh on the September–October 2026 Claude lineup
+(**Haiku 5.5 / Sonnet 5.5 / Opus 5.5 / Fable 5.1**). Two task banks are
+complete: an **implementation bank** (`001–008`) that is a ceiling for every
+tier, and a **review / hard-reasoning bank** (`101–108`) that separated the
+tiers when first run and has since been re-measured on each new model
+generation.
 
-1. **Implementation bank** (`v2.1`, tasks `001–008`) — eight well-specified
-   coding tasks. Result: a **ceiling** — every tier passed every task. Tier
-   choice affects only cost, not outcome.
-2. **Review / hard-reasoning bank** (`Phase 2`, tasks `101–108`) — eight harder
-   tasks (adversarial plan review, security audit, PR review, architecture
-   decisions, a no-repro bug, a transactional refactor, a query-budget fix).
-   Result: this bank **separates the tiers** — the interesting data.
+### How the picture changed across versions
 
-An earlier three-tier run (`v1`, 2026-04, N=3) is complete and archived. A
-`v2.0` implementation run was collected but **discarded** for two harness
-confounds and re-run as `v2.1` (see [Deviations](#deviations-things-that-did-not-go-to-plan)).
+| Round | Date | Model lineup | Scope (N=5 unless noted) | Headline result |
+|---|---|---|---|---|
+| **v1** | 2026-04 | Haiku 4.5 / Sonnet 5 / Opus 4.8 (3-tier pilot) | both banks, N=3 | Earliest pilot; established and validated the harness. Archived. |
+| **v2.1** | 2026-07-06 | + Fable 5 (4 tiers) | implementation `001–008` | **Ceiling** — every tier 5/5 on every task. Tier choice is cost, not correctness. Haiku ~40% fewer tokens. |
+| **Phase 2** | 2026-07-08 | same 4 tiers | review `101–108` | **Tiers separate.** Haiku fails plan-review & query-budget (2/5); Opus the only flawless tier (40/40); Fable reroutes security-audit 100%. |
+| **v3** | 2026-07-24 | Opus `4.8 → 5` | 4 discriminating cells + safeguard probe | Opus 5 a clean drop-in (20/20), tokens ~flat. Probe: Opus 5 **0/20** reroute, Fable 5 16/20 rerouted, Sonnet 5 refused 4/20. |
+| **v4** | 2026-10-27/28 | **whole lineup → 5.5** (Haiku/Sonnet/Opus 5.5, Fable 5.1) | 4 discriminating cells + safeguard probe | **New ceiling (80/80).** Haiku 5.5 now passes the reasoning cells 4.5 failed, at the lowest cost. Probe **flipped**: the whole 5.5 generation hard-blocks offensive framings — Opus included. |
 
-> **On the generated report.** `docs/findings.md` is normally produced by
-> `runner/bin/cli report`. For Phase 2 the generator cannot yet run (it hard-requires
-> N=5 per cell and miscounts safeguard-rerouted runs as passes — see
-> [Limitations](#limitations)), so the Phase 2 numbers below were **hand-aggregated
-> deterministically** from `results/results.jsonl` with zero model dispatch.
-> The implementation-bank report is committed at
-> [`docs/archive/findings-v2.1.md`](docs/archive/findings-v2.1.md).
+The per-round write-ups live in `docs/` (see the
+[Documentation map](#documentation-map)); `docs/findings-v4-part1.md` and
+`docs/findings-v4-part2.md` are the current ones. Phase 2 and v4 numbers below
+were **hand-aggregated deterministically** from the `results/*.jsonl` logs with
+zero model dispatch — the `report` generator still cannot run on
+variable-N / safeguard-blocked cells (see [Limitations](#limitations)).
 
 ## TL;DR — the headline findings
 
@@ -42,21 +43,27 @@ On the implementation bank every tier — Haiku, Sonnet, Opus, Fable — passed
 named pattern, tier choice is a **cost** decision, not a correctness one. Haiku
 used ~40% fewer tokens than Sonnet/Opus for the same result.
 
-**2. Review and hard reasoning is where tiers separate.** On the Phase 2 bank:
+**2. Review and hard reasoning separated the tiers — until the models caught
+up.** When the review bank was first run (**Phase 2**, the Claude-5 lineup) it
+split the tiers cleanly: Haiku failed the reasoning-heavy tasks (plan-review
+and query-budget, 2/5 each), Sonnet was the 5/5-on-7-of-8 workhorse, Opus was
+the only flawless tier (40/40) but *never the sole passer*, and Fable rerouted
+all security-audit dispatches. **On the current 5.5 lineup (v4) that
+separation is gone:** all four tiers now pass every discriminating cell
+(80/80). Haiku 5.5 closes the two reasoning cells Haiku 4.5 failed — at the
+lowest cost of any tier — so the bank is now a ceiling the way implementation
+already was. See [the v4 results](#results).
 
-- **Haiku fails the reasoning-heavy tasks** — plan/spec review (2/5) and
-  query-budget / N+1 analysis (2/5) — but still nails mechanical review:
-  security-defect finding and PR code review at 5/5.
-- **Sonnet is the workhorse** — 5/5 on 7 of 8 tasks including everything Haiku
-  failed; it dipped only on PR code review (3/5).
-- **Opus was the only flawless tier (40/40)** — but **never the sole passer**.
-  Sonnet matched it on 7 of 8 tasks at ~15% fewer tokens. **No task required
-  Opus.** Its measured value is *reliability without task-specific knowledge* —
-  a blind-safe default, not a correctness requirement.
-- **Fable has no dispatch case** — it matches Sonnet on both cost and quality
-  (no advantage anywhere) **and** its dual-use safeguards silently reroute
-  security-adjacent work (100% of the security-audit dispatches). Sonnet
-  dominates it. **Hard rule: never route security work to Fable.**
+**2b. The one thing that still differs is the safeguard behaviour — and it
+flipped.** In v3, Opus 5 was the one tier with no safeguard interference (0/20
+on the routing probe), which made it the blind-safe default for security
+dispatches; Fable rerouted (16/20) and Sonnet refused a few (4/20). On the 5.5
+lineup **all three probed models behave the same**: the defensive audit
+framing completes, but every offensive-escalation framing is **hard-blocked by
+the model's own API safeguard** — Opus 5.5 included. Legitimate defensive
+audits still run fine (102 is 20/20). **Hard rule still stands: never route
+security work to Fable** (silent reroute on borderline-real tasks, plus overt
+blocks, plus the highest cost and no quality upside).
 
 **3. Prompt specificity is a bigger cost lever than tier choice.** A 50-word
 tightening that names the pattern and points at existing code can move a task
@@ -147,18 +154,22 @@ path outside the repo) is *detected rather than sandboxed* — see
 
 ## The model tiers
 
-Four tiers, pinned to exact model IDs and verified on every dispatch:
+Four tiers, pinned to exact model IDs and verified on every dispatch. The
+lineup was refreshed to the 5.5 generation in v4; earlier rounds used the
+Claude-5 ids:
 
-| Tier | Pinned model ID |
-|---|---|
-| Haiku | `claude-haiku-4-5-20251001` |
-| Sonnet | `claude-sonnet-5` |
-| Opus | `claude-opus-4-8` |
-| Fable | `claude-fable-5` |
-| *(judge)* | `claude-opus-4-8` |
+| Tier | Current ID (v4) | Earlier ID (v1–v3) |
+|---|---|---|
+| Haiku | `claude-haiku-5-5` | `claude-haiku-4-5-20251001` |
+| Sonnet | `claude-sonnet-5-5` | `claude-sonnet-5` |
+| Opus | `claude-opus-5-5` | `claude-opus-4-8` → `claude-opus-5` (v3) |
+| Fable | `claude-fable-5-1` | `claude-fable-5` |
+| *(judge)* | `claude-opus-4-8` | `claude-opus-4-8` (held constant) |
 
-`N=5` replicates per `(task, tier)` cell. Nominal size: 8 tasks × 4 tiers × 5 =
-**160 runs per bank**.
+The judge is held at `claude-opus-4-8` across all rounds so a constant bias
+survives relative tier comparison. `N=5` replicates per `(task, tier)` cell.
+In v4, effort is pinned to each model's documented API default and logged per
+run.
 
 ## Results
 
@@ -177,10 +188,10 @@ is cost. Summed across all 8 tasks, mean tokens for one full pass:
 Haiku is ~40% cheaper than Sonnet/Opus for identical outcomes. Full per-task
 tables: [`docs/archive/findings-v2.1.md`](docs/archive/findings-v2.1.md).
 
-### Review & hard-reasoning bank (`101–108`, N=5)
+### Review & hard-reasoning bank (`101–108`) — Phase 2, the Claude-5 lineup
 
-This is the bank that separates the tiers. **Pass rate (clean runs that passed
-/ clean runs):**
+This is the bank that *first* separated the tiers (Haiku 4.5 / Sonnet 5 / Opus
+4.8 / Fable 5). **Pass rate (clean runs that passed / clean runs):**
 
 | Task | Haiku | Sonnet | Opus | Fable | Fable safeguard interference |
 |---|---|---|---|---|---|
@@ -196,13 +207,49 @@ This is the bank that separates the tiers. **Pass rate (clean runs that passed
 Mean tokens per run: Haiku ~17k · Sonnet ~20k · Opus ~23k · Fable ~20k.
 
 Reading the table:
-- **Bold-low Haiku cells** (101, 108) are the reasoning-heavy tasks Haiku can't
-  reliably do. Everything else it does at 5/5.
+- **Bold-low Haiku cells** (101, 108) are the reasoning-heavy tasks Haiku 4.5
+  can't reliably do. Everything else it does at 5/5.
 - **Sonnet's 3/5 on 103** is the one place a cheaper tier (Haiku) was steadier —
   escalate-on-doubt, don't assume Sonnet always dominates Haiku.
 - **Opus is the only column with no failures**, but every Opus pass is matched
   by a cheaper tier somewhere.
 - **Fable's 102 cell is N=0** — not a failure, a *reroute*. See below.
+
+### Review & hard-reasoning bank (`101–108`) — v4, the 5.5 lineup
+
+Re-run on the September–October 2026 lineup (Haiku 5.5 / Sonnet 5.5 / Opus 5.5
+/ Fable 5.1) across the four cells that discriminated in Phase 2. **Pass rate ·
+mean recall (where scored) · mean list-price cost per run:**
+
+| Task | Haiku 5.5 | Sonnet 5.5 | Opus 5.5 | Fable 5.1 |
+|---|---|---|---|---|
+| 101 plan-review | 5/5 · 0.95 · $0.07 | 5/5 · 0.98 · $0.36 | 5/5 · 1.00 · $0.67 | 5/5 · 1.00 · $2.46 |
+| 102 security-audit | 5/5 · 0.85 · $0.05 | 5/5 · 0.77 · $0.34 | 5/5 · 0.88 · $0.63 | 5/5 · 0.78 · $2.24¹ |
+| 103 code-review | 5/5 · 0.88 · $0.02 | 5/5 · 0.80 · $0.20 | 5/5 · 0.88 · $0.35 | 5/5 · 0.90 · $1.41 |
+| 108 query-budget-perf | 5/5 · $0.04 | 5/5 · $0.47 | 5/5 · $0.71 | 5/5 · $3.45 |
+
+¹ Fable 5.1 silently rerouted 1 of its 5 security-audit dispatches to
+`claude-opus-4-8` (still returned a usable, passing result).
+
+Reading the table:
+- **Every cell is now 5/5 (80/80 including the Haiku 5.5 slice).** The cells
+  that separated the tiers in Phase 2 no longer do. Haiku 5.5 passes 101 and
+  108 — the two Haiku 4.5 failed — and was the only tier to solve 108 on the
+  first iteration every time.
+- **Recall is close across tiers** (Opus 5.5 highest on the security audit at
+  0.88, Haiku 5.5 a near second at 0.85); precision ≈1.0 everywhere.
+- **Cost is the real differentiator now.** Haiku 5.5 is the floor by 13–45×;
+  Sonnet 5.5 and Opus 5.5 run 60–85% cheaper than their v3 predecessors;
+  Fable 5.1 is the most expensive with no quality gain.
+
+**Safeguard probe (v4).** 60 dispatches (Opus 5.5 / Fable 5.1 / Sonnet 5.5 × 4
+escalating framings × 5). All three complete the defensive-audit framing 5/5,
+and all three **hard-block** the exploit-explain, PoC-code and offensive-tool
+framings 5/5 — an API safeguard error (exit 1) naming each model's own
+safeguard, not a reroute and not an in-band refusal. This inverts v3, where
+Opus 5 completed everything (0/20 blocked). Opus 5.5 is no longer the
+"no-safeguard" tier; the behaviour is now generation-wide. Full write-up:
+[`docs/findings-v4-part2.md`](docs/findings-v4-part2.md).
 
 ## Deviations (things that did not go to plan)
 
@@ -253,6 +300,20 @@ to handle. It was re-run clean as `v2.1` with a sanitized environment and
 `--setting-sources project`. The v2.0 data is retained (renamed) as a
 measurement of the operator-harness effect, not used for conclusions.
 
+### v4: the security cell was run outside an assistant session
+
+Preparing and running the v4 security cell (102) and the safeguard probe from a
+Claude Code assistant session kept tripping the same 5.5-generation safeguards
+the probe measures — an API `[cyber]` block on an Opus 5.5 orchestrator
+(2026-10-27) and a response-level safety classifier on an Opus 4.8 session
+(2026-10-28). The non-security cells (part 1) ran normally from the session;
+the security parts (part 2) were prepared mechanically and launched by the
+operator in a plain terminal. The measured *subagent* dispatches are clean of
+this — the block is an orchestration-layer effect — but it is itself a finding,
+and it is why part 2 is split out. See
+[`docs/findings-v4-part2.md`](docs/findings-v4-part2.md) and
+[`docs/limitations.md`](docs/limitations.md).
+
 ### Other documented deviations
 
 - **Network outages** during the overnight runs produced a handful of
@@ -294,6 +355,9 @@ The short list:
 
 | Path | Contents | Currency |
 |---|---|---|
+| [`docs/findings-v4-part1.md`](docs/findings-v4-part1.md), [`docs/findings-v4-part2.md`](docs/findings-v4-part2.md) | v4 review bank on the 5.5 lineup (101/103/108, then 102 + safeguard probe) | **current** |
+| [`docs/findings-v4-haiku55.md`](docs/findings-v4-haiku55.md) | v4 Haiku 5.5 slice (101/108, effort medium vs high) | **current** |
+| [`docs/findings-v3-opus5.md`](docs/findings-v3-opus5.md) | v3 Opus 4.8 → Opus 5 recalibration + safeguard probe | current (superseded by v4) |
 | [`docs/archive/findings-v2.1.md`](docs/archive/findings-v2.1.md) | Implementation-bank report (per-task tokens, CIs, Policy B) | **current** |
 | [`docs/archive/findings-v1-2026-04.md`](docs/archive/findings-v1-2026-04.md) | Archived v1 report | historical |
 | [`docs/limitations.md`](docs/limitations.md) | Full caveats + the deviation log | **current** |
@@ -301,7 +365,7 @@ The short list:
 | [`docs/phase2-evaluator-taskbank-design.md`](docs/phase2-evaluator-taskbank-design.md) | Phase 2 task + evaluator design | **current** |
 | [`docs/running-the-experiment.md`](docs/running-the-experiment.md) | Step-by-step replication guide | current |
 | [`docs/conclusions.md`](docs/conclusions.md), [`docs/applying-findings.md`](docs/applying-findings.md), [`docs/tier-picker.md`](docs/tier-picker.md) | Analysis + practical-use guides | **v1-era — predate Phase 2** |
-| [`docs/presentation/`](docs/presentation/) | Forwardable summaries (sv/en/research) | **v1-era — predate Phase 2** |
+| [`docs/presentation/`](docs/presentation/) | Forwardable summaries (sv/en/research) | **current (through v4)** |
 | [`DECISIONS.md`](DECISIONS.md) | Locked-in design decisions | current |
 
 ## Repo layout
@@ -339,10 +403,10 @@ cd runner && composer install && cd ..
 
 php runner/bin/cli state init
 php runner/bin/cli state pin-models \
-  --haiku=claude-haiku-4-5-20251001 \
-  --sonnet=claude-sonnet-5 \
-  --opus=claude-opus-4-8 \
-  --fable=claude-fable-5
+  --haiku=claude-haiku-5-5 \
+  --sonnet=claude-sonnet-5-5 \
+  --opus=claude-opus-5-5 \
+  --fable=claude-fable-5-1
 php runner/bin/cli run-all
 php runner/bin/cli report        # implementation bank; see note re: Phase 2
 ```
